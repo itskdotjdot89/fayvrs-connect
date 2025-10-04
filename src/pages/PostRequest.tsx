@@ -23,7 +23,7 @@ export default function PostRequest() {
             placeholder="Describe what you're looking for..."
             value={promptText}
             onChange={(e) => setPromptText(e.target.value)}
-            className="min-h-[200px] text-base resize-none"
+            className="min-h-[120px] text-base resize-none"
             required
           />
           
