@@ -1,8 +1,9 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "./ui/button";
-import { HandshakeIcon, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { useState } from "react";
+import fayvrsLogo from "@/assets/fayvrs-logo.png";
 interface LayoutProps {
   children: ReactNode;
 }
@@ -18,7 +19,7 @@ export const Layout = ({
         <nav className="container mx-auto px-4 h-16 flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 font-bold text-xl">
-            <HandshakeIcon className="h-6 w-6 text-primary" />
+            <img src={fayvrsLogo} alt="Fayvrs" className="h-8 w-8" />
             <span className="text-secondary">Fayvrs</span>
           </Link>
 
