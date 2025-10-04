@@ -8,55 +8,58 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Fayvrs Brand Colors */
-    --primary: 172 78% 42%;        /* Teal #17BFA9 */
+    /* Fayvrs Lite Brand Colors */
+    --primary: 172 75% 42%;        /* Teal #17BFA9 */
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 172 78% 38%;
+    --primary-hover: 172 75% 38%;
     
-    --secondary: 201 36% 17%;      /* Navy #1B2B39 */
+    --secondary: 207 36% 16%;      /* Navy #1B2B39 */
     --secondary-foreground: 0 0% 100%;
     
-    --background: 0 0% 100%;
-    --foreground: 201 36% 17%;     /* Navy for text */
+    --background: 0 0% 100%;       /* #FFFFFF */
+    --foreground: 207 36% 16%;     /* Navy for text */
 
+    --surface: 180 11% 98%;        /* #F8FAFA */
     --card: 0 0% 100%;
-    --card-foreground: 201 36% 17%;
+    --card-foreground: 207 36% 16%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 201 36% 17%;
+    --popover-foreground: 207 36% 16%;
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 201 20% 45%;
+    --muted: 180 11% 98%;
+    --muted-foreground: 207 20% 45%;
 
-    --accent: 172 78% 96%;         /* Light teal accent */
-    --accent-foreground: 172 78% 42%;
+    --accent: 172 75% 96%;         /* Light teal accent */
+    --accent-foreground: 172 75% 42%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 172 78% 42%;
+    --ring: 172 75% 42%;
 
-    --radius: 0.75rem;
+    --radius: 1rem;                /* 16px base */
+    --radius-card: 1.5rem;         /* 24px for cards */
 
     /* Trust & Status Colors */
-    --verified: 172 78% 42%;       /* Teal for verified */
+    --verified: 172 75% 42%;       /* Teal for verified */
     --pending: 45 93% 47%;         /* Amber for pending */
     --unverified: 0 0% 60%;        /* Gray for unverified */
     
     /* Gradients */
-    --gradient-hero: linear-gradient(135deg, hsl(172 78% 42%) 0%, hsl(172 78% 52%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(210 40% 98%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(172 75% 42%) 0%, hsl(172 75% 52%) 100%);
+    --gradient-glass: rgba(255, 255, 255, 0.25);
     
-    /* Shadows */
-    --shadow-sm: 0 1px 2px 0 hsl(201 36% 17% / 0.05);
-    --shadow-md: 0 4px 6px -1px hsl(201 36% 17% / 0.1);
-    --shadow-lg: 0 10px 15px -3px hsl(201 36% 17% / 0.1);
-    --shadow-xl: 0 20px 25px -5px hsl(201 36% 17% / 0.1);
+    /* Shadows - Fayvrs Lite soft style */
+    --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.08);
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.08);
     
     /* Transitions */
-    --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .dark {

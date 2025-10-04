@@ -10,6 +10,21 @@ import PostRequest from "./pages/PostRequest";
 import Feed from "./pages/Feed";
 import NotFound from "./pages/NotFound";
 
+// Fayvrs Lite Mockup Screens
+import Onboarding from "./pages/mockups/Onboarding";
+import DemoFeed from "./pages/mockups/DemoFeed";
+import SignUpLogin from "./pages/mockups/SignUpLogin";
+import IdentityVerification from "./pages/mockups/IdentityVerification";
+import AIRequestChat from "./pages/mockups/AIRequestChat";
+import RequestFeed from "./pages/mockups/RequestFeed";
+import RequestDetails from "./pages/mockups/RequestDetails";
+import Messaging from "./pages/mockups/Messaging";
+import ProviderDashboard from "./pages/mockups/ProviderDashboard";
+import Portfolio from "./pages/mockups/Portfolio";
+import Billing from "./pages/mockups/Billing";
+import Settings from "./pages/mockups/Settings";
+import MockupIndex from "./pages/mockups/Index";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -24,6 +39,22 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/post-request" element={<PostRequest />} />
             <Route path="/feed" element={<Feed />} />
+            
+            {/* Fayvrs Lite Mockups */}
+            <Route path="/mockups" element={<MockupIndex />} />
+            <Route path="/mockup/onboarding" element={<Onboarding />} />
+            <Route path="/mockup/demo-feed" element={<DemoFeed />} />
+            <Route path="/mockup/signup" element={<SignUpLogin />} />
+            <Route path="/mockup/verification" element={<IdentityVerification />} />
+            <Route path="/mockup/ai-chat" element={<AIRequestChat />} />
+            <Route path="/mockup/request-feed" element={<RequestFeed />} />
+            <Route path="/mockup/request-details" element={<RequestDetails />} />
+            <Route path="/mockup/messaging" element={<Messaging />} />
+            <Route path="/mockup/dashboard" element={<ProviderDashboard />} />
+            <Route path="/mockup/portfolio" element={<Portfolio />} />
+            <Route path="/mockup/billing" element={<Billing />} />
+            <Route path="/mockup/settings" element={<Settings />} />
+            
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
