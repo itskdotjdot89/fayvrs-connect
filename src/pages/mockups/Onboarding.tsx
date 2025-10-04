@@ -15,7 +15,7 @@ export default function Onboarding() {
         {/* Title & Subtitle */}
         <div className="space-y-3">
           <h1 className="text-4xl font-bold font-poppins text-foreground">
-            Fayvrs Lite
+            Fayvrs
           </h1>
           <p className="text-muted-foreground text-lg">
             No platform fees. Verified community.

@@ -125,7 +125,7 @@ export default function Settings() {
 
         {/* App Version */}
         <div className="text-center pt-4">
-          <p className="text-sm text-muted-foreground">Fayvrs Lite v1.0</p>
+          <p className="text-sm text-muted-foreground">Fayvrs v1.0</p>
         </div>
       </div>
     </div>

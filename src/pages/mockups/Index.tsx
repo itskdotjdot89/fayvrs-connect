@@ -27,7 +27,7 @@ export default function MockupIndex() {
               <Handshake className="w-8 h-8 text-white" strokeWidth={2.5} />
             </div>
             <div>
-              <h1 className="text-3xl font-bold font-poppins text-foreground">Fayvrs Lite</h1>
+              <h1 className="text-3xl font-bold font-poppins text-foreground">Fayvrs</h1>
               <p className="text-muted-foreground">Mobile App Design Mockups</p>
             </div>
           </div>
