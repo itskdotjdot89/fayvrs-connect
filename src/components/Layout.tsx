@@ -20,7 +20,6 @@ export const Layout = ({
           <Link to="/" className="flex items-center gap-2 font-bold text-xl">
             <HandshakeIcon className="h-6 w-6 text-primary" />
             <span className="text-secondary">Fayvrs</span>
-            <span className="text-primary text-sm font-normal">Lite</span>
           </Link>
 
           {/* Desktop Navigation */}
