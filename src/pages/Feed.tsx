@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,75 +9,90 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Clock, MapPin, MessageSquare, Search, Filter } from "lucide-react";
 import { Link } from "react-router-dom";
 
+interface Request {
+  id: string;
+  title: string;
+  description: string;
+  request_type: string;
+  category: string | null;
+  location: string | null;
+  status: string;
+  created_at: string;
+  profiles: {
+    full_name: string | null;
+  };
+}
+
 export default function Feed() {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [serviceTypeFilter, setServiceTypeFilter] = useState("all");
+  const [requests, setRequests] = useState<Request[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
-  // Mock data for requests
-  const requests = [
-    {
-      id: 1,
-      title: "Barber needed tonight in Orlando",
-      description: "Looking for a skilled barber who can do a fade haircut. Available after 6 PM tonight.",
-      category: "Personal Care",
-      localized: true,
-      location: "Orlando, FL",
-      radius: "10 miles",
-      timeLeft: "48h",
-      expiresAt: "2025-01-15T18:00:00",
-      replies: 5,
-      status: "open",
-    },
-    {
-      id: 2,
-      title: "Logo design for new tech startup",
-      description: "Need a modern, minimalist logo for a SaaS company. Looking for someone with experience in tech branding.",
-      category: "Design",
-      localized: false,
-      timeLeft: "65h",
-      expiresAt: "2025-01-16T11:00:00",
-      replies: 12,
-      status: "open",
-    },
-    {
-      id: 3,
-      title: "Plumbing repair needed ASAP",
-      description: "Kitchen sink has a major leak. Need someone who can come today if possible.",
-      category: "Home Services",
-      localized: true,
-      location: "Miami, FL",
-      radius: "15 miles",
-      timeLeft: "24h",
-      expiresAt: "2025-01-14T15:00:00",
-      replies: 3,
-      status: "open",
-    },
-    {
-      id: 4,
-      title: "Spanish tutor for conversational practice",
-      description: "Looking for a native Spanish speaker to help with conversational practice. 2-3 sessions per week via video call.",
-      category: "Education",
-      localized: false,
-      timeLeft: "55h",
-      expiresAt: "2025-01-16T01:00:00",
-      replies: 8,
-      status: "open",
-    },
-    {
-      id: 5,
-      title: "House cleaning service this weekend",
-      description: "Need a thorough deep clean of 3-bedroom house. Saturday or Sunday preferred.",
-      category: "Home Services",
-      localized: true,
-      location: "Tampa, FL",
-      radius: "20 miles",
-      timeLeft: "71h",
-      expiresAt: "2025-01-17T08:00:00",
-      replies: 6,
-      status: "open",
-    },
-  ];
+  useEffect(() => {
+    fetchRequests();
+
+    // Set up realtime subscription
+    const channel = supabase
+      .channel('requests-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'requests'
+        },
+        () => {
+          fetchRequests();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const fetchRequests = async () => {
+    const { data, error } = await supabase
+      .from('requests')
+      .select(`
+        *,
+        profiles:user_id (
+          full_name
+        )
+      `)
+      .eq('status', 'open')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching requests:', error);
+    } else {
+      setRequests(data || []);
+    }
+    setLoading(false);
+  };
+
+  const filteredRequests = requests.filter(request => {
+    const matchesSearch = request.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         request.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = categoryFilter === "all" || request.category?.toLowerCase() === categoryFilter;
+    const matchesType = serviceTypeFilter === "all" || request.request_type === serviceTypeFilter;
+    
+    return matchesSearch && matchesCategory && matchesType;
+  });
+
+  const getTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) return "Just now";
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+    return `${Math.floor(diffInHours / 24)}d ago`;
+  };
 
   const categories = [
     "All Categories",
@@ -87,12 +104,6 @@ export default function Feed() {
     "Writing",
   ];
 
-  const getTimeLeftColor = (timeLeft: string) => {
-    const hours = parseInt(timeLeft);
-    if (hours < 24) return "text-destructive";
-    if (hours < 48) return "text-pending";
-    return "text-primary";
-  };
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-background">
@@ -156,69 +167,69 @@ export default function Feed() {
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <p className="text-sm text-muted-foreground">
-              Showing {requests.length} active requests
+              Showing {filteredRequests.length} active requests
             </p>
-            <Button variant="outline" size="sm">
-              <Filter className="h-4 w-4 mr-2" />
-              More Filters
-            </Button>
           </div>
 
           <div className="space-y-4">
-            {requests.map((request) => (
-              <Card key={request.id} className="hover:shadow-lg transition-all border-2 hover:border-primary/50">
-                <CardHeader>
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <CardTitle className="mb-2 hover:text-primary transition-colors">
-                        <Link to={`/request/${request.id}`}>
-                          {request.title}
-                        </Link>
-                      </CardTitle>
-                      <CardDescription className="line-clamp-2">
-                        {request.description}
-                      </CardDescription>
-                      <div className="flex flex-wrap gap-2 mt-3">
-                        <Badge variant="outline">{request.category}</Badge>
-                        {request.localized ? (
-                          <Badge variant="outline">
-                            <MapPin className="h-3 w-3 mr-1" />
-                            {request.location} • {request.radius}
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline">Remote</Badge>
-                        )}
-                        <Badge variant={request.status === "open" ? "default" : "outline"}>
-                          {request.status === "open" ? "Open" : "Closed"}
-                        </Badge>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="flex items-center gap-1 mb-1">
-                        <Clock className={`h-4 w-4 ${getTimeLeftColor(request.timeLeft)}`} />
-                        <p className={`text-sm font-medium ${getTimeLeftColor(request.timeLeft)}`}>
-                          {request.timeLeft}
-                        </p>
-                      </div>
-                      <p className="text-xs text-muted-foreground">remaining</p>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <MessageSquare className="h-4 w-4" />
-                        <span>{request.replies} providers replied</span>
-                      </div>
-                    </div>
-                    <Link to={`/request/${request.id}`}>
-                      <Button size="sm">View Details</Button>
-                    </Link>
-                  </div>
-                </CardContent>
+            {loading ? (
+              <div className="text-center py-8">Loading requests...</div>
+            ) : filteredRequests.length === 0 ? (
+              <Card className="p-8 text-center">
+                <p className="text-muted-foreground">No requests found. Be the first to post one!</p>
               </Card>
-            ))}
+            ) : (
+              filteredRequests.map((request) => (
+                <Card key={request.id} className="hover:shadow-lg transition-all border-2 hover:border-primary/50">
+                  <CardHeader>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <CardTitle className="mb-2 hover:text-primary transition-colors">
+                          {request.title}
+                        </CardTitle>
+                        <CardDescription className="line-clamp-2">
+                          {request.description}
+                        </CardDescription>
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          {request.category && (
+                            <Badge variant="outline">{request.category}</Badge>
+                          )}
+                          {request.location ? (
+                            <Badge variant="outline">
+                              <MapPin className="h-3 w-3 mr-1" />
+                              {request.location}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline">Remote</Badge>
+                          )}
+                          <Badge variant={request.status === "open" ? "default" : "outline"}>
+                            {request.status}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="flex items-center gap-1 mb-1">
+                          <Clock className="h-4 w-4" />
+                          <p className="text-sm font-medium">
+                            {getTimeAgo(request.created_at)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <MessageSquare className="h-4 w-4" />
+                          <span>Posted by {request.profiles?.full_name || "User"}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
 
           {/* Pagination */}

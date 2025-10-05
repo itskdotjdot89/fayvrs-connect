@@ -4,6 +4,7 @@ import { Button } from "./ui/button";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import fayvrsLogo from "@/assets/fayvrs-logo.png";
+import { useAuth } from "@/contexts/AuthContext";
 interface LayoutProps {
   children: ReactNode;
 }
@@ -12,6 +13,7 @@ export const Layout = ({
 }: LayoutProps) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const { user, signOut } = useAuth();
   const isActive = (path: string) => location.pathname === path;
   return <div className="min-h-screen flex flex-col">
       {/* Header */}
@@ -28,15 +30,18 @@ export const Layout = ({
             <Link to="/feed" className={`text-sm font-medium hover:text-primary transition-colors ${isActive('/feed') ? 'text-primary' : 'text-foreground'}`}>
               Browse Requests
             </Link>
-            <Link to="/providers" className={`text-sm font-medium hover:text-primary transition-colors ${isActive('/providers') ? 'text-primary' : 'text-foreground'}`}>
-              Find Providers
-            </Link>
-            <Link to="/auth">
-              <Button variant="outline" size="sm">Sign In</Button>
-            </Link>
-            <Link to="/post-request">
-              <Button size="sm">Post a Request</Button>
-            </Link>
+            {user ? (
+              <>
+                <Link to="/post-request">
+                  <Button variant="outline" size="sm">Post Request</Button>
+                </Link>
+                <Button onClick={signOut} variant="ghost" size="sm">Sign Out</Button>
+              </>
+            ) : (
+              <Link to="/auth">
+                <Button size="sm">Get Started</Button>
+              </Link>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -51,15 +56,18 @@ export const Layout = ({
               <Link to="/feed" className="text-sm font-medium hover:text-primary transition-colors" onClick={() => setMobileMenuOpen(false)}>
                 Browse Requests
               </Link>
-              <Link to="/providers" className="text-sm font-medium hover:text-primary transition-colors" onClick={() => setMobileMenuOpen(false)}>
-                Find Providers
-              </Link>
-              <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
-                <Button variant="outline" size="sm" className="w-full">Sign In</Button>
-              </Link>
-              <Link to="/post-request" onClick={() => setMobileMenuOpen(false)}>
-                <Button size="sm" className="w-full">Post a Request</Button>
-              </Link>
+              {user ? (
+                <>
+                  <Link to="/post-request" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="outline" size="sm" className="w-full">Post Request</Button>
+                  </Link>
+                  <Button onClick={signOut} variant="ghost" size="sm" className="w-full">Sign Out</Button>
+                </>
+              ) : (
+                <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
+                  <Button size="sm" className="w-full">Get Started</Button>
+                </Link>
+              )}
             </div>
           </div>}
       </header>

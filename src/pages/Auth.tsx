@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,6 +13,37 @@ import { Link } from "react-router-dom";
 export default function Auth() {
   const [role, setRole] = useState<"requester" | "provider">("requester");
   const [isSignUp, setIsSignUp] = useState(true);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const { user, signUp, signIn } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) {
+      navigate('/feed');
+    }
+  }, [user, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    if (isSignUp) {
+      const { error } = await signUp(email, password, fullName, role);
+      if (!error) {
+        navigate('/feed');
+      }
+    } else {
+      const { error } = await signIn(email, password);
+      if (!error) {
+        navigate('/feed');
+      }
+    }
+
+    setIsLoading(false);
+  };
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-gradient-to-b from-accent/30 to-background py-12 px-4">
@@ -74,22 +107,43 @@ export default function Auth() {
               </div>
             )}
 
-            <form className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               {isSignUp && (
                 <div className="space-y-2">
                   <Label htmlFor="name">Full Name</Label>
-                  <Input id="name" placeholder="John Doe" />
+                  <Input 
+                    id="name" 
+                    placeholder="John Doe"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    required={isSignUp}
+                  />
                 </div>
               )}
 
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="you@example.com" />
+                <Input 
+                  id="email" 
+                  type="email" 
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" placeholder="••••••••" />
+                <Input 
+                  id="password" 
+                  type="password" 
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                />
               </div>
 
               {isSignUp && role === "provider" && (
@@ -106,8 +160,8 @@ export default function Auth() {
                 </div>
               )}
 
-              <Button type="submit" className="w-full">
-                {isSignUp ? "Create Account" : "Sign In"}
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? "Loading..." : isSignUp ? "Create Account" : "Sign In"}
               </Button>
             </form>
 

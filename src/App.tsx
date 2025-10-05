@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Layout } from "./components/Layout";
+import { AuthProvider } from "./contexts/AuthContext";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import PostRequest from "./pages/PostRequest";
@@ -32,34 +33,36 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/post-request" element={<PostRequest />} />
-            <Route path="/feed" element={<Feed />} />
-            
-            {/* Fayvrs Mockups */}
-            <Route path="/mockups" element={<MockupIndex />} />
-            <Route path="/mockup/onboarding" element={<Onboarding />} />
-            <Route path="/mockup/demo-feed" element={<DemoFeed />} />
-            <Route path="/mockup/signup" element={<SignUpLogin />} />
-            <Route path="/mockup/verification" element={<IdentityVerification />} />
-            <Route path="/mockup/ai-chat" element={<AIRequestChat />} />
-            <Route path="/mockup/request-feed" element={<RequestFeed />} />
-            <Route path="/mockup/request-details" element={<RequestDetails />} />
-            <Route path="/mockup/messaging" element={<Messaging />} />
-            <Route path="/mockup/dashboard" element={<ProviderDashboard />} />
-            <Route path="/mockup/portfolio" element={<Portfolio />} />
-            <Route path="/mockup/billing" element={<Billing />} />
-            <Route path="/mockup/settings" element={<Settings />} />
-            
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Layout>
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <Layout>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/post-request" element={<PostRequest />} />
+              <Route path="/feed" element={<Feed />} />
+              
+              {/* Fayvrs Mockups */}
+              <Route path="/mockups" element={<MockupIndex />} />
+              <Route path="/mockup/onboarding" element={<Onboarding />} />
+              <Route path="/mockup/demo-feed" element={<DemoFeed />} />
+              <Route path="/mockup/signup" element={<SignUpLogin />} />
+              <Route path="/mockup/verification" element={<IdentityVerification />} />
+              <Route path="/mockup/ai-chat" element={<AIRequestChat />} />
+              <Route path="/mockup/request-feed" element={<RequestFeed />} />
+              <Route path="/mockup/request-details" element={<RequestDetails />} />
+              <Route path="/mockup/messaging" element={<Messaging />} />
+              <Route path="/mockup/dashboard" element={<ProviderDashboard />} />
+              <Route path="/mockup/portfolio" element={<Portfolio />} />
+              <Route path="/mockup/billing" element={<Billing />} />
+              <Route path="/mockup/settings" element={<Settings />} />
+              
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Layout>
+        </BrowserRouter>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
