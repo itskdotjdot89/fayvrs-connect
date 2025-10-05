@@ -36,7 +36,7 @@ serve(async (req) => {
 
     // Send email with Resend
     const emailResponse = await resend.emails.send({
-      from: 'Fayvrs <onboarding@resend.dev>', // Change this to your verified domain
+      from: 'Fayvrs <contact@fayvrs.com>',
       to: [to],
       subject: subject,
       html: `
