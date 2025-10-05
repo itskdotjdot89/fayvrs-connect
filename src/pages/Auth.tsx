@@ -18,7 +18,7 @@ export default function Auth() {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
             <HandshakeIcon className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold text-secondary">Fayvrs Lite</span>
+            <span className="text-2xl font-bold text-secondary">Fayvrs</span>
           </div>
           <h1 className="text-3xl font-bold mb-2">
             {isSignUp ? "Create Your Account" : "Welcome Back"}

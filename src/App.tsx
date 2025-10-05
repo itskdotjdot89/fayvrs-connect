@@ -10,7 +10,7 @@ import PostRequest from "./pages/PostRequest";
 import Feed from "./pages/Feed";
 import NotFound from "./pages/NotFound";
 
-// Fayvrs Lite Mockup Screens
+// Fayvrs Mockup Screens
 import Onboarding from "./pages/mockups/Onboarding";
 import DemoFeed from "./pages/mockups/DemoFeed";
 import SignUpLogin from "./pages/mockups/SignUpLogin";
@@ -40,7 +40,7 @@ const App = () => (
             <Route path="/post-request" element={<PostRequest />} />
             <Route path="/feed" element={<Feed />} />
             
-            {/* Fayvrs Lite Mockups */}
+            {/* Fayvrs Mockups */}
             <Route path="/mockups" element={<MockupIndex />} />
             <Route path="/mockup/onboarding" element={<Onboarding />} />
             <Route path="/mockup/demo-feed" element={<DemoFeed />} />
