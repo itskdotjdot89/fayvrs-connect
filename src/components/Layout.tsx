@@ -125,9 +125,6 @@ export const Layout = ({
               )}
               {user ? (
                 <>
-                  <Link to="/post-request" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="outline" size="sm" className="w-full">Post Request</Button>
-                  </Link>
                   <Link to="/settings" className="flex items-center gap-2 text-sm font-medium hover:text-primary transition-colors" onClick={() => setMobileMenuOpen(false)}>
                     <Avatar className="w-8 h-8">
                       <AvatarImage src={profile?.avatar_url} />
@@ -136,6 +133,9 @@ export const Layout = ({
                       </AvatarFallback>
                     </Avatar>
                     Settings
+                  </Link>
+                  <Link to="/post-request" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="outline" size="sm" className="w-full">Post Request</Button>
                   </Link>
                   <Button onClick={signOut} variant="ghost" size="sm" className="w-full">Sign Out</Button>
                 </>
