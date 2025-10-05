@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { HandshakeIcon, User, Briefcase } from "lucide-react";
+import { User, Briefcase } from "lucide-react";
 import { Link } from "react-router-dom";
+import fayvrsLogo from "@/assets/fayvrs-logo-full.png";
 
 export default function Auth() {
   const [role, setRole] = useState<"requester" | "provider">("requester");
@@ -83,9 +84,8 @@ export default function Auth() {
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-gradient-to-b from-accent/30 to-background py-12 px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <HandshakeIcon className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold text-secondary">Fayvrs</span>
+          <div className="flex justify-center mb-4">
+            <img src={fayvrsLogo} alt="Fayvrs" className="h-32 w-auto" />
           </div>
           <h1 className="text-3xl font-bold mb-2">
             {isSignUp ? "Create Your Account" : "Welcome Back"}
