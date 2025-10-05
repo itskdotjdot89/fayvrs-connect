@@ -399,6 +399,7 @@ export type Database = {
           description: string
           expires_at: string | null
           id: string
+          images: string[] | null
           location: string | null
           request_type: Database["public"]["Enums"]["request_type"]
           selected_proposal_id: string | null
@@ -416,6 +417,7 @@ export type Database = {
           description: string
           expires_at?: string | null
           id?: string
+          images?: string[] | null
           location?: string | null
           request_type: Database["public"]["Enums"]["request_type"]
           selected_proposal_id?: string | null
@@ -433,6 +435,7 @@ export type Database = {
           description?: string
           expires_at?: string | null
           id?: string
+          images?: string[] | null
           location?: string | null
           request_type?: Database["public"]["Enums"]["request_type"]
           selected_proposal_id?: string | null

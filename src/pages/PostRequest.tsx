@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, MapPin, DollarSign, Wrench, Loader2, Tag } from "lucide-react";
+import { Sparkles, MapPin, DollarSign, Wrench, Loader2, Tag, Image as ImageIcon, X } from "lucide-react";
 type RequestData = {
   title: string;
   description: string;
@@ -35,15 +35,46 @@ export default function PostRequest() {
   const [step, setStep] = useState<1 | 2>(1);
   const [naturalInput, setNaturalInput] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [uploadedImages, setUploadedImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
   // Step 2: Parsed data (editable)
   const [parsedData, setParsedData] = useState<RequestData | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
   useEffect(() => {
     if (!loading && !user) {
       navigate("/auth");
     }
   }, [user, loading, navigate]);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length + uploadedImages.length > 5) {
+      toast({
+        title: "Too many images",
+        description: "You can upload up to 5 images",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setUploadedImages(prev => [...prev, ...files]);
+    
+    // Create previews
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreviews(prev => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeImage = (index: number) => {
+    setUploadedImages(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+  };
   const handleAnalyze = async () => {
     if (!naturalInput.trim()) {
       toast({
@@ -55,12 +86,24 @@ export default function PostRequest() {
     }
     setIsAnalyzing(true);
     try {
+      // Convert images to base64 for sending to edge function
+      const imageBase64Array: string[] = [];
+      for (const file of uploadedImages) {
+        const reader = new FileReader();
+        const base64 = await new Promise<string>((resolve) => {
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(file);
+        });
+        imageBase64Array.push(base64);
+      }
+
       const {
         data,
         error
       } = await supabase.functions.invoke('analyze-request-openai', {
         body: {
-          prompt: naturalInput
+          prompt: naturalInput,
+          images: imageBase64Array
         }
       });
       if (error) throw error;
@@ -94,7 +137,29 @@ export default function PostRequest() {
     if (!user || !parsedData) return;
     setIsSubmitting(true);
     try {
-      // Step 1: Geocode the location
+      // Step 1: Upload images to storage
+      const imageUrls: string[] = [];
+      for (const file of uploadedImages) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        
+        const { error: uploadError, data: uploadData } = await supabase.storage
+          .from('request-images')
+          .upload(fileName, file);
+
+        if (uploadError) {
+          console.error('Image upload error:', uploadError);
+          throw uploadError;
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('request-images')
+          .getPublicUrl(fileName);
+        
+        imageUrls.push(publicUrl);
+      }
+
+      // Step 2: Geocode the location
       let latitude: number | null = null;
       let longitude: number | null = null;
       if (parsedData.location) {
@@ -127,7 +192,7 @@ export default function PostRequest() {
         }
       }
 
-      // Step 2: Insert the request
+      // Step 3: Insert the request
       const {
         data: newRequest,
         error: insertError
@@ -141,11 +206,12 @@ export default function PostRequest() {
         budget_min: parsedData.budget_min,
         budget_max: parsedData.budget_max,
         tags: parsedData.tags,
-        status: 'open'
+        status: 'open',
+        images: imageUrls
       }).select().single();
       if (insertError) throw insertError;
 
-      // Step 3: Match providers if we have coordinates
+      // Step 4: Match providers if we have coordinates
       if (latitude && longitude && newRequest) {
         const {
           data: matchData
@@ -184,6 +250,7 @@ export default function PostRequest() {
   const handleGoBack = () => {
     setStep(1);
     setParsedData(null);
+    setUploadedImageUrls([]);
   };
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
@@ -208,6 +275,46 @@ export default function PostRequest() {
                 <div className="space-y-2">
                   <Textarea placeholder="Example: I need a plumber to fix my leaky bathroom sink in Brooklyn. Budget around $200-300" value={naturalInput} onChange={e => setNaturalInput(e.target.value)} className="min-h-[150px] text-base resize-none" disabled={isAnalyzing} />
                   <p className="text-xs text-muted-foreground flex items-center gap-1">💡 Tip: Include details like time, location, budget, and any specific requirements</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="image-upload" className="flex items-center gap-2 cursor-pointer">
+                    <ImageIcon className="w-4 h-4" />
+                    Add Images (Optional)
+                  </Label>
+                  <Input
+                    id="image-upload"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageSelect}
+                    disabled={isAnalyzing || uploadedImages.length >= 5}
+                    className="cursor-pointer"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Upload up to 5 images to help providers visualize your request
+                  </p>
+                  
+                  {imagePreviews.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {imagePreviews.map((preview, index) => (
+                        <div key={index} className="relative">
+                          <img
+                            src={preview}
+                            alt={`Preview ${index + 1}`}
+                            className="w-20 h-20 object-cover rounded-lg"
+                          />
+                          <button
+                            onClick={() => removeImage(index)}
+                            className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 hover:bg-destructive/90"
+                            disabled={isAnalyzing}
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <Button onClick={handleAnalyze} size="lg" className="w-full" disabled={isAnalyzing || !naturalInput.trim()}>
@@ -338,6 +445,25 @@ export default function PostRequest() {
                         </span>)}
                     </div>
                   </div>}
+
+                {imagePreviews.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1">
+                      <ImageIcon className="w-3 h-3" />
+                      Attached Images
+                    </Label>
+                    <div className="flex flex-wrap gap-2">
+                      {imagePreviews.map((preview, index) => (
+                        <img
+                          key={index}
+                          src={preview}
+                          alt={`Preview ${index + 1}`}
+                          className="w-24 h-24 object-cover rounded-lg"
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex gap-3 pt-4">
                   <Button variant="outline" onClick={handleGoBack} className="flex-1" disabled={isSubmitting}>

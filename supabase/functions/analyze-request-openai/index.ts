@@ -17,13 +17,14 @@ serve(async (req) => {
   try {
     console.log('[ANALYZE-REQUEST] Function started');
     
-    const { prompt } = await req.json();
+    const { prompt, images } = await req.json();
     
     if (!prompt || typeof prompt !== 'string') {
       throw new Error('Invalid prompt provided');
     }
 
     console.log('[ANALYZE-REQUEST] Analyzing prompt:', prompt.substring(0, 100));
+    console.log('[ANALYZE-REQUEST] Images provided:', images?.length || 0);
 
     if (!OPENAI_API_KEY) {
       throw new Error('OPENAI_API_KEY is not configured');
@@ -40,9 +41,20 @@ serve(async (req) => {
         messages: [
           { 
             role: 'system', 
-            content: 'You are a helpful assistant that analyzes user service/product requests and extracts structured information. Be comprehensive and professional in your parsing.' 
+            content: 'You are a helpful assistant that analyzes user service/product requests and extracts structured information. If images are provided, analyze them to better understand the request. Be comprehensive and professional in your parsing.' 
           },
-          { role: 'user', content: prompt }
+          { 
+            role: 'user', 
+            content: images && images.length > 0 
+              ? [
+                  { type: 'text', text: prompt },
+                  ...images.map((img: string) => ({
+                    type: 'image_url',
+                    image_url: { url: img }
+                  }))
+                ]
+              : prompt
+          }
         ],
         tools: [
           {
