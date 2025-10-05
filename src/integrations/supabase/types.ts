@@ -105,6 +105,39 @@ export type Database = {
           },
         ]
       }
+      portfolio_items: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          image_url: string
+          is_featured: boolean | null
+          provider_id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url: string
+          is_featured?: boolean | null
+          provider_id: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string
+          is_featured?: boolean | null
+          provider_id?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -244,6 +277,7 @@ export type Database = {
           id: string
           location: string | null
           request_type: Database["public"]["Enums"]["request_type"]
+          selected_proposal_id: string | null
           status: Database["public"]["Enums"]["request_status"]
           title: string
           updated_at: string
@@ -259,6 +293,7 @@ export type Database = {
           id?: string
           location?: string | null
           request_type: Database["public"]["Enums"]["request_type"]
+          selected_proposal_id?: string | null
           status?: Database["public"]["Enums"]["request_status"]
           title: string
           updated_at?: string
@@ -274,12 +309,20 @@ export type Database = {
           id?: string
           location?: string | null
           request_type?: Database["public"]["Enums"]["request_type"]
+          selected_proposal_id?: string | null
           status?: Database["public"]["Enums"]["request_status"]
           title?: string
           updated_at?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "requests_selected_proposal_id_fkey"
+            columns: ["selected_proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "requests_user_id_fkey"
             columns: ["user_id"]

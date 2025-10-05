@@ -11,6 +11,10 @@ import PostRequest from "./pages/PostRequest";
 import Feed from "./pages/Feed";
 import ProviderCheckout from "./pages/ProviderCheckout";
 import IdentityVerification from "./pages/IdentityVerification";
+import RequestDetails from "./pages/RequestDetails";
+import Messages from "./pages/Messages";
+import ProviderDashboard from "./pages/ProviderDashboard";
+import Portfolio from "./pages/Portfolio";
 import NotFound from "./pages/NotFound";
 
 // Fayvrs Mockup Screens
@@ -20,10 +24,10 @@ import SignUpLogin from "./pages/mockups/SignUpLogin";
 import IdentityVerificationMockup from "./pages/mockups/IdentityVerification";
 import AIRequestChat from "./pages/mockups/AIRequestChat";
 import RequestFeed from "./pages/mockups/RequestFeed";
-import RequestDetails from "./pages/mockups/RequestDetails";
-import Messaging from "./pages/mockups/Messaging";
-import ProviderDashboard from "./pages/mockups/ProviderDashboard";
-import Portfolio from "./pages/mockups/Portfolio";
+import RequestDetailsMockup from "./pages/mockups/RequestDetails";
+import MessagingMockup from "./pages/mockups/Messaging";
+import ProviderDashboardMockup from "./pages/mockups/ProviderDashboard";
+import PortfolioMockup from "./pages/mockups/Portfolio";
 import Billing from "./pages/mockups/Billing";
 import Settings from "./pages/mockups/Settings";
 import MockupIndex from "./pages/mockups/Index";
@@ -45,6 +49,10 @@ const App = () => (
             <Route path="/feed" element={<Feed />} />
             <Route path="/provider-checkout" element={<ProviderCheckout />} />
             <Route path="/identity-verification" element={<IdentityVerification />} />
+            <Route path="/request/:id" element={<RequestDetails />} />
+            <Route path="/messages/:userId" element={<Messages />} />
+            <Route path="/provider-dashboard" element={<ProviderDashboard />} />
+            <Route path="/portfolio" element={<Portfolio />} />
               
               {/* Fayvrs Mockups */}
               <Route path="/mockups" element={<MockupIndex />} />
@@ -54,10 +62,10 @@ const App = () => (
               <Route path="/mockup/verification" element={<IdentityVerificationMockup />} />
               <Route path="/mockup/ai-chat" element={<AIRequestChat />} />
               <Route path="/mockup/request-feed" element={<RequestFeed />} />
-              <Route path="/mockup/request-details" element={<RequestDetails />} />
-              <Route path="/mockup/messaging" element={<Messaging />} />
-              <Route path="/mockup/dashboard" element={<ProviderDashboard />} />
-              <Route path="/mockup/portfolio" element={<Portfolio />} />
+              <Route path="/mockup/request-details" element={<RequestDetailsMockup />} />
+              <Route path="/mockup/messaging" element={<MessagingMockup />} />
+              <Route path="/mockup/dashboard" element={<ProviderDashboardMockup />} />
+              <Route path="/mockup/portfolio" element={<PortfolioMockup />} />
               <Route path="/mockup/billing" element={<Billing />} />
               <Route path="/mockup/settings" element={<Settings />} />
               

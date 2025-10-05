@@ -14,7 +14,7 @@ export const Layout = ({
 }: LayoutProps) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
-  const { user, signOut } = useAuth();
+  const { user, signOut, activeRole } = useAuth();
   const isActive = (path: string) => location.pathname === path;
   return <div className="min-h-screen flex flex-col">
       {/* Header */}
@@ -31,6 +31,16 @@ export const Layout = ({
             <Link to="/feed" className={`text-sm font-medium hover:text-primary transition-colors ${isActive('/feed') ? 'text-primary' : 'text-foreground'}`}>
               Browse Requests
             </Link>
+            {user && activeRole === 'provider' && (
+              <>
+                <Link to="/provider-dashboard" className={`text-sm font-medium hover:text-primary transition-colors ${isActive('/provider-dashboard') ? 'text-primary' : 'text-foreground'}`}>
+                  Dashboard
+                </Link>
+                <Link to="/portfolio" className={`text-sm font-medium hover:text-primary transition-colors ${isActive('/portfolio') ? 'text-primary' : 'text-foreground'}`}>
+                  Portfolio
+                </Link>
+              </>
+            )}
             {user && <RoleSwitcher />}
             {user ? (
               <>
@@ -58,6 +68,16 @@ export const Layout = ({
               <Link to="/feed" className="text-sm font-medium hover:text-primary transition-colors" onClick={() => setMobileMenuOpen(false)}>
                 Browse Requests
               </Link>
+              {user && activeRole === 'provider' && (
+                <>
+                  <Link to="/provider-dashboard" className="text-sm font-medium hover:text-primary transition-colors" onClick={() => setMobileMenuOpen(false)}>
+                    Dashboard
+                  </Link>
+                  <Link to="/portfolio" className="text-sm font-medium hover:text-primary transition-colors" onClick={() => setMobileMenuOpen(false)}>
+                    Portfolio
+                  </Link>
+                </>
+              )}
               {user && (
                 <div className="flex justify-center">
                   <RoleSwitcher />

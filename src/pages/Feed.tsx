@@ -180,13 +180,14 @@ export default function Feed() {
               </Card>
             ) : (
               filteredRequests.map((request) => (
-                <Card key={request.id} className="hover:shadow-lg transition-all border-2 hover:border-primary/50">
-                  <CardHeader>
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <CardTitle className="mb-2 hover:text-primary transition-colors">
-                          {request.title}
-                        </CardTitle>
+                <Link key={request.id} to={`/request/${request.id}`}>
+                  <Card className="hover:shadow-lg transition-all border-2 hover:border-primary/50 cursor-pointer">
+                    <CardHeader>
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <CardTitle className="mb-2 hover:text-primary transition-colors">
+                            {request.title}
+                          </CardTitle>
                         <CardDescription className="line-clamp-2">
                           {request.description}
                         </CardDescription>
@@ -228,6 +229,7 @@ export default function Feed() {
                     </div>
                   </CardContent>
                 </Card>
+              </Link>
               ))
             )}
           </div>
