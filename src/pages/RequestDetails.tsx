@@ -1,18 +1,22 @@
 import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MapPin, Clock, DollarSign, ArrowLeft, MessageCircle, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { ProposalForm } from "@/components/ProposalForm";
 
 export default function RequestDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, activeRole } = useAuth();
   const queryClient = useQueryClient();
+  const [showProposalForm, setShowProposalForm] = useState(false);
 
   // Fetch request details
   const { data: request, isLoading: loadingRequest } = useQuery({
@@ -98,6 +102,10 @@ export default function RequestDetails() {
   }
 
   const isOwner = user?.id === request.user_id;
+  const isProvider = activeRole === 'provider' && !isOwner;
+  
+  // Check if current user already has a proposal
+  const hasUserProposal = proposals?.some(p => p.provider_id === user?.id);
 
   return (
     <div className="min-h-screen bg-surface pb-6">
@@ -133,6 +141,20 @@ export default function RequestDetails() {
           <p className="text-muted-foreground text-sm leading-relaxed">
             {request.description}
           </p>
+
+          {/* Display request images if any */}
+          {request.images && request.images.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-4">
+              {request.images.map((imageUrl: string, index: number) => (
+                <img
+                  key={index}
+                  src={imageUrl}
+                  alt={`Request image ${index + 1}`}
+                  className="w-24 h-24 object-cover rounded-lg border border-border"
+                />
+              ))}
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3 pt-2">
             <div className="flex items-center gap-2 text-sm">
@@ -250,6 +272,25 @@ export default function RequestDetails() {
             </div>
           )}
         </div>
+
+        {/* Proposal Form for Providers */}
+        {isProvider && request.status === 'open' && !hasUserProposal && (
+          <ProposalForm 
+            requestId={request.id} 
+            requestTitle={request.title}
+            onSuccess={() => setShowProposalForm(false)}
+          />
+        )}
+        
+        {isProvider && hasUserProposal && (
+          <Card className="bg-accent/50">
+            <CardContent className="py-4 text-center">
+              <p className="text-sm text-muted-foreground">
+                You have already submitted a proposal for this request
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
