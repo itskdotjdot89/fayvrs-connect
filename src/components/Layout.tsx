@@ -6,6 +6,7 @@ import { useState } from "react";
 import fayvrsLogo from "@/assets/fayvrs-logo.png";
 import { useAuth } from "@/contexts/AuthContext";
 import { RoleSwitcher } from "./RoleSwitcher";
+import { NotificationBell } from "./NotificationBell";
 interface LayoutProps {
   children: ReactNode;
 }
@@ -44,6 +45,7 @@ export const Layout = ({
             {user && <RoleSwitcher />}
             {user ? (
               <>
+                <NotificationBell />
                 <Link to="/post-request">
                   <Button variant="outline" size="sm">Post Request</Button>
                 </Link>
