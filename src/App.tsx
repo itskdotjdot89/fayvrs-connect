@@ -14,6 +14,7 @@ import IdentityVerification from "./pages/IdentityVerification";
 import RequestDetails from "./pages/RequestDetails";
 import Messages from "./pages/Messages";
 import ProviderDashboard from "./pages/ProviderDashboard";
+import RequesterDashboard from "./pages/RequesterDashboard";
 import Portfolio from "./pages/Portfolio";
 import NotFound from "./pages/NotFound";
 
@@ -52,6 +53,7 @@ const App = () => (
             <Route path="/request/:id" element={<RequestDetails />} />
             <Route path="/messages/:userId" element={<Messages />} />
             <Route path="/provider-dashboard" element={<ProviderDashboard />} />
+            <Route path="/requester-dashboard" element={<RequesterDashboard />} />
             <Route path="/portfolio" element={<Portfolio />} />
               
               {/* Fayvrs Mockups */}

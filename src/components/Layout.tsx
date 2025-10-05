@@ -42,6 +42,11 @@ export const Layout = ({
                 </Link>
               </>
             )}
+            {user && activeRole === 'requester' && (
+              <Link to="/requester-dashboard" className={`text-sm font-medium hover:text-primary transition-colors ${isActive('/requester-dashboard') ? 'text-primary' : 'text-foreground'}`}>
+                Dashboard
+              </Link>
+            )}
             {user && <RoleSwitcher />}
             {user ? (
               <>
@@ -79,6 +84,11 @@ export const Layout = ({
                     Portfolio
                   </Link>
                 </>
+              )}
+              {user && activeRole === 'requester' && (
+                <Link to="/requester-dashboard" className="text-sm font-medium hover:text-primary transition-colors" onClick={() => setMobileMenuOpen(false)}>
+                  Dashboard
+                </Link>
               )}
               {user && (
                 <div className="flex justify-center">
