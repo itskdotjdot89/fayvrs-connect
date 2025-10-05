@@ -5,15 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Shield, CheckCircle, Upload, Camera, FileCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-
 export default function IdentityVerification() {
   const [uploading, setUploading] = useState(false);
   const [idDocumentFile, setIdDocumentFile] = useState<File | null>(null);
   const [selfieFile, setSelfieFile] = useState<File | null>(null);
-  const { user } = useAuth();
+  const {
+    user
+  } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
-
+  const {
+    toast
+  } = useToast();
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'id' | 'selfie') => {
     const file = e.target.files?.[0];
     if (file) {
@@ -24,7 +26,6 @@ export default function IdentityVerification() {
       }
     }
   };
-
   const handleSubmit = async () => {
     if (!user) {
       toast({
@@ -34,7 +35,6 @@ export default function IdentityVerification() {
       });
       return;
     }
-
     if (!idDocumentFile || !selfieFile) {
       toast({
         title: "Missing files",
@@ -43,68 +43,61 @@ export default function IdentityVerification() {
       });
       return;
     }
-
     setUploading(true);
-
     try {
       // Upload ID document
       const idExt = idDocumentFile.name.split('.').pop();
       const idPath = `${user.id}/id-document.${idExt}`;
-      const { error: idError } = await supabase.storage
-        .from('verification-documents')
-        .upload(idPath, idDocumentFile, { upsert: true });
-
+      const {
+        error: idError
+      } = await supabase.storage.from('verification-documents').upload(idPath, idDocumentFile, {
+        upsert: true
+      });
       if (idError) throw idError;
 
       // Upload selfie
       const selfieExt = selfieFile.name.split('.').pop();
       const selfiePath = `${user.id}/selfie.${selfieExt}`;
-      const { error: selfieError } = await supabase.storage
-        .from('verification-documents')
-        .upload(selfiePath, selfieFile, { upsert: true });
-
+      const {
+        error: selfieError
+      } = await supabase.storage.from('verification-documents').upload(selfiePath, selfieFile, {
+        upsert: true
+      });
       if (selfieError) throw selfieError;
 
       // Get public URLs
-      const { data: idUrl } = supabase.storage
-        .from('verification-documents')
-        .getPublicUrl(idPath);
-
-      const { data: selfieUrl } = supabase.storage
-        .from('verification-documents')
-        .getPublicUrl(selfiePath);
+      const {
+        data: idUrl
+      } = supabase.storage.from('verification-documents').getPublicUrl(idPath);
+      const {
+        data: selfieUrl
+      } = supabase.storage.from('verification-documents').getPublicUrl(selfiePath);
 
       // Create verification record
-      const { error: dbError } = await supabase
-        .from('identity_verifications')
-        .upsert({
-          user_id: user.id,
-          status: 'pending',
-          id_document_url: idUrl.publicUrl,
-          selfie_url: selfieUrl.publicUrl,
-          submitted_at: new Date().toISOString()
-        });
-
+      const {
+        error: dbError
+      } = await supabase.from('identity_verifications').upsert({
+        user_id: user.id,
+        status: 'pending',
+        id_document_url: idUrl.publicUrl,
+        selfie_url: selfieUrl.publicUrl,
+        submitted_at: new Date().toISOString()
+      });
       if (dbError) throw dbError;
-
       toast({
         title: "Success!",
         description: "Your verification has been submitted. We'll review it within 24 hours."
       });
 
       // Check user role and redirect accordingly
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-
+      const {
+        data: profile
+      } = await supabase.from('profiles').select('role').eq('id', user.id).single();
       if (profile?.role === 'provider') {
         navigate('/provider-checkout');
       } else {
         navigate('/feed');
       }
-
     } catch (error: any) {
       console.error('Verification error:', error);
       toast({
@@ -116,26 +109,20 @@ export default function IdentityVerification() {
       setUploading(false);
     }
   };
-
   const handleSkip = async () => {
     if (!user) return;
 
     // Check user role and redirect accordingly
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
+    const {
+      data: profile
+    } = await supabase.from('profiles').select('role').eq('id', user.id).single();
     if (profile?.role === 'provider') {
       navigate('/provider-checkout');
     } else {
       navigate('/feed');
     }
   };
-
-  return (
-    <div className="min-h-screen bg-surface flex items-center justify-center p-6">
+  return <div className="min-h-screen bg-surface flex items-center justify-center p-6">
       <div className="w-full max-w-sm space-y-8">
         {/* Icon */}
         <div className="flex justify-center">
@@ -165,17 +152,10 @@ export default function IdentityVerification() {
               <p className="text-sm text-muted-foreground mb-2">
                 Photo of government-issued ID
               </p>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => handleFileChange(e, 'id')}
-                className="text-sm"
-              />
-              {idDocumentFile && (
-                <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+              <input type="file" accept="image/*" onChange={e => handleFileChange(e, 'id')} className="text-sm" />
+              {idDocumentFile && <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
                   <CheckCircle className="w-3 h-3" /> {idDocumentFile.name}
-                </p>
-              )}
+                </p>}
             </div>
           </div>
 
@@ -188,54 +168,27 @@ export default function IdentityVerification() {
               <p className="text-sm text-muted-foreground mb-2">
                 Quick photo to verify it's you
               </p>
-              <input
-                type="file"
-                accept="image/*"
-                capture="user"
-                onChange={(e) => handleFileChange(e, 'selfie')}
-                className="text-sm"
-              />
-              {selfieFile && (
-                <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+              <input type="file" accept="image/*" capture="user" onChange={e => handleFileChange(e, 'selfie')} className="text-sm" />
+              {selfieFile && <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
                   <CheckCircle className="w-3 h-3" /> {selfieFile.name}
-                </p>
-              )}
+                </p>}
             </div>
           </div>
 
-          <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center flex-shrink-0">
-              <FileCheck className="w-5 h-5 text-primary" />
-            </div>
-            <div className="flex-1 pt-1">
-              <h3 className="font-semibold text-foreground mb-1">Review</h3>
-              <p className="text-sm text-muted-foreground">
-                We'll verify within 24 hours
-              </p>
-            </div>
-          </div>
+          
         </div>
 
         {/* CTA */}
-        <Button 
-          size="lg" 
-          className="w-full h-14 rounded-2xl shadow-soft text-base font-semibold"
-          onClick={handleSubmit}
-          disabled={uploading || !idDocumentFile || !selfieFile}
-        >
+        <Button size="lg" className="w-full h-14 rounded-2xl shadow-soft text-base font-semibold" onClick={handleSubmit} disabled={uploading || !idDocumentFile || !selfieFile}>
           {uploading ? "Uploading..." : "Submit Verification"}
         </Button>
 
         {/* Skip Link */}
         <p className="text-center text-sm text-muted-foreground">
-          <button 
-            onClick={handleSkip}
-            className="hover:text-primary transition-colors"
-          >
+          <button onClick={handleSkip} className="hover:text-primary transition-colors">
             I'll do this later
           </button>
         </p>
       </div>
-    </div>
-  );
+    </div>;
 }
