@@ -16,6 +16,7 @@ import Messages from "./pages/Messages";
 import ProviderDashboard from "./pages/ProviderDashboard";
 import RequesterDashboard from "./pages/RequesterDashboard";
 import Portfolio from "./pages/Portfolio";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 // Fayvrs Mockup Screens
@@ -30,7 +31,7 @@ import MessagingMockup from "./pages/mockups/Messaging";
 import ProviderDashboardMockup from "./pages/mockups/ProviderDashboard";
 import PortfolioMockup from "./pages/mockups/Portfolio";
 import Billing from "./pages/mockups/Billing";
-import Settings from "./pages/mockups/Settings";
+import SettingsMockup from "./pages/mockups/Settings";
 import MockupIndex from "./pages/mockups/Index";
 
 const queryClient = new QueryClient();
@@ -55,6 +56,7 @@ const App = () => (
             <Route path="/provider-dashboard" element={<ProviderDashboard />} />
             <Route path="/requester-dashboard" element={<RequesterDashboard />} />
             <Route path="/portfolio" element={<Portfolio />} />
+            <Route path="/settings" element={<Settings />} />
               
               {/* Fayvrs Mockups */}
               <Route path="/mockups" element={<MockupIndex />} />
@@ -69,7 +71,7 @@ const App = () => (
               <Route path="/mockup/dashboard" element={<ProviderDashboardMockup />} />
               <Route path="/mockup/portfolio" element={<PortfolioMockup />} />
               <Route path="/mockup/billing" element={<Billing />} />
-              <Route path="/mockup/settings" element={<Settings />} />
+              <Route path="/mockup/settings" element={<SettingsMockup />} />
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

@@ -1,12 +1,15 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "./ui/button";
-import { Menu, X } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { Menu, X, Settings, User } from "lucide-react";
 import { useState } from "react";
 import fayvrsLogo from "@/assets/fayvrs-logo.png";
 import { useAuth } from "@/contexts/AuthContext";
 import { RoleSwitcher } from "./RoleSwitcher";
 import { NotificationBell } from "./NotificationBell";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 interface LayoutProps {
   children: ReactNode;
 }
@@ -17,6 +20,23 @@ export const Layout = ({
   const location = useLocation();
   const { user, signOut, activeRole } = useAuth();
   const isActive = (path: string) => location.pathname === path;
+
+  // Fetch user profile for avatar
+  const { data: profile } = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('avatar_url, full_name')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
   return <div className="min-h-screen flex flex-col">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
@@ -53,6 +73,14 @@ export const Layout = ({
                 <NotificationBell />
                 <Link to="/post-request">
                   <Button variant="outline" size="sm">Post Request</Button>
+                </Link>
+                <Link to="/settings">
+                  <Avatar className="w-8 h-8 cursor-pointer hover:ring-2 ring-primary transition-all">
+                    <AvatarImage src={profile?.avatar_url} />
+                    <AvatarFallback className="bg-primary text-white text-sm">
+                      {profile?.full_name?.[0] || <User className="w-4 h-4" />}
+                    </AvatarFallback>
+                  </Avatar>
                 </Link>
                 <Button onClick={signOut} variant="ghost" size="sm">Sign Out</Button>
               </>
@@ -99,6 +127,15 @@ export const Layout = ({
                 <>
                   <Link to="/post-request" onClick={() => setMobileMenuOpen(false)}>
                     <Button variant="outline" size="sm" className="w-full">Post Request</Button>
+                  </Link>
+                  <Link to="/settings" className="flex items-center gap-2 text-sm font-medium hover:text-primary transition-colors" onClick={() => setMobileMenuOpen(false)}>
+                    <Avatar className="w-8 h-8">
+                      <AvatarImage src={profile?.avatar_url} />
+                      <AvatarFallback className="bg-primary text-white text-sm">
+                        {profile?.full_name?.[0] || <User className="w-4 h-4" />}
+                      </AvatarFallback>
+                    </Avatar>
+                    Settings
                   </Link>
                   <Button onClick={signOut} variant="ghost" size="sm" className="w-full">Sign Out</Button>
                 </>
