@@ -95,35 +95,101 @@ export default function PostRequest() {
 
     setIsSubmitting(true);
 
-    const { error } = await supabase
-      .from('requests')
-      .insert({
-        user_id: user.id,
-        title: parsedData.title,
-        description: parsedData.description,
-        request_type: parsedData.request_type,
-        category: parsedData.category || null,
-        location: parsedData.location || null,
-        budget_min: parsedData.budget_min,
-        budget_max: parsedData.budget_max,
-        tags: parsedData.tags,
-        status: 'open'
-      });
+    try {
+      // Step 1: Geocode the location
+      let latitude: number | null = null;
+      let longitude: number | null = null;
 
-    setIsSubmitting(false);
+      if (parsedData.location) {
+        toast({
+          title: "Processing...",
+          description: "Finding providers in your area"
+        });
 
-    if (error) {
+        const { data: geocodeData, error: geocodeError } = await supabase.functions.invoke('geocode-location', {
+          body: { location: parsedData.location }
+        });
+
+        if (!geocodeError && geocodeData) {
+          latitude = geocodeData.latitude;
+          longitude = geocodeData.longitude;
+          
+          // Update user profile with coordinates if not already set
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('latitude, longitude')
+            .eq('id', user.id)
+            .single();
+
+          if (profile && !profile.latitude && !profile.longitude) {
+            await supabase
+              .from('profiles')
+              .update({
+                latitude: latitude,
+                longitude: longitude
+              })
+              .eq('id', user.id);
+          }
+        }
+      }
+
+      // Step 2: Insert the request
+      const { data: newRequest, error: insertError } = await supabase
+        .from('requests')
+        .insert({
+          user_id: user.id,
+          title: parsedData.title,
+          description: parsedData.description,
+          request_type: parsedData.request_type,
+          category: parsedData.category || null,
+          location: parsedData.location || null,
+          budget_min: parsedData.budget_min,
+          budget_max: parsedData.budget_max,
+          tags: parsedData.tags,
+          status: 'open'
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      // Step 3: Match providers if we have coordinates
+      if (latitude && longitude && newRequest) {
+        const { data: matchData } = await supabase.functions.invoke('match-providers', {
+          body: {
+            request_id: newRequest.id,
+            latitude: latitude,
+            longitude: longitude,
+            category: parsedData.category,
+            radius_miles: 25
+          }
+        });
+
+        const providerCount = matchData?.matched_count || 0;
+        
+        toast({
+          title: "Request Posted!",
+          description: providerCount > 0 
+            ? `${providerCount} provider${providerCount > 1 ? 's' : ''} have been notified in your area`
+            : "Your request has been posted to the marketplace"
+        });
+      } else {
+        toast({
+          title: "Success!",
+          description: "Your request has been posted"
+        });
+      }
+
+      navigate("/feed");
+    } catch (error) {
+      console.error('Submit error:', error);
       toast({
         title: "Error",
-        description: "Failed to post request. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to post request. Please try again.",
         variant: "destructive"
       });
-    } else {
-      toast({
-        title: "Success!",
-        description: "Your request has been posted"
-      });
-      navigate("/feed");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
