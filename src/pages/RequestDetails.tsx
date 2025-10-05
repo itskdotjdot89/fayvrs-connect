@@ -278,6 +278,8 @@ export default function RequestDetails() {
           <ProposalForm 
             requestId={request.id} 
             requestTitle={request.title}
+            requestDescription={request.description}
+            requestBudget={{ min: request.budget_min, max: request.budget_max }}
             onSuccess={() => setShowProposalForm(false)}
           />
         )}

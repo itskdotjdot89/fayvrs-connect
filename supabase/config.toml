@@ -12,6 +12,9 @@ verify_jwt = true
 [functions.customer-portal]
 verify_jwt = true
 
+[functions.generate-proposal]
+verify_jwt = true
+
 [functions.geocode-location]
 verify_jwt = false
 
