@@ -15,7 +15,6 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   subscriptionStatus: SubscriptionStatus | null;
-  checkSubscription: () => Promise<void>;
   signUp: (email: string, password: string, fullName: string, role: 'requester' | 'provider') => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -30,57 +29,52 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
   const { toast } = useToast();
 
-  const checkSubscription = async () => {
-    if (!session) {
-      setSubscriptionStatus(null);
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase.functions.invoke('check-subscription', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`
-        }
-      });
-
-      if (error) throw error;
-      setSubscriptionStatus(data);
-    } catch (error) {
-      console.error('Error checking subscription:', error);
-    }
-  };
-
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+      (event, currentSession) => {
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
         setLoading(false);
-        
-        // Check subscription when auth state changes
-        if (session) {
-          setTimeout(() => checkSubscription(), 0);
-        }
       }
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
       setLoading(false);
-      
-      if (session) {
-        setTimeout(() => checkSubscription(), 0);
-      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  // Periodic subscription check (every 60 seconds)
+  // Check subscription whenever session changes
   useEffect(() => {
+    const checkSubscription = async () => {
+      if (!session) {
+        setSubscriptionStatus(null);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase.functions.invoke('check-subscription', {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`
+          }
+        });
+
+        if (error) throw error;
+        setSubscriptionStatus(data);
+      } catch (error) {
+        console.error('Error checking subscription:', error);
+        setSubscriptionStatus(null);
+      }
+    };
+
+    checkSubscription();
+
+    // Periodic subscription check (every 60 seconds)
     if (!session) return;
 
     const interval = setInterval(() => {
@@ -156,7 +150,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       session, 
       loading, 
       subscriptionStatus,
-      checkSubscription,
       signUp, 
       signIn, 
       signOut 
