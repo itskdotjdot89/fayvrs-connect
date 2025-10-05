@@ -33,7 +33,11 @@ export default function Auth() {
     if (isSignUp) {
       const { error } = await signUp(email, password, fullName, role);
       if (!error) {
-        navigate('/feed');
+        if (role === 'provider') {
+          navigate('/provider-checkout');
+        } else {
+          navigate('/feed');
+        }
       }
     } else {
       const { error } = await signIn(email, password);
@@ -148,14 +152,14 @@ export default function Auth() {
 
               {isSignUp && role === "provider" && (
                 <div className="p-4 bg-accent rounded-lg">
-                  <p className="text-sm font-medium mb-2">Provider Subscription</p>
+                  <p className="text-sm font-medium mb-2">Provider Subscription Required</p>
                   <div className="flex items-center gap-2">
                     <Badge variant="default">$30/month</Badge>
                     <span className="text-xs text-muted-foreground">or</span>
                     <Badge variant="outline">$240/year</Badge>
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">
-                    Includes unlimited leads and in-app messaging
+                    After creating your account, you'll be redirected to complete your subscription
                   </p>
                 </div>
               )}

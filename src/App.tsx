@@ -9,6 +9,7 @@ import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import PostRequest from "./pages/PostRequest";
 import Feed from "./pages/Feed";
+import ProviderCheckout from "./pages/ProviderCheckout";
 import NotFound from "./pages/NotFound";
 
 // Fayvrs Mockup Screens
@@ -37,10 +38,11 @@ const App = () => (
         <BrowserRouter>
           <Layout>
             <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/post-request" element={<PostRequest />} />
-              <Route path="/feed" element={<Feed />} />
+            <Route path="/" element={<Home />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/post-request" element={<PostRequest />} />
+            <Route path="/feed" element={<Feed />} />
+            <Route path="/provider-checkout" element={<ProviderCheckout />} />
               
               {/* Fayvrs Mockups */}
               <Route path="/mockups" element={<MockupIndex />} />
