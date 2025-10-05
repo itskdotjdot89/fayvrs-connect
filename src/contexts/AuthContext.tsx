@@ -17,6 +17,10 @@ interface AuthContextType {
   subscriptionStatus: SubscriptionStatus | null;
   signUp: (email: string, password: string, fullName: string, role: 'requester' | 'provider') => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signInWithGoogle: () => Promise<{ error: any }>;
+  signInWithApple: () => Promise<{ error: any }>;
+  signInWithPhone: (phone: string) => Promise<{ error: any }>;
+  verifyOTP: (phone: string, token: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
 }
 
@@ -85,9 +89,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [session]);
 
   const signUp = async (email: string, password: string, fullName: string, role: 'requester' | 'provider') => {
-    const redirectUrl = role === 'provider' 
-      ? `${window.location.origin}/provider-checkout`
-      : `${window.location.origin}/feed`;
+    const redirectUrl = `${window.location.origin}/identity-verification`;
     
     const { error } = await supabase.auth.signUp({
       email,
@@ -110,9 +112,89 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } else {
       toast({
         title: "Success!",
-        description: role === 'provider' 
-          ? "Account created! Please complete your subscription."
-          : "Account created successfully"
+        description: "Account created! Please complete identity verification."
+      });
+    }
+
+    return { error };
+  };
+
+  const signInWithGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/identity-verification`
+      }
+    });
+
+    if (error) {
+      toast({
+        title: "Sign in failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+
+    return { error };
+  };
+
+  const signInWithApple = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'apple',
+      options: {
+        redirectTo: `${window.location.origin}/identity-verification`
+      }
+    });
+
+    if (error) {
+      toast({
+        title: "Sign in failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+
+    return { error };
+  };
+
+  const signInWithPhone = async (phone: string) => {
+    const { error } = await supabase.auth.signInWithOtp({
+      phone
+    });
+
+    if (error) {
+      toast({
+        title: "Sign in failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    } else {
+      toast({
+        title: "OTP sent",
+        description: "Check your phone for the verification code"
+      });
+    }
+
+    return { error };
+  };
+
+  const verifyOTP = async (phone: string, token: string) => {
+    const { error } = await supabase.auth.verifyOtp({
+      phone,
+      token,
+      type: 'sms'
+    });
+
+    if (error) {
+      toast({
+        title: "Verification failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    } else {
+      toast({
+        title: "Success!",
+        description: "Phone verified successfully"
       });
     }
 
@@ -151,7 +233,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       loading, 
       subscriptionStatus,
       signUp, 
-      signIn, 
+      signIn,
+      signInWithGoogle,
+      signInWithApple,
+      signInWithPhone,
+      verifyOTP,
       signOut 
     }}>
       {children}

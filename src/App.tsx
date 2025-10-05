@@ -10,13 +10,14 @@ import Auth from "./pages/Auth";
 import PostRequest from "./pages/PostRequest";
 import Feed from "./pages/Feed";
 import ProviderCheckout from "./pages/ProviderCheckout";
+import IdentityVerification from "./pages/IdentityVerification";
 import NotFound from "./pages/NotFound";
 
 // Fayvrs Mockup Screens
 import Onboarding from "./pages/mockups/Onboarding";
 import DemoFeed from "./pages/mockups/DemoFeed";
 import SignUpLogin from "./pages/mockups/SignUpLogin";
-import IdentityVerification from "./pages/mockups/IdentityVerification";
+import IdentityVerificationMockup from "./pages/mockups/IdentityVerification";
 import AIRequestChat from "./pages/mockups/AIRequestChat";
 import RequestFeed from "./pages/mockups/RequestFeed";
 import RequestDetails from "./pages/mockups/RequestDetails";
@@ -43,13 +44,14 @@ const App = () => (
             <Route path="/post-request" element={<PostRequest />} />
             <Route path="/feed" element={<Feed />} />
             <Route path="/provider-checkout" element={<ProviderCheckout />} />
+            <Route path="/identity-verification" element={<IdentityVerification />} />
               
               {/* Fayvrs Mockups */}
               <Route path="/mockups" element={<MockupIndex />} />
               <Route path="/mockup/onboarding" element={<Onboarding />} />
               <Route path="/mockup/demo-feed" element={<DemoFeed />} />
               <Route path="/mockup/signup" element={<SignUpLogin />} />
-              <Route path="/mockup/verification" element={<IdentityVerification />} />
+              <Route path="/mockup/verification" element={<IdentityVerificationMockup />} />
               <Route path="/mockup/ai-chat" element={<AIRequestChat />} />
               <Route path="/mockup/request-feed" element={<RequestFeed />} />
               <Route path="/mockup/request-details" element={<RequestDetails />} />
