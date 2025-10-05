@@ -43,7 +43,7 @@ export default function Auth() {
     if (isSignUp) {
       const {
         error
-      } = await signUp(email, password, fullName, role);
+      } = await signUp(email, password, fullName, role, phone);
       if (!error) {
         navigate('/identity-verification');
       }
@@ -176,10 +176,16 @@ export default function Auth() {
               </div>}
 
             {!showPhoneAuth && <form onSubmit={handleSubmit} className="space-y-4">
-              {isSignUp && <div className="space-y-2">
+              {isSignUp && <>
+                <div className="space-y-2">
                   <Label htmlFor="name">Full Name</Label>
                   <Input id="name" placeholder="John Doe" value={fullName} onChange={e => setFullName(e.target.value)} required={isSignUp} />
-                </div>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-phone">Phone Number</Label>
+                  <Input id="signup-phone" type="tel" placeholder="+1 (555) 123-4567" value={phone} onChange={e => setPhone(e.target.value)} required={isSignUp} />
+                </div>
+              </>}
 
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>

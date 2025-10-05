@@ -18,7 +18,7 @@ interface AuthContextType {
   activeRole: 'requester' | 'provider' | null;
   userRoles: ('requester' | 'provider')[];
   switchRole: (role: 'requester' | 'provider') => Promise<void>;
-  signUp: (email: string, password: string, fullName: string, role: 'requester' | 'provider') => Promise<{ error: any }>;
+  signUp: (email: string, password: string, fullName: string, role: 'requester' | 'provider', phone?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signInWithGoogle: () => Promise<{ error: any }>;
   signInWithApple: () => Promise<{ error: any }>;
@@ -151,7 +151,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => clearInterval(interval);
   }, [session]);
 
-  const signUp = async (email: string, password: string, fullName: string, role: 'requester' | 'provider') => {
+  const signUp = async (email: string, password: string, fullName: string, role: 'requester' | 'provider', phone?: string) => {
     const redirectUrl = `${window.location.origin}/identity-verification`;
     
     const { error } = await supabase.auth.signUp({
@@ -161,7 +161,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         emailRedirectTo: redirectUrl,
         data: {
           full_name: fullName,
-          role: role
+          role: role,
+          phone: phone
         }
       }
     });
