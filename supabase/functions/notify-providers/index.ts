@@ -80,14 +80,62 @@ serve(async (req) => {
         });
       }
 
-      // TODO: SMS notifications (requires TWILIO credentials)
+      // Send SMS notification via Twilio
       if (provider.has_sms && provider.phone) {
-        console.log('[NOTIFY-PROVIDERS] SMS notification would be sent to:', provider.phone);
-        notifications.push({ 
-          provider_id: provider.provider_id, 
-          channel: 'sms', 
-          status: 'pending_implementation' 
-        });
+        try {
+          const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+          const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+          const twilioPhoneNumber = Deno.env.get('TWILIO_PHONE_NUMBER');
+
+          if (twilioAccountSid && twilioAuthToken && twilioPhoneNumber) {
+            const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`;
+            
+            const formData = new URLSearchParams();
+            formData.append('To', provider.phone);
+            formData.append('From', twilioPhoneNumber);
+            formData.append('Body', `New Request Near You: ${request_title}\n\n${request_description.substring(0, 150)}...\n\nDistance: ${Math.round(provider.distance_miles)} miles away`);
+
+            const response = await fetch(twilioUrl, {
+              method: 'POST',
+              headers: {
+                'Authorization': 'Basic ' + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
+                'Content-Type': 'application/x-www-form-urlencoded',
+              },
+              body: formData.toString(),
+            });
+
+            if (response.ok) {
+              console.log('[NOTIFY-PROVIDERS] SMS sent successfully to:', provider.phone);
+              notifications.push({ 
+                provider_id: provider.provider_id, 
+                channel: 'sms', 
+                status: 'success' 
+              });
+            } else {
+              const error = await response.text();
+              console.error('[NOTIFY-PROVIDERS] SMS send failed:', error);
+              notifications.push({ 
+                provider_id: provider.provider_id, 
+                channel: 'sms', 
+                status: 'failed' 
+              });
+            }
+          } else {
+            console.log('[NOTIFY-PROVIDERS] Twilio credentials not configured');
+            notifications.push({ 
+              provider_id: provider.provider_id, 
+              channel: 'sms', 
+              status: 'credentials_missing' 
+            });
+          }
+        } catch (error) {
+          console.error('[NOTIFY-PROVIDERS] SMS error:', error);
+          notifications.push({ 
+            provider_id: provider.provider_id, 
+            channel: 'sms', 
+            status: 'error' 
+          });
+        }
       }
 
       // TODO: Push notifications (requires FCM setup)
