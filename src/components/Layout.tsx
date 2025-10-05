@@ -5,6 +5,7 @@ import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import fayvrsLogo from "@/assets/fayvrs-logo.png";
 import { useAuth } from "@/contexts/AuthContext";
+import { RoleSwitcher } from "./RoleSwitcher";
 interface LayoutProps {
   children: ReactNode;
 }
@@ -26,10 +27,11 @@ export const Layout = ({
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-6">
+          <div className="hidden md:flex items-center gap-4">
             <Link to="/feed" className={`text-sm font-medium hover:text-primary transition-colors ${isActive('/feed') ? 'text-primary' : 'text-foreground'}`}>
               Browse Requests
             </Link>
+            {user && <RoleSwitcher />}
             {user ? (
               <>
                 <Link to="/post-request">
@@ -56,6 +58,11 @@ export const Layout = ({
               <Link to="/feed" className="text-sm font-medium hover:text-primary transition-colors" onClick={() => setMobileMenuOpen(false)}>
                 Browse Requests
               </Link>
+              {user && (
+                <div className="flex justify-center">
+                  <RoleSwitcher />
+                </div>
+              )}
               {user ? (
                 <>
                   <Link to="/post-request" onClick={() => setMobileMenuOpen(false)}>

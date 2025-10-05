@@ -15,6 +15,9 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   subscriptionStatus: SubscriptionStatus | null;
+  activeRole: 'requester' | 'provider' | null;
+  userRoles: ('requester' | 'provider')[];
+  switchRole: (role: 'requester' | 'provider') => Promise<void>;
   signUp: (email: string, password: string, fullName: string, role: 'requester' | 'provider') => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signInWithGoogle: () => Promise<{ error: any }>;
@@ -31,6 +34,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
+  const [activeRole, setActiveRole] = useState<'requester' | 'provider' | null>(null);
+  const [userRoles, setUserRoles] = useState<('requester' | 'provider')[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -40,6 +45,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         setLoading(false);
+        
+        // Load user roles when session changes
+        if (currentSession?.user) {
+          setTimeout(() => {
+            loadUserRoles(currentSession.user.id);
+          }, 0);
+        } else {
+          setUserRoles([]);
+          setActiveRole(null);
+        }
       }
     );
 
@@ -48,10 +63,58 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       setLoading(false);
+      
+      if (currentSession?.user) {
+        loadUserRoles(currentSession.user.id);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const loadUserRoles = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
+      const roles = data.map(r => r.role as 'requester' | 'provider');
+      setUserRoles(roles);
+      
+      // Set active role to the first available role, or from localStorage
+      const savedRole = localStorage.getItem('activeRole') as 'requester' | 'provider' | null;
+      if (savedRole && roles.includes(savedRole)) {
+        setActiveRole(savedRole);
+      } else if (roles.length > 0) {
+        setActiveRole(roles[0]);
+        localStorage.setItem('activeRole', roles[0]);
+      }
+    } catch (error) {
+      console.error('Error loading user roles:', error);
+    }
+  };
+
+  const switchRole = async (role: 'requester' | 'provider') => {
+    if (!userRoles.includes(role)) {
+      toast({
+        title: "Role not available",
+        description: "You don't have access to this role",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setActiveRole(role);
+    localStorage.setItem('activeRole', role);
+    
+    toast({
+      title: "Role switched",
+      description: `Switched to ${role} mode`
+    });
+  };
 
   // Check subscription whenever session changes
   useEffect(() => {
@@ -232,6 +295,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       session, 
       loading, 
       subscriptionStatus,
+      activeRole,
+      userRoles,
+      switchRole,
       signUp, 
       signIn,
       signInWithGoogle,
