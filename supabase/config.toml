@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.notify-providers]
 verify_jwt = false
+
+[functions.send-email-notification]
+verify_jwt = false
