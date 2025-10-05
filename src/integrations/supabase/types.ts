@@ -279,6 +279,7 @@ export type Database = {
           request_type: Database["public"]["Enums"]["request_type"]
           selected_proposal_id: string | null
           status: Database["public"]["Enums"]["request_status"]
+          tags: Json | null
           title: string
           updated_at: string
           user_id: string
@@ -295,6 +296,7 @@ export type Database = {
           request_type: Database["public"]["Enums"]["request_type"]
           selected_proposal_id?: string | null
           status?: Database["public"]["Enums"]["request_status"]
+          tags?: Json | null
           title: string
           updated_at?: string
           user_id: string
@@ -311,6 +313,7 @@ export type Database = {
           request_type?: Database["public"]["Enums"]["request_type"]
           selected_proposal_id?: string | null
           status?: Database["public"]["Enums"]["request_status"]
+          tags?: Json | null
           title?: string
           updated_at?: string
           user_id?: string
