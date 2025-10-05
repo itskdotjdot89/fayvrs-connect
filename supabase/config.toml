@@ -16,7 +16,7 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.match-providers]
-verify_jwt = true
+verify_jwt = false
 
-[functions.notify-provider]
-verify_jwt = true
+[functions.notify-providers]
+verify_jwt = false
