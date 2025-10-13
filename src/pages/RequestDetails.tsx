@@ -18,13 +18,13 @@ export default function RequestDetails() {
   const queryClient = useQueryClient();
   const [showProposalForm, setShowProposalForm] = useState(false);
 
-  // Fetch request details
+  // Fetch request details (only public profile fields)
   const { data: request, isLoading: loadingRequest } = useQuery({
     queryKey: ['request', id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('requests')
-        .select('*, profiles(*)')
+        .select('*, profiles(id, full_name, avatar_url, location, bio, is_verified, role)')
         .eq('id', id)
         .single();
       
@@ -34,13 +34,13 @@ export default function RequestDetails() {
     enabled: !!id,
   });
 
-  // Fetch proposals for this request
+  // Fetch proposals for this request (only public profile fields)
   const { data: proposals, isLoading: loadingProposals } = useQuery({
     queryKey: ['proposals', id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('proposals')
-        .select('*, profiles(*)')
+        .select('*, profiles(id, full_name, avatar_url, location, bio, is_verified, role)')
         .eq('request_id', id)
         .order('price', { ascending: true });
       

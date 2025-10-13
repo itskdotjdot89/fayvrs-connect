@@ -17,13 +17,13 @@ export default function Messages() {
   const [message, setMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Fetch recipient profile
+  // Fetch recipient profile (only public fields - no email, phone, latitude, longitude)
   const { data: recipient } = useQuery({
     queryKey: ['profile', userId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, full_name, avatar_url, location, bio, is_verified, role')
         .eq('id', userId)
         .single();
       

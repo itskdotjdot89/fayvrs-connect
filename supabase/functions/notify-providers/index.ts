@@ -23,6 +23,57 @@ interface NotifyProvidersRequest {
   }>;
 }
 
+// Sanitize text for SMS to prevent injection attacks
+function sanitizeSMSContent(text: string): string {
+  // Remove potentially dangerous characters, keep only alphanumeric and basic punctuation
+  return text
+    .replace(/[^\w\s\-.,!?]/g, '')
+    .substring(0, 150)
+    .trim();
+}
+
+// Validate input fields
+function validateNotificationRequest(data: NotifyProvidersRequest): { valid: boolean; error?: string } {
+  // Validate request_id format (UUID)
+  if (!data.request_id || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.request_id)) {
+    return { valid: false, error: 'Invalid request_id format' };
+  }
+
+  // Validate title length and characters
+  if (!data.request_title || data.request_title.length < 3 || data.request_title.length > 200) {
+    return { valid: false, error: 'request_title must be between 3 and 200 characters' };
+  }
+
+  // Validate description length
+  if (!data.request_description || data.request_description.length < 10 || data.request_description.length > 2000) {
+    return { valid: false, error: 'request_description must be between 10 and 2000 characters' };
+  }
+
+  // Check for URLs in content to prevent phishing
+  const urlPattern = /(https?:\/\/|www\.|[a-z0-9-]+\.(com|net|org|io|co))/i;
+  if (urlPattern.test(data.request_title) || urlPattern.test(data.request_description)) {
+    return { valid: false, error: 'URLs are not allowed in notifications' };
+  }
+
+  // Validate providers array
+  if (!Array.isArray(data.providers) || data.providers.length === 0) {
+    return { valid: false, error: 'providers array is required and must not be empty' };
+  }
+
+  if (data.providers.length > 50) {
+    return { valid: false, error: 'Cannot notify more than 50 providers at once' };
+  }
+
+  // Validate phone numbers format if SMS notifications are requested
+  for (const provider of data.providers) {
+    if (provider.has_sms && provider.phone && !/^\+[1-9]\d{1,14}$/.test(provider.phone)) {
+      return { valid: false, error: `Invalid phone number format for provider ${provider.provider_id}` };
+    }
+  }
+
+  return { valid: true };
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -34,12 +85,31 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    const requestData: NotifyProvidersRequest = await req.json();
+
+    // Validate input
+    const validation = validateNotificationRequest(requestData);
+    if (!validation.valid) {
+      console.error('[NOTIFY-PROVIDERS] Validation failed:', validation.error);
+      return new Response(
+        JSON.stringify({ error: validation.error }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
     const { 
       request_id,
       request_title, 
       request_description,
       providers 
-    }: NotifyProvidersRequest = await req.json();
+    } = requestData;
+
+    // Sanitize content for notifications
+    const sanitizedTitle = sanitizeSMSContent(request_title);
+    const sanitizedDescription = sanitizeSMSContent(request_description);
 
     console.log('[NOTIFY-PROVIDERS] Notifying', providers.length, 'providers about request:', request_id);
 
@@ -53,8 +123,8 @@ serve(async (req) => {
           .insert({
             user_id: provider.provider_id,
             type: 'new_request',
-            title: `New Request Near You: ${request_title}`,
-            message: `${request_description.substring(0, 100)}... (${Math.round(provider.distance_miles)} miles away)`,
+            title: `New Request Near You: ${sanitizedTitle}`,
+            message: `${sanitizedDescription.substring(0, 100)}... (${Math.round(provider.distance_miles)} miles away)`,
             request_id: request_id,
             is_read: false,
           });
@@ -93,7 +163,7 @@ serve(async (req) => {
             const formData = new URLSearchParams();
             formData.append('To', provider.phone);
             formData.append('From', twilioPhoneNumber);
-            formData.append('Body', `New Request Near You: ${request_title}\n\n${request_description.substring(0, 150)}...\n\nDistance: ${Math.round(provider.distance_miles)} miles away`);
+            formData.append('Body', `New Request: ${sanitizedTitle}\n\n${sanitizedDescription}\n\nDistance: ${Math.round(provider.distance_miles)} mi`);
 
             const response = await fetch(twilioUrl, {
               method: 'POST',
@@ -105,7 +175,7 @@ serve(async (req) => {
             });
 
             if (response.ok) {
-              console.log('[NOTIFY-PROVIDERS] SMS sent successfully to:', provider.phone);
+              console.log('[NOTIFY-PROVIDERS] SMS sent successfully to provider:', provider.provider_id);
               notifications.push({ 
                 provider_id: provider.provider_id, 
                 channel: 'sms', 
@@ -113,7 +183,7 @@ serve(async (req) => {
               });
             } else {
               const error = await response.text();
-              console.error('[NOTIFY-PROVIDERS] SMS send failed:', error);
+              console.error('[NOTIFY-PROVIDERS] SMS send failed for provider:', provider.provider_id);
               notifications.push({ 
                 provider_id: provider.provider_id, 
                 channel: 'sms', 
