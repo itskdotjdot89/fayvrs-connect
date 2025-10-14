@@ -11,6 +11,7 @@ import { Upload, Loader2, User, Bell, Mail, MessageSquare } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import VerificationStatus from "@/components/VerificationStatus";
 
 export default function Settings() {
   const { user } = useAuth();
@@ -199,6 +200,9 @@ export default function Settings() {
       <h1 className="text-3xl font-bold text-foreground mb-8">Settings</h1>
 
       <div className="space-y-6">
+        {/* Verification Status Card */}
+        <VerificationStatus />
+
         <Card>
           <CardHeader>
             <CardTitle>Profile Picture</CardTitle>

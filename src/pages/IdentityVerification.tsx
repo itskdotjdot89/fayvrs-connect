@@ -9,13 +9,11 @@ export default function IdentityVerification() {
   const [uploading, setUploading] = useState(false);
   const [idDocumentFile, setIdDocumentFile] = useState<File | null>(null);
   const [selfieFile, setSelfieFile] = useState<File | null>(null);
-  const {
-    user
-  } = useAuth();
+  const [idPreview, setIdPreview] = useState<string | null>(null);
+  const [selfiePreview, setSelfiePreview] = useState<string | null>(null);
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
 const validateFile = (file: File, type: 'id' | 'selfie'): boolean => {
   // Max 5MB
   if (file.size > 5 * 1024 * 1024) {
@@ -51,11 +49,18 @@ const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'id' | '
       return;
     }
     
-    if (type === 'id') {
-      setIdDocumentFile(file);
-    } else {
-      setSelfieFile(file);
-    }
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (type === 'id') {
+        setIdPreview(reader.result as string);
+        setIdDocumentFile(file);
+      } else {
+        setSelfiePreview(reader.result as string);
+        setSelfieFile(file);
+      }
+    };
+    reader.readAsDataURL(file);
   }
 };
   const handleSubmit = async () => {
@@ -189,12 +194,28 @@ const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'id' | '
             <div className="flex-1 pt-1">
               <h3 className="font-semibold text-foreground mb-1">Upload ID</h3>
               <p className="text-sm text-muted-foreground mb-2">
-                Photo of government-issued ID
+                Photo of government-issued ID (Max 5MB)
               </p>
-              <input type="file" accept="image/*" onChange={e => handleFileChange(e, 'id')} className="text-sm" />
-              {idDocumentFile && <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+              <input 
+                type="file" 
+                accept="image/jpeg,image/png,image/jpg,image/heic" 
+                onChange={e => handleFileChange(e, 'id')} 
+                className="text-sm mb-2" 
+              />
+              {idPreview && (
+                <div className="mt-2">
+                  <img 
+                    src={idPreview} 
+                    alt="ID preview" 
+                    className="w-full h-32 object-cover rounded-lg border border-border" 
+                  />
+                </div>
+              )}
+              {idDocumentFile && (
+                <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
                   <CheckCircle className="w-3 h-3" /> {idDocumentFile.name}
-                </p>}
+                </p>
+              )}
             </div>
           </div>
 
@@ -205,12 +226,29 @@ const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'id' | '
             <div className="flex-1 pt-1">
               <h3 className="font-semibold text-foreground mb-1">Take Selfie</h3>
               <p className="text-sm text-muted-foreground mb-2">
-                Quick photo to verify it's you
+                Quick photo to verify it's you (Max 5MB)
               </p>
-              <input type="file" accept="image/*" capture="user" onChange={e => handleFileChange(e, 'selfie')} className="text-sm" />
-              {selfieFile && <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+              <input 
+                type="file" 
+                accept="image/jpeg,image/png,image/jpg,image/heic" 
+                capture="user" 
+                onChange={e => handleFileChange(e, 'selfie')} 
+                className="text-sm mb-2" 
+              />
+              {selfiePreview && (
+                <div className="mt-2">
+                  <img 
+                    src={selfiePreview} 
+                    alt="Selfie preview" 
+                    className="w-full h-32 object-cover rounded-lg border border-border" 
+                  />
+                </div>
+              )}
+              {selfieFile && (
+                <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
                   <CheckCircle className="w-3 h-3" /> {selfieFile.name}
-                </p>}
+                </p>
+              )}
             </div>
           </div>
 
