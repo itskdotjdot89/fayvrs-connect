@@ -16,16 +16,48 @@ export default function IdentityVerification() {
   const {
     toast
   } = useToast();
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'id' | 'selfie') => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (type === 'id') {
-        setIdDocumentFile(file);
-      } else {
-        setSelfieFile(file);
-      }
+const validateFile = (file: File, type: 'id' | 'selfie'): boolean => {
+  // Max 5MB
+  if (file.size > 5 * 1024 * 1024) {
+    toast({
+      title: "File too large",
+      description: "File must be less than 5MB",
+      variant: "destructive"
+    });
+    return false;
+  }
+  
+  // Only images
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/heic', 'image/jpg'];
+  if (!allowedTypes.includes(file.type.toLowerCase())) {
+    toast({
+      title: "Invalid file type",
+      description: "Only JPEG, PNG, and HEIC images are allowed",
+      variant: "destructive"
+    });
+    return false;
+  }
+  
+  return true;
+};
+
+const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'id' | 'selfie') => {
+  const file = e.target.files?.[0];
+  if (file) {
+    // Validate file before setting
+    if (!validateFile(file, type)) {
+      // Clear the input
+      e.target.value = '';
+      return;
     }
-  };
+    
+    if (type === 'id') {
+      setIdDocumentFile(file);
+    } else {
+      setSelfieFile(file);
+    }
+  }
+};
   const handleSubmit = async () => {
     if (!user) {
       toast({
@@ -43,56 +75,63 @@ export default function IdentityVerification() {
       });
       return;
     }
+
     setUploading(true);
+    let idPath = '';
+    let selfiePath = '';
+
     try {
       // Upload ID document
       const idExt = idDocumentFile.name.split('.').pop();
-      const idPath = `${user.id}/id-document.${idExt}`;
-      const {
-        error: idError
-      } = await supabase.storage.from('verification-documents').upload(idPath, idDocumentFile, {
-        upsert: true
-      });
+      idPath = `${user.id}/id-document-${Date.now()}.${idExt}`;
+      const { error: idError } = await supabase.storage
+        .from('verification-documents')
+        .upload(idPath, idDocumentFile, { upsert: true });
+
       if (idError) throw idError;
 
       // Upload selfie
       const selfieExt = selfieFile.name.split('.').pop();
-      const selfiePath = `${user.id}/selfie.${selfieExt}`;
-      const {
-        error: selfieError
-      } = await supabase.storage.from('verification-documents').upload(selfiePath, selfieFile, {
-        upsert: true
-      });
-      if (selfieError) throw selfieError;
+      selfiePath = `${user.id}/selfie-${Date.now()}.${selfieExt}`;
+      const { error: selfieError } = await supabase.storage
+        .from('verification-documents')
+        .upload(selfiePath, selfieFile, { upsert: true });
 
-      // Get public URLs
-      const {
-        data: idUrl
-      } = supabase.storage.from('verification-documents').getPublicUrl(idPath);
-      const {
-        data: selfieUrl
-      } = supabase.storage.from('verification-documents').getPublicUrl(selfiePath);
+      if (selfieError) {
+        // Cleanup: Delete the ID that was already uploaded
+        await supabase.storage.from('verification-documents').remove([idPath]);
+        throw selfieError;
+      }
 
-      // Create verification record
-      const {
-        error: dbError
-      } = await supabase.from('identity_verifications').upsert({
-        user_id: user.id,
-        status: 'pending',
-        id_document_url: idUrl.publicUrl,
-        selfie_url: selfieUrl.publicUrl,
-        submitted_at: new Date().toISOString()
-      });
-      if (dbError) throw dbError;
+      // Create verification record - store paths instead of public URLs
+      const { error: dbError } = await supabase
+        .from('identity_verifications')
+        .upsert({
+          user_id: user.id,
+          status: 'pending',
+          id_document_url: idPath,    // Store path, not URL
+          selfie_url: selfiePath,      // Store path, not URL
+          submitted_at: new Date().toISOString()
+        });
+
+      if (dbError) {
+        // Cleanup: Delete both uploaded files
+        await supabase.storage.from('verification-documents').remove([idPath, selfiePath]);
+        throw dbError;
+      }
+
       toast({
         title: "Success!",
         description: "Your verification has been submitted. We'll review it within 24 hours."
       });
 
       // Check user role and redirect accordingly
-      const {
-        data: profile
-      } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      
       if (profile?.role === 'provider') {
         navigate('/provider-checkout');
       } else {
@@ -102,7 +141,7 @@ export default function IdentityVerification() {
       console.error('Verification error:', error);
       toast({
         title: "Upload failed",
-        description: error.message || "Failed to submit verification",
+        description: error.message || "Failed to submit verification. Please try again.",
         variant: "destructive"
       });
     } finally {
