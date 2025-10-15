@@ -2387,7 +2387,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "requester" | "provider"
+      app_role: "requester" | "provider" | "admin"
       request_status: "open" | "in_progress" | "completed" | "cancelled"
       request_type: "service" | "product" | "other"
     }
@@ -2525,7 +2525,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["requester", "provider"],
+      app_role: ["requester", "provider", "admin"],
       request_status: ["open", "in_progress", "completed", "cancelled"],
       request_type: ["service", "product", "other"],
     },
