@@ -61,7 +61,6 @@ serve(async (req) => {
     const results = {
       in_app: false,
       email: false,
-      sms: false,
       push: false
     };
 
@@ -101,22 +100,6 @@ serve(async (req) => {
         console.log('[NOTIFY-PROVIDER] Email sent:', results.email);
       } catch (err) {
         console.error('[NOTIFY-PROVIDER] Email error:', err);
-      }
-    }
-
-    // SMS notification
-    if (notification_channels.sms && provider.phone) {
-      try {
-        const smsResponse = await supabase.functions.invoke('send-sms-notification', {
-          body: {
-            to: provider.phone,
-            message: `${notificationTitle}\n\n${notificationMessage}\n\nView: ${supabaseUrl}/request/${request_id}`
-          }
-        });
-        results.sms = !smsResponse.error;
-        console.log('[NOTIFY-PROVIDER] SMS sent:', results.sms);
-      } catch (err) {
-        console.error('[NOTIFY-PROVIDER] SMS error:', err);
       }
     }
 

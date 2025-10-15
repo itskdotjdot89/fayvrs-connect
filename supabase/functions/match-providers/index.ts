@@ -53,10 +53,27 @@ serve(async (req) => {
 
     console.log(`[MATCH-PROVIDERS] Found ${providers?.length || 0} matching providers`);
 
-    // Call notification function for each provider
-    if (providers && providers.length > 0) {
+    // Score and rank providers
+    const scoredProviders = providers ? providers.map((provider: any) => {
+      let score = 100;
+      
+      // Distance penalty: closer is better (subtract 2 points per mile)
+      score -= (provider.distance_miles * 2);
+      
+      // Specialty match bonus
+      if (provider.has_specialty) {
+        score += 50;
+      }
+      
+      return { ...provider, score };
+    }).sort((a: any, b: any) => b.score - a.score).slice(0, 20) : [];
+
+    console.log(`[MATCH-PROVIDERS] Top ${scoredProviders.length} providers selected after scoring`);
+
+    // Call notification function for top-ranked providers
+    if (scoredProviders && scoredProviders.length > 0) {
       const notificationResults = await Promise.allSettled(
-        providers.map(async (provider: any) => {
+        scoredProviders.map(async (provider: any) => {
           try {
             const response = await supabase.functions.invoke('notify-provider', {
               body: {
@@ -83,8 +100,8 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ 
-        matched_count: providers?.length || 0,
-        providers: providers || []
+        matched_count: scoredProviders?.length || 0,
+        providers: scoredProviders || []
       }),
       { 
         status: 200, 

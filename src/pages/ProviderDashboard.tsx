@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Eye, MessageCircle, CheckCircle, Calendar, TrendingUp, ArrowUpRight, Loader2, Settings } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { NearbyRequestsWidget } from "@/components/NearbyRequestsWidget";
 
 export default function ProviderDashboard() {
   const navigate = useNavigate();
@@ -171,6 +172,9 @@ export default function ProviderDashboard() {
             </div>
           ))}
         </div>
+
+        {/* Nearby Requests */}
+        <NearbyRequestsWidget />
 
         {/* Recent Activity */}
         <div className="space-y-3">
