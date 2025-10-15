@@ -18,6 +18,8 @@ import RequesterDashboard from "./pages/RequesterDashboard";
 import Portfolio from "./pages/Portfolio";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import { ProtectedRoute } from "./components/ProtectedRoute";
+import KYCReview from "./pages/admin/KYCReview";
 
 // Fayvrs Mockup Screens
 import Onboarding from "./pages/mockups/Onboarding";
@@ -57,6 +59,11 @@ const App = () => (
             <Route path="/requester-dashboard" element={<RequesterDashboard />} />
             <Route path="/portfolio" element={<Portfolio />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/admin/kyc-review" element={
+              <ProtectedRoute requiredRole="admin">
+                <KYCReview />
+              </ProtectedRoute>
+            } />
               
               {/* Fayvrs Mockups */}
               <Route path="/mockups" element={<MockupIndex />} />

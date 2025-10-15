@@ -10,6 +10,7 @@ import { RoleSwitcher } from "./RoleSwitcher";
 import { NotificationBell } from "./NotificationBell";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "./ui/badge";
 interface LayoutProps {
   children: ReactNode;
 }
@@ -18,7 +19,7 @@ export const Layout = ({
 }: LayoutProps) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
-  const { user, signOut, activeRole } = useAuth();
+  const { user, signOut, activeRole, userRoles } = useAuth();
   const isActive = (path: string) => location.pathname === path;
 
   // Fetch user profile for avatar
@@ -36,6 +37,33 @@ export const Layout = ({
       return data;
     },
     enabled: !!user?.id,
+  });
+
+  // Fetch pending verification count for admin
+  const { data: pendingCount } = useQuery({
+    queryKey: ['pending-verifications-count'],
+    queryFn: async () => {
+      if (!user) return 0;
+      
+      // Check if user is admin
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('role', 'admin')
+        .maybeSingle();
+      
+      if (!roleData) return 0;
+      
+      const { count } = await supabase
+        .from('identity_verifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+      
+      return count || 0;
+    },
+    enabled: !!user,
+    refetchInterval: 30000, // Refresh every 30 seconds
   });
   return <div className="min-h-screen flex flex-col">
       {/* Header */}
@@ -65,6 +93,16 @@ export const Layout = ({
             {user && activeRole === 'requester' && (
               <Link to="/requester-dashboard" className={`text-sm font-medium hover:text-primary transition-colors ${isActive('/requester-dashboard') ? 'text-primary' : 'text-foreground'}`}>
                 Dashboard
+              </Link>
+            )}
+            {user && userRoles.includes('admin') && (
+              <Link to="/admin/kyc-review" className={`text-sm font-medium hover:text-primary transition-colors relative ${isActive('/admin/kyc-review') ? 'text-primary' : 'text-foreground'}`}>
+                KYC Review
+                {pendingCount && pendingCount > 0 && (
+                  <Badge className="ml-2 bg-red-500 text-white" variant="destructive">
+                    {pendingCount}
+                  </Badge>
+                )}
               </Link>
             )}
             {user && <RoleSwitcher />}
@@ -116,6 +154,16 @@ export const Layout = ({
               {user && activeRole === 'requester' && (
                 <Link to="/requester-dashboard" className="text-sm font-medium hover:text-primary transition-colors" onClick={() => setMobileMenuOpen(false)}>
                   Dashboard
+                </Link>
+              )}
+              {user && userRoles.includes('admin') && (
+                <Link to="/admin/kyc-review" className="text-sm font-medium hover:text-primary transition-colors relative" onClick={() => setMobileMenuOpen(false)}>
+                  KYC Review
+                  {pendingCount && pendingCount > 0 && (
+                    <Badge className="ml-2 bg-red-500 text-white" variant="destructive">
+                      {pendingCount}
+                    </Badge>
+                  )}
                 </Link>
               )}
               {user && (

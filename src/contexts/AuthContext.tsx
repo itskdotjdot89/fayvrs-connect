@@ -15,9 +15,9 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   subscriptionStatus: SubscriptionStatus | null;
-  activeRole: 'requester' | 'provider' | null;
-  userRoles: ('requester' | 'provider')[];
-  switchRole: (role: 'requester' | 'provider') => Promise<void>;
+  activeRole: 'requester' | 'provider' | 'admin' | null;
+  userRoles: ('requester' | 'provider' | 'admin')[];
+  switchRole: (role: 'requester' | 'provider' | 'admin') => Promise<void>;
   signUp: (email: string, password: string, fullName: string, role: 'requester' | 'provider', phone?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signInWithGoogle: () => Promise<{ error: any }>;
@@ -34,8 +34,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
-  const [activeRole, setActiveRole] = useState<'requester' | 'provider' | null>(null);
-  const [userRoles, setUserRoles] = useState<('requester' | 'provider')[]>([]);
+  const [activeRole, setActiveRole] = useState<'requester' | 'provider' | 'admin' | null>(null);
+  const [userRoles, setUserRoles] = useState<('requester' | 'provider' | 'admin')[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
