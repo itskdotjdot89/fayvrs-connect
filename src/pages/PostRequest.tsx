@@ -203,6 +203,8 @@ export default function PostRequest() {
         request_type: parsedData.request_type,
         category: parsedData.category || null,
         location: parsedData.location || null,
+        latitude: latitude,
+        longitude: longitude,
         budget_min: parsedData.budget_min,
         budget_max: parsedData.budget_max,
         tags: parsedData.tags,
