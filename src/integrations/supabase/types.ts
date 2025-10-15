@@ -241,6 +241,7 @@ export type Database = {
           longitude: number | null
           phone: string | null
           role: Database["public"]["Enums"]["app_role"]
+          service_radius: number | null
           updated_at: string
         }
         Insert: {
@@ -256,6 +257,7 @@ export type Database = {
           longitude?: number | null
           phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
+          service_radius?: number | null
           updated_at?: string
         }
         Update: {
@@ -271,6 +273,7 @@ export type Database = {
           longitude?: number | null
           phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
+          service_radius?: number | null
           updated_at?: string
         }
         Relationships: []
@@ -400,7 +403,9 @@ export type Database = {
           expires_at: string | null
           id: string
           images: string[] | null
+          latitude: number | null
           location: string | null
+          longitude: number | null
           request_type: Database["public"]["Enums"]["request_type"]
           selected_proposal_id: string | null
           status: Database["public"]["Enums"]["request_status"]
@@ -418,7 +423,9 @@ export type Database = {
           expires_at?: string | null
           id?: string
           images?: string[] | null
+          latitude?: number | null
           location?: string | null
+          longitude?: number | null
           request_type: Database["public"]["Enums"]["request_type"]
           selected_proposal_id?: string | null
           status?: Database["public"]["Enums"]["request_status"]
@@ -436,7 +443,9 @@ export type Database = {
           expires_at?: string | null
           id?: string
           images?: string[] | null
+          latitude?: number | null
           location?: string | null
+          longitude?: number | null
           request_type?: Database["public"]["Enums"]["request_type"]
           selected_proposal_id?: string | null
           status?: Database["public"]["Enums"]["request_status"]
@@ -814,13 +823,40 @@ export type Database = {
         Args: { geom1: unknown; geom2: unknown }
         Returns: boolean
       }
-      find_providers_in_radius: {
+      find_nearby_requests: {
         Args: {
+          provider_latitude: number
+          provider_longitude: number
           radius_miles?: number
-          req_category: string
-          req_latitude: number
-          req_longitude: number
+          req_category?: string
         }
+        Returns: {
+          budget_max: number
+          budget_min: number
+          category: string
+          created_at: string
+          description: string
+          distance_miles: number
+          location: string
+          request_id: string
+          requester_name: string
+          title: string
+        }[]
+      }
+      find_providers_in_radius: {
+        Args:
+          | {
+              radius_miles?: number
+              req_category: string
+              req_latitude: number
+              req_longitude: number
+            }
+          | {
+              radius_miles?: number
+              req_category?: string
+              req_latitude: number
+              req_longitude: number
+            }
         Returns: {
           distance_miles: number
           email: string
