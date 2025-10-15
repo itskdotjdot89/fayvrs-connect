@@ -17,6 +17,7 @@ import ProviderDashboard from "./pages/ProviderDashboard";
 import RequesterDashboard from "./pages/RequesterDashboard";
 import Portfolio from "./pages/Portfolio";
 import Settings from "./pages/Settings";
+import ProviderSettings from "./pages/ProviderSettings";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import KYCReview from "./pages/admin/KYCReview";
@@ -59,6 +60,7 @@ const App = () => (
             <Route path="/requester-dashboard" element={<RequesterDashboard />} />
             <Route path="/portfolio" element={<Portfolio />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/provider-settings" element={<ProviderSettings />} />
             <Route path="/admin/kyc-review" element={
               <ProtectedRoute requiredRole="admin">
                 <KYCReview />

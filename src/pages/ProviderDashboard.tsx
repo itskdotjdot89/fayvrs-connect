@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Eye, MessageCircle, CheckCircle, Calendar, TrendingUp, ArrowUpRight, Loader2 } from "lucide-react";
+import { Eye, MessageCircle, CheckCircle, Calendar, TrendingUp, ArrowUpRight, Loader2, Settings } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function ProviderDashboard() {
@@ -100,9 +100,19 @@ export default function ProviderDashboard() {
     <div className="min-h-screen bg-surface">
       {/* Header */}
       <div className="bg-white border-b border-border">
-        <div className="max-w-md mx-auto px-4 py-4">
-          <h1 className="text-xl font-bold font-poppins text-foreground">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">Your performance overview</p>
+        <div className="max-w-md mx-auto px-4 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold font-poppins text-foreground">Dashboard</h1>
+            <p className="text-sm text-muted-foreground">Your performance overview</p>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => navigate('/provider-settings')}
+            className="rounded-xl"
+          >
+            <Settings className="w-5 h-5" />
+          </Button>
         </div>
       </div>
 
