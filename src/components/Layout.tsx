@@ -200,6 +200,51 @@ export const Layout = ({
       <main className="flex-1">{children}</main>
 
       {/* Footer */}
-      
+      <footer className="border-t bg-muted/30">
+        <div className="container mx-auto px-4 py-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <img src={fayvrsLogo} alt="Fayvrs" className="h-6 w-6" />
+                <span className="font-bold text-lg text-secondary">Fayvrs</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Connect with local service providers for all your needs.
+              </p>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold mb-4">Legal</h3>
+              <ul className="space-y-2">
+                <li>
+                  <Link to="/terms-of-service" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                    Terms of Service
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/privacy-policy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                    Privacy Policy
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold mb-4">Support</h3>
+              <ul className="space-y-2">
+                <li>
+                  <a href="mailto:support@fayvrs.com" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                    support@fayvrs.com
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+          
+          <div className="mt-8 pt-8 border-t text-center text-sm text-muted-foreground">
+            © {new Date().getFullYear()} Fayvrs. All rights reserved.
+          </div>
+        </div>
+      </footer>
     </div>;
 };

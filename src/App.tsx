@@ -21,6 +21,8 @@ import ProviderSettings from "./pages/ProviderSettings";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import KYCReview from "./pages/admin/KYCReview";
+import TermsOfService from "./pages/TermsOfService";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 // Fayvrs Mockup Screens
 import Onboarding from "./pages/mockups/Onboarding";
@@ -61,6 +63,8 @@ const App = () => (
             <Route path="/portfolio" element={<Portfolio />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/provider-settings" element={<ProviderSettings />} />
+            <Route path="/terms-of-service" element={<TermsOfService />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/admin/kyc-review" element={
               <ProtectedRoute requiredRole="admin">
                 <KYCReview />
