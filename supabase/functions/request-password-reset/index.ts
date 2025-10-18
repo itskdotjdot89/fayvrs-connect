@@ -146,7 +146,7 @@ serve(async (req) => {
     `;
 
     const { error: emailError } = await resend.emails.send({
-      from: 'Fayvrs <noreply@fayvrs.com>',
+      from: 'Fayvrs <contact@fayvrs.com>',
       to: [email],
       subject: 'Reset Your Fayvrs Password',
       html: emailHtml,
