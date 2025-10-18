@@ -25,6 +25,7 @@ interface AuthContextType {
   signInWithPhone: (phone: string) => Promise<{ error: any }>;
   verifyOTP: (phone: string, token: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<{ error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -290,6 +291,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  const resetPassword = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth?mode=reset`,
+      });
+      
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+        return { error };
+      }
+      
+      toast({
+        title: "Check your email",
+        description: "We've sent you a password reset link",
+      });
+      return { error: null };
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to send reset email",
+        variant: "destructive",
+      });
+      return { error };
+    }
+  };
+
   return (
     <AuthContext.Provider value={{ 
       user, 
@@ -305,7 +336,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       signInWithApple,
       signInWithPhone,
       verifyOTP,
-      signOut 
+      signOut,
+      resetPassword 
     }}>
       {children}
     </AuthContext.Provider>

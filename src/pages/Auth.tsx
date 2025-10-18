@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { User, Briefcase } from "lucide-react";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import fayvrsLogo from "@/assets/fayvrs-logo-full.png";
 export default function Auth() {
   const [role, setRole] = useState<"requester" | "provider">("requester");
@@ -22,19 +23,33 @@ export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPhoneAuth, setShowPhoneAuth] = useState(false);
   const [showOTPInput, setShowOTPInput] = useState(false);
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [mode, setMode] = useState<string | null>(null);
   const {
     user,
     signUp,
     signIn,
     signInWithPhone,
-    verifyOTP
+    verifyOTP,
+    resetPassword
   } = useAuth();
   const navigate = useNavigate();
   useEffect(() => {
-    if (user) {
+    // Check for password reset mode in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const resetMode = urlParams.get('mode');
+    if (resetMode === 'reset') {
+      setMode('reset');
+      setShowPasswordReset(false);
+    }
+
+    if (user && mode !== 'reset') {
       navigate('/feed');
     }
-  }, [user, navigate]);
+  }, [user, navigate, mode]);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -75,6 +90,31 @@ export default function Auth() {
     }
     setIsLoading(false);
   };
+
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    await resetPassword(resetEmail);
+    setIsLoading(false);
+  };
+
+  const handlePasswordUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (newPassword !== confirmPassword) {
+      return;
+    }
+
+    setIsLoading(true);
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword
+    });
+    
+    if (!error) {
+      navigate('/feed');
+    }
+    setIsLoading(false);
+  };
   return <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-gradient-to-b from-accent/30 to-background py-12 px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
@@ -92,16 +132,84 @@ export default function Auth() {
         <Card>
           <CardHeader>
             <CardTitle>
-              {isSignUp ? "Sign Up" : "Sign In"}
+              {mode === 'reset' ? "Reset Password" : showPasswordReset ? "Reset Password" : isSignUp ? "Sign Up" : "Sign In"}
             </CardTitle>
             <CardDescription>
-              {isSignUp ? "Choose your account type to get started" : "Enter your credentials to access your account"}
+              {mode === 'reset' ? "Enter your new password" : showPasswordReset ? "Enter your email to receive a reset link" : isSignUp ? "Choose your account type to get started" : "Enter your credentials to access your account"}
             </CardDescription>
           </CardHeader>
           <CardContent>
 
+            {/* Password Reset Mode - Update Password */}
+            {mode === 'reset' && (
+              <form onSubmit={handlePasswordUpdate} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword">New Password</Label>
+                  <Input 
+                    id="newPassword" 
+                    type="password" 
+                    placeholder="••••••••" 
+                    value={newPassword} 
+                    onChange={e => setNewPassword(e.target.value)} 
+                    required 
+                    minLength={6}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <Input 
+                    id="confirmPassword" 
+                    type="password" 
+                    placeholder="••••••••" 
+                    value={confirmPassword} 
+                    onChange={e => setConfirmPassword(e.target.value)} 
+                    required 
+                    minLength={6}
+                  />
+                  {newPassword !== confirmPassword && confirmPassword && (
+                    <p className="text-xs text-destructive">Passwords do not match</p>
+                  )}
+                </div>
+
+                <Button type="submit" className="w-full" disabled={isLoading || newPassword !== confirmPassword}>
+                  {isLoading ? "Updating..." : "Update Password"}
+                </Button>
+              </form>
+            )}
+
+            {/* Password Reset Form - Request Link */}
+            {!mode && showPasswordReset && (
+              <form onSubmit={handlePasswordReset} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="resetEmail">Email</Label>
+                  <Input 
+                    id="resetEmail" 
+                    type="email" 
+                    placeholder="you@example.com" 
+                    value={resetEmail} 
+                    onChange={e => setResetEmail(e.target.value)} 
+                    required 
+                  />
+                </div>
+
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Sending..." : "Send Reset Link"}
+                </Button>
+
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  className="w-full" 
+                  onClick={() => setShowPasswordReset(false)}
+                >
+                  Back to Sign In
+                </Button>
+              </form>
+            )}
+
             {/* Phone Auth Form */}
-            {showPhoneAuth && <form onSubmit={handlePhoneSubmit} className="space-y-4 mb-6">
+            {!mode && !showPasswordReset && showPhoneAuth && <form onSubmit={handlePhoneSubmit} className="space-y-4 mb-6">
                 {!showOTPInput ? <div className="space-y-2">
                     <Label htmlFor="phone">Phone Number</Label>
                     <Input id="phone" type="tel" placeholder="+1 (555) 123-4567" value={phone} onChange={e => setPhone(e.target.value)} required />
@@ -125,7 +233,7 @@ export default function Auth() {
               </form>}
 
             {/* Email/Password Form */}
-            {!showPhoneAuth && isSignUp && <div className="mb-6">
+            {!mode && !showPasswordReset && !showPhoneAuth && isSignUp && <div className="mb-6">
                 <Label className="mb-3 block">I want to:</Label>
                 <div className="grid grid-cols-2 gap-4">
                   <button onClick={() => setRole("requester")} className={`p-4 border-2 rounded-lg transition-all ${role === "requester" ? "border-primary bg-accent" : "border-border hover:border-primary/50"}`}>
@@ -141,7 +249,7 @@ export default function Auth() {
                 </div>
               </div>}
 
-            {!showPhoneAuth && <form onSubmit={handleSubmit} className="space-y-4">
+            {!mode && !showPasswordReset && !showPhoneAuth && <form onSubmit={handleSubmit} className="space-y-4">
               {isSignUp && <>
                 <div className="space-y-2">
                   <Label htmlFor="name">Full Name</Label>
@@ -161,6 +269,15 @@ export default function Auth() {
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <Input id="password" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} />
+                {!isSignUp && (
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswordReset(true)}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                )}
               </div>
 
               {isSignUp && role === "provider" && <div className="p-4 bg-accent rounded-lg">
@@ -180,11 +297,13 @@ export default function Auth() {
               </Button>
               </form>}
 
-            <div className="mt-6 text-center">
-              <button onClick={() => setIsSignUp(!isSignUp)} className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                {isSignUp ? <>Already have an account? <span className="font-semibold">Sign in</span></> : <>Don't have an account? <span className="font-semibold">Sign up</span></>}
-              </button>
-            </div>
+            {!mode && !showPasswordReset && (
+              <div className="mt-6 text-center">
+                <button onClick={() => setIsSignUp(!isSignUp)} className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  {isSignUp ? <>Already have an account? <span className="font-semibold">Sign in</span></> : <>Don't have an account? <span className="font-semibold">Sign up</span></>}
+                </button>
+              </div>
+            )}
 
             {isSignUp && <div className="mt-6 pt-6 border-t">
                 <p className="text-xs text-muted-foreground text-center">
