@@ -240,7 +240,6 @@ export type Database = {
           location: string | null
           longitude: number | null
           phone: string | null
-          role: Database["public"]["Enums"]["app_role"]
           service_radius: number | null
           updated_at: string
         }
@@ -256,7 +255,6 @@ export type Database = {
           location?: string | null
           longitude?: number | null
           phone?: string | null
-          role?: Database["public"]["Enums"]["app_role"]
           service_radius?: number | null
           updated_at?: string
         }
@@ -272,7 +270,6 @@ export type Database = {
           location?: string | null
           longitude?: number | null
           phone?: string | null
-          role?: Database["public"]["Enums"]["app_role"]
           service_radius?: number | null
           updated_at?: string
         }

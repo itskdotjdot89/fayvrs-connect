@@ -13,6 +13,53 @@ interface EmailRequest {
   request_id: string;
 }
 
+// HTML escaping function to prevent XSS attacks
+function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+// Input validation and sanitization
+function validateAndSanitizeEmail(data: any): EmailRequest {
+  // Validate email
+  if (!data.to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.to)) {
+    throw new Error('Invalid email address');
+  }
+  
+  // Validate and limit subject
+  if (!data.subject || typeof data.subject !== 'string') {
+    throw new Error('Subject is required');
+  }
+  if (data.subject.length > 200) {
+    throw new Error('Subject too long (max 200 chars)');
+  }
+  
+  // Validate and limit message
+  if (!data.message || typeof data.message !== 'string') {
+    throw new Error('Message is required');
+  }
+  if (data.message.length > 5000) {
+    throw new Error('Message too long (max 5000 chars)');
+  }
+  
+  // Validate request_id is a UUID
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!data.request_id || !uuidRegex.test(data.request_id)) {
+    throw new Error('Invalid request_id');
+  }
+  
+  return {
+    to: data.to.trim().toLowerCase(),
+    subject: escapeHtml(data.subject.trim()),
+    message: escapeHtml(data.message.trim()),
+    request_id: data.request_id
+  };
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -27,7 +74,10 @@ serve(async (req) => {
     }
 
     const resend = new Resend(resendApiKey);
-    const { to, subject, message, request_id }: EmailRequest = await req.json();
+    
+    // Validate and sanitize input
+    const rawData = await req.json();
+    const { to, subject, message, request_id } = validateAndSanitizeEmail(rawData);
     
     console.log('[EMAIL-NOTIFICATION] Sending email to:', to);
 
