@@ -46,6 +46,8 @@ export default function ProviderCheckout() {
     setIsLoading(true);
 
     try {
+      console.log('Starting checkout with plan:', selectedPlan);
+      
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { priceId: SUBSCRIPTION_PLANS[selectedPlan].priceId },
         headers: {
@@ -53,16 +55,24 @@ export default function ProviderCheckout() {
         }
       });
 
-      if (error) throw error;
+      console.log('Checkout response:', { data, error });
+
+      if (error) {
+        console.error('Checkout error:', error);
+        throw error;
+      }
 
       if (data?.url) {
-        window.open(data.url, '_blank');
+        console.log('Opening checkout URL:', data.url);
+        window.location.href = data.url; // Changed from window.open to direct redirect
+      } else {
+        throw new Error('No checkout URL returned');
       }
     } catch (error) {
       console.error('Checkout error:', error);
       toast({
         title: "Error",
-        description: "Failed to start checkout. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to start checkout. Please try again.",
         variant: "destructive"
       });
     } finally {
