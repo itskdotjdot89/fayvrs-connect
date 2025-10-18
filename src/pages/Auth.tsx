@@ -40,17 +40,34 @@ export default function Auth() {
   const navigate = useNavigate();
   const { toast } = useToast();
   useEffect(() => {
-    // Check for password reset mode in URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const resetMode = urlParams.get('mode');
-    if (resetMode === 'reset') {
-      setMode('reset');
-      setShowPasswordReset(false);
-    }
+    const handlePasswordReset = async () => {
+      // Check for password reset mode in URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const resetMode = urlParams.get('mode');
+      
+      // Check if we have a recovery token in the URL hash
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      const type = hashParams.get('type');
+      
+      if (type === 'recovery' && accessToken) {
+        setMode('reset');
+        setShowPasswordReset(false);
+        return;
+      }
+      
+      if (resetMode === 'reset') {
+        setMode('reset');
+        setShowPasswordReset(false);
+        return;
+      }
 
-    if (user && mode !== 'reset') {
-      navigate('/feed');
-    }
+      if (user && mode !== 'reset') {
+        navigate('/feed');
+      }
+    };
+
+    handlePasswordReset();
   }, [user, navigate, mode]);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,9 +140,28 @@ export default function Auth() {
 
     setIsLoading(true);
     try {
+      console.log('Attempting to update password...');
+      
+      // First check if we have a valid session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log('Current session:', session ? 'exists' : 'none', sessionError);
+      
+      if (sessionError || !session) {
+        toast({
+          title: "Error",
+          description: "Your password reset link has expired. Please request a new one.",
+          variant: "destructive"
+        });
+        setMode(null);
+        setShowPasswordReset(true);
+        return;
+      }
+
       const { error } = await supabase.auth.updateUser({
         password: newPassword
       });
+      
+      console.log('Update result:', error ? error.message : 'success');
       
       if (error) {
         toast({
@@ -138,9 +174,12 @@ export default function Auth() {
           title: "Success",
           description: "Password updated successfully"
         });
+        // Clear the URL parameters
+        window.history.replaceState({}, document.title, "/auth");
         navigate('/feed');
       }
     } catch (err) {
+      console.error('Password update error:', err);
       toast({
         title: "Error",
         description: "An unexpected error occurred",
