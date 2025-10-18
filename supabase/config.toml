@@ -3,9 +3,6 @@ project_id = "etnlkygkxlnnwxxkkcbi"
 [functions.analyze-request-openai]
 verify_jwt = true
 
-[functions.send-auth-email]
-verify_jwt = false
-
 [functions.check-subscription]
 verify_jwt = true
 
@@ -32,3 +29,6 @@ verify_jwt = false
 
 [functions.update-verification-status]
 verify_jwt = true
+
+[functions.request-password-reset]
+verify_jwt = false
