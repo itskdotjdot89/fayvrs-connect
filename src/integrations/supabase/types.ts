@@ -820,6 +820,28 @@ export type Database = {
         Args: { geom1: unknown; geom2: unknown }
         Returns: boolean
       }
+      find_nearby_providers: {
+        Args: {
+          radius_miles?: number
+          req_category?: string
+          req_latitude: number
+          req_longitude: number
+        }
+        Returns: {
+          distance_miles: number
+          is_verified: boolean
+          latitude: number
+          longitude: number
+          provider_avatar: string
+          provider_bio: string
+          provider_email: string
+          provider_id: string
+          provider_location: string
+          provider_name: string
+          service_radius: number
+          specialties: string[]
+        }[]
+      }
       find_nearby_requests: {
         Args: {
           provider_latitude: number

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
 import { FileText, MessageSquare, CheckCircle, Clock, DollarSign } from "lucide-react";
+import { NearbyProvidersWidget } from "@/components/NearbyProvidersWidget";
 
 export default function RequesterDashboard() {
   const { user } = useAuth();
@@ -129,6 +130,9 @@ export default function RequesterDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Nearby Providers Widget */}
+      <NearbyProvidersWidget />
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* My Requests */}
