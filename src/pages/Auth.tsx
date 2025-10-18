@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { User, Briefcase } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import fayvrsLogo from "@/assets/fayvrs-logo-full.png";
 export default function Auth() {
   const [role, setRole] = useState<"requester" | "provider">("requester");
@@ -37,6 +38,7 @@ export default function Auth() {
     resetPassword
   } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   useEffect(() => {
     // Check for password reset mode in URL
     const urlParams = new URLSearchParams(window.location.search);
@@ -102,18 +104,51 @@ export default function Auth() {
     e.preventDefault();
     
     if (newPassword !== confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Passwords do not match",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 6 characters",
+        variant: "destructive"
+      });
       return;
     }
 
     setIsLoading(true);
-    const { error } = await supabase.auth.updateUser({
-      password: newPassword
-    });
-    
-    if (!error) {
-      navigate('/feed');
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+      
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to update password",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Password updated successfully"
+        });
+        navigate('/feed');
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
   return <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-gradient-to-b from-accent/30 to-background py-12 px-4">
       <div className="w-full max-w-md">
