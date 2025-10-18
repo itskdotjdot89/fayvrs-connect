@@ -834,7 +834,9 @@ export type Database = {
           created_at: string
           description: string
           distance_miles: number
+          latitude: number
           location: string
+          longitude: number
           request_id: string
           requester_name: string
           title: string
