@@ -24,7 +24,7 @@ export default function RequestDetails() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('requests')
-        .select('*, profiles(id, full_name, avatar_url, location, bio, is_verified, role)')
+        .select('*, profiles(id, full_name, avatar_url, location, bio, is_verified)')
         .eq('id', id)
         .single();
       
@@ -40,7 +40,7 @@ export default function RequestDetails() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('proposals')
-        .select('*, profiles(id, full_name, avatar_url, location, bio, is_verified, role)')
+        .select('*, profiles(id, full_name, avatar_url, location, bio, is_verified)')
         .eq('request_id', id)
         .order('price', { ascending: true });
       

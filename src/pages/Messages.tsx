@@ -23,7 +23,7 @@ export default function Messages() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, avatar_url, location, bio, is_verified, role')
+        .select('id, full_name, avatar_url, location, bio, is_verified')
         .eq('id', userId)
         .single();
       
@@ -163,7 +163,9 @@ export default function Messages() {
               <h2 className="font-semibold text-foreground text-sm">
                 {recipient?.full_name || 'User'}
               </h2>
-              <p className="text-xs text-muted-foreground capitalize">{recipient?.role}</p>
+              {recipient?.location && (
+                <p className="text-xs text-muted-foreground">{recipient.location}</p>
+              )}
             </div>
           </div>
         </div>

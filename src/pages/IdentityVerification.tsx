@@ -131,13 +131,13 @@ const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'id' | '
       });
 
       // Check user role and redirect accordingly
-      const { data: profile } = await supabase
-        .from('profiles')
+      const { data: userRole } = await supabase
+        .from('user_roles')
         .select('role')
-        .eq('id', user.id)
+        .eq('user_id', user.id)
         .single();
       
-      if (profile?.role === 'provider') {
+      if (userRole?.role === 'provider') {
         navigate('/provider-checkout');
       } else {
         navigate('/feed');
@@ -158,9 +158,9 @@ const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'id' | '
 
     // Check user role and redirect accordingly
     const {
-      data: profile
-    } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-    if (profile?.role === 'provider') {
+      data: userRole
+    } = await supabase.from('user_roles').select('role').eq('user_id', user.id).single();
+    if (userRole?.role === 'provider') {
       navigate('/provider-checkout');
     } else {
       navigate('/feed');
