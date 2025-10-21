@@ -4,7 +4,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Layout } from "./components/Layout";
+import { MobileLayout } from "./components/MobileLayout";
 import { AuthProvider } from "./contexts/AuthContext";
+import { useIsMobile } from "./hooks/use-mobile";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import PostRequest from "./pages/PostRequest";
@@ -41,15 +43,13 @@ import MockupIndex from "./pages/mockups/Index";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <AuthProvider>
-        <BrowserRouter>
-          <Layout>
-            <Routes>
+const AppContent = () => {
+  const isMobile = useIsMobile();
+  const LayoutComponent = isMobile ? MobileLayout : Layout;
+
+  return (
+    <LayoutComponent>
+      <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/post-request" element={<PostRequest />} />
@@ -89,7 +89,18 @@ const App = () => (
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </Layout>
+    </LayoutComponent>
+  );
+};
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <AuthProvider>
+        <BrowserRouter>
+          <AppContent />
         </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>
