@@ -41,7 +41,7 @@ serve(async (req) => {
         messages: [
           { 
             role: 'system', 
-            content: 'You are a helpful assistant that analyzes user service/product requests and extracts structured information. If images are provided, analyze them to better understand the request. Be comprehensive and professional in your parsing.' 
+            content: 'You are an expert assistant that analyzes user service/product requests and extracts structured information. If images are provided, analyze them to better understand the request. Be comprehensive and professional in your parsing. IMPORTANT: You are also a pricing expert - analyze the service/product request and provide realistic market-rate budget suggestions based on: service complexity, location-based pricing, typical labor/material costs, and current market rates. Be realistic but fair to both requesters and providers. Consider factors like urgency, specialized skills, materials, and regional pricing differences.' 
           },
           { 
             role: 'user', 
@@ -102,6 +102,23 @@ serve(async (req) => {
                   confidence: {
                     type: 'number',
                     description: 'Confidence score from 0 to 1 indicating how well the request was understood'
+                  },
+                  suggested_budget_min: {
+                    type: 'number',
+                    description: 'AI-suggested minimum budget in USD based on typical market rates for this type of service/product. Consider complexity, location, urgency, and industry standards.'
+                  },
+                  suggested_budget_max: {
+                    type: 'number',
+                    description: 'AI-suggested maximum budget in USD based on typical market rates. This should represent a reasonable upper bound for quality work.'
+                  },
+                  budget_reasoning: {
+                    type: 'string',
+                    description: 'Brief 1-2 sentence explanation of why this budget range is recommended, mentioning key cost factors (e.g., "Typical plumbing repairs in urban areas cost $200-400 for labor plus materials")'
+                  },
+                  budget_confidence: {
+                    type: 'string',
+                    enum: ['low', 'medium', 'high'],
+                    description: 'Confidence in the suggested budget range. Use "high" for common services with well-known pricing, "medium" for less common services, "low" for highly variable or unclear requests.'
                   }
                 },
                 required: ['title', 'description', 'request_type', 'category', 'tags', 'confidence']

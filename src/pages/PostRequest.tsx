@@ -9,7 +9,9 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, MapPin, DollarSign, Wrench, Loader2, Tag, Image as ImageIcon, X } from "lucide-react";
+import { Sparkles, MapPin, DollarSign, Wrench, Loader2, Tag, Image as ImageIcon, X, AlertCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 type RequestData = {
   title: string;
   description: string;
@@ -20,6 +22,10 @@ type RequestData = {
   budget_max: number | null;
   tags: string[];
   confidence?: number;
+  suggested_budget_min?: number;
+  suggested_budget_max?: number;
+  budget_reasoning?: string;
+  budget_confidence?: 'low' | 'medium' | 'high';
 };
 export default function PostRequest() {
   const navigate = useNavigate();
@@ -119,7 +125,11 @@ export default function PostRequest() {
         budget_min: data.budget_min || null,
         budget_max: data.budget_max || null,
         tags: data.tags || [],
-        confidence: data.confidence
+        confidence: data.confidence,
+        suggested_budget_min: data.suggested_budget_min,
+        suggested_budget_max: data.suggested_budget_max,
+        budget_reasoning: data.budget_reasoning,
+        budget_confidence: data.budget_confidence
       });
       setStep(2);
     } catch (error) {
@@ -435,6 +445,75 @@ export default function PostRequest() {
                 } : null)} />
                   </div>
                 </div>
+
+                {/* AI Budget Suggestion */}
+                {parsedData?.suggested_budget_min && parsedData?.suggested_budget_max && (
+                  <Card className="bg-primary/5 border-primary/20">
+                    <CardContent className="pt-4">
+                      <div className="flex items-start gap-3">
+                        <Sparkles className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <Label className="text-sm font-semibold">
+                              AI Budget Suggestion
+                            </Label>
+                            <Badge variant={
+                              parsedData.budget_confidence === 'high' ? 'default' :
+                              parsedData.budget_confidence === 'medium' ? 'secondary' : 
+                              'outline'
+                            }>
+                              {parsedData.budget_confidence} confidence
+                            </Badge>
+                          </div>
+                          
+                          <div className="flex items-center gap-2 text-lg font-semibold">
+                            <DollarSign className="w-5 h-5" />
+                            <span>
+                              ${parsedData.suggested_budget_min.toLocaleString()} - 
+                              ${parsedData.suggested_budget_max.toLocaleString()}
+                            </span>
+                          </div>
+                          
+                          {parsedData.budget_reasoning && (
+                            <p className="text-sm text-muted-foreground">
+                              {parsedData.budget_reasoning}
+                            </p>
+                          )}
+                          
+                          {/* Warning if user entered lowball budget */}
+                          {parsedData.budget_max && 
+                           parsedData.budget_max < parsedData.suggested_budget_min * 0.7 && (
+                            <Alert variant="destructive" className="mt-2">
+                              <AlertCircle className="w-4 h-4" />
+                              <AlertDescription>
+                                Your budget may be too low for this type of work. 
+                                Providers typically charge ${parsedData.suggested_budget_min.toLocaleString()}+ 
+                                for similar requests.
+                              </AlertDescription>
+                            </Alert>
+                          )}
+                          
+                          {/* Quick action button to use suggested budget */}
+                          {(!parsedData.budget_min || !parsedData.budget_max) && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setParsedData(prev => prev ? {
+                                ...prev,
+                                budget_min: prev.suggested_budget_min || null,
+                                budget_max: prev.suggested_budget_max || null
+                              } : null)}
+                              className="mt-2"
+                            >
+                              Use This Budget
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {parsedData?.tags && parsedData.tags.length > 0 && <div className="space-y-2">
                     <Label className="flex items-center gap-1">
