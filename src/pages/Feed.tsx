@@ -7,9 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Clock, MapPin, MessageSquare, Search, List, Map } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Clock, MapPin, MessageSquare, Search, List, Map, Info } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { RequestsMapView } from "@/components/RequestsMapView";
+import { useProviderAccess } from "@/hooks/useProviderAccess";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface Request {
   id: string;
@@ -30,6 +32,7 @@ interface Request {
 }
 
 export default function Feed() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [serviceTypeFilter, setServiceTypeFilter] = useState("all");
@@ -37,6 +40,7 @@ export default function Feed() {
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number; serviceRadius: number } | null>(null);
   const { user } = useAuth();
+  const { hasProviderAccess, missingRequirements } = useProviderAccess();
 
   useEffect(() => {
     fetchRequests();
@@ -202,6 +206,38 @@ export default function Feed() {
       {/* Requests List and Map */}
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
+          {/* Provider Access Banner */}
+          {user && !hasProviderAccess && (
+            <div className="mb-6">
+              <Alert className="border-primary/30 bg-primary/5">
+                <Info className="h-4 w-4" />
+                <AlertDescription className="flex items-center justify-between">
+                  <div>
+                    <span className="font-semibold">Want to respond to these requests?</span>
+                    <span className="text-sm ml-2">
+                      {missingRequirements.needsVerification && "Complete verification"}
+                      {missingRequirements.needsVerification && missingRequirements.needsSubscription && " and "}
+                      {missingRequirements.needsSubscription && "subscribe ($30/month)"}
+                      {" to unlock provider features."}
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    {missingRequirements.needsVerification && (
+                      <Button size="sm" onClick={() => navigate('/identity-verification')}>
+                        Verify
+                      </Button>
+                    )}
+                    {!missingRequirements.needsVerification && missingRequirements.needsSubscription && (
+                      <Button size="sm" onClick={() => navigate('/provider-checkout')}>
+                        Subscribe
+                      </Button>
+                    )}
+                  </div>
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+
           <div className="flex items-center justify-between mb-6">
             <p className="text-sm text-muted-foreground">
               Showing {filteredRequests.length} active requests

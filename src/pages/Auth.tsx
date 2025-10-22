@@ -308,19 +308,22 @@ export default function Auth() {
 
             {/* Email/Password Form */}
             {!mode && !showPasswordReset && !showPhoneAuth && isSignUp && <div className="mb-6">
-                <Label className="mb-3 block">I want to:</Label>
+                <Label className="mb-3 block text-center">I'm primarily interested in:</Label>
                 <div className="grid grid-cols-2 gap-4">
-                  <button onClick={() => setRole("requester")} className={`p-4 border-2 rounded-lg transition-all ${role === "requester" ? "border-primary bg-accent" : "border-border hover:border-primary/50"}`}>
+                  <button type="button" onClick={() => setRole("requester")} className={`p-4 border-2 rounded-lg transition-all ${role === "requester" ? "border-primary bg-accent" : "border-border hover:border-primary/50"}`}>
                     <User className="h-8 w-8 mx-auto mb-2 text-primary" />
-                    <p className="font-semibold text-sm">Find Services</p>
-                    <p className="text-xs text-muted-foreground mt-1">Post requests</p>
+                    <p className="font-semibold text-sm">Customer</p>
+                    <p className="text-xs text-muted-foreground mt-1">Post requests • Free with verification</p>
                   </button>
-                  <button onClick={() => setRole("provider")} className={`p-4 border-2 rounded-lg transition-all ${role === "provider" ? "border-primary bg-accent" : "border-border hover:border-primary/50"}`}>
+                  <button type="button" onClick={() => setRole("provider")} className={`p-4 border-2 rounded-lg transition-all ${role === "provider" ? "border-primary bg-accent" : "border-border hover:border-primary/50"}`}>
                     <Briefcase className="h-8 w-8 mx-auto mb-2 text-primary" />
-                    <p className="font-semibold text-sm">Offer Services</p>
-                    <p className="text-xs text-muted-foreground mt-1">Get leads</p>
+                    <p className="font-semibold text-sm">Provider</p>
+                    <p className="text-xs text-muted-foreground mt-1">Get leads • $30/mo + verification</p>
                   </button>
                 </div>
+                <p className="text-xs text-muted-foreground text-center mt-3">
+                  ✨ You'll have access to both features after signing up
+                </p>
               </div>}
 
             {!mode && !showPasswordReset && !showPhoneAuth && <form onSubmit={handleSubmit} className="space-y-4">

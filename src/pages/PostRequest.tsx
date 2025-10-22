@@ -37,6 +37,10 @@ export default function PostRequest() {
     toast
   } = useToast();
 
+  // Check verification status
+  const [isVerified, setIsVerified] = useState<boolean | null>(null);
+  const [checkingVerification, setCheckingVerification] = useState(true);
+
   // Step 1: Natural language input
   const [step, setStep] = useState<1 | 2>(1);
   const [naturalInput, setNaturalInput] = useState("");
@@ -49,10 +53,42 @@ export default function PostRequest() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
   useEffect(() => {
+    const checkVerification = async () => {
+      if (!user) {
+        setCheckingVerification(false);
+        return;
+      }
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('is_verified')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) {
+        console.error('Error checking verification:', error);
+        setIsVerified(false);
+      } else {
+        setIsVerified(data?.is_verified || false);
+      }
+      setCheckingVerification(false);
+    };
+    
+    checkVerification();
+  }, [user]);
+
+  useEffect(() => {
     if (!loading && !user) {
       navigate("/auth");
+    } else if (!checkingVerification && user && isVerified === false) {
+      toast({
+        title: "Verification Required",
+        description: "Please complete identity verification to post requests",
+        variant: "destructive"
+      });
+      navigate("/identity-verification");
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, isVerified, checkingVerification, navigate, toast]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);

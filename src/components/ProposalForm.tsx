@@ -8,8 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, DollarSign, Sparkles, RefreshCw } from "lucide-react";
+import { Loader2, DollarSign, Sparkles, RefreshCw, AlertCircle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { useProviderAccess } from "@/hooks/useProviderAccess";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useNavigate } from "react-router-dom";
 
 interface ProposalFormProps {
   requestId: string;
@@ -22,6 +25,8 @@ interface ProposalFormProps {
 export function ProposalForm({ requestId, requestTitle, requestDescription = "", requestBudget, onSuccess }: ProposalFormProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { hasProviderAccess, missingRequirements } = useProviderAccess();
   const [message, setMessage] = useState("");
   const [price, setPrice] = useState("");
   const [useAI, setUseAI] = useState(false);
@@ -137,6 +142,31 @@ export function ProposalForm({ requestId, requestTitle, requestDescription = "",
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {!hasProviderAccess && (
+          <Alert className="mb-4 border-primary/50 bg-primary/5">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="flex flex-col gap-2">
+              <span className="font-semibold">Provider access required to submit proposals</span>
+              {missingRequirements.needsVerification && (
+                <span className="text-sm">
+                  ✗ Identity verification required. 
+                  <Button variant="link" className="h-auto p-0 ml-1" onClick={() => navigate('/identity-verification')}>
+                    Verify Now
+                  </Button>
+                </span>
+              )}
+              {missingRequirements.needsSubscription && (
+                <span className="text-sm">
+                  ✗ Active subscription required ($30/month). 
+                  <Button variant="link" className="h-auto p-0 ml-1" onClick={() => navigate('/provider-checkout')}>
+                    Subscribe Now
+                  </Button>
+                </span>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* AI Assistant Toggle */}
           <div className="flex items-center justify-between p-4 rounded-lg border bg-muted/50">
@@ -249,20 +279,20 @@ export function ProposalForm({ requestId, requestTitle, requestDescription = "",
                     </p>
                   </div>
 
-                  <Button 
-                    type="submit" 
-                    className="w-full"
-                    disabled={submitProposalMutation.isPending || !message.trim() || !price}
-                  >
-                    {submitProposalMutation.isPending ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Submitting...
-                      </>
-                    ) : (
-                      'Submit Proposal'
-                    )}
-                  </Button>
+              <Button 
+                type="submit" 
+                className="w-full"
+                disabled={submitProposalMutation.isPending || !message.trim() || !price || !hasProviderAccess}
+              >
+                {submitProposalMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  'Submit Proposal'
+                )}
+              </Button>
                 </>
               )}
             </>
@@ -284,7 +314,7 @@ export function ProposalForm({ requestId, requestTitle, requestDescription = "",
               <Button 
                 type="submit" 
                 className="w-full"
-                disabled={submitProposalMutation.isPending || !message.trim() || !price}
+                disabled={submitProposalMutation.isPending || !message.trim() || !price || !hasProviderAccess}
               >
                 {submitProposalMutation.isPending ? (
                   <>

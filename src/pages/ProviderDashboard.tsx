@@ -6,10 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Eye, MessageCircle, CheckCircle, Calendar, TrendingUp, ArrowUpRight, Loader2, Settings } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { NearbyRequestsWidget } from "@/components/NearbyRequestsWidget";
+import { useProviderAccess } from "@/hooks/useProviderAccess";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function ProviderDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { hasProviderAccess, loading: accessLoading, missingRequirements } = useProviderAccess();
 
   // Fetch subscription
   const { data: subscription, isLoading: loadingSubscription } = useQuery({
@@ -76,10 +79,39 @@ export default function ProviderDashboard() {
     enabled: !!user?.id,
   });
 
-  if (loadingSubscription) {
+  if (accessLoading || loadingSubscription) {
     return (
       <div className="min-h-screen bg-surface flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Redirect to verification if needed
+  if (missingRequirements.needsVerification) {
+    return (
+      <div className="min-h-screen bg-surface flex items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardHeader>
+            <CardTitle>Verification Required</CardTitle>
+            <CardDescription>
+              Complete identity verification to access provider features
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              You can browse requests without verification, but you'll need to verify your identity to:
+            </p>
+            <ul className="text-sm space-y-2 ml-4 list-disc text-muted-foreground">
+              <li>Submit proposals to requests</li>
+              <li>Access the provider dashboard</li>
+              <li>Message requesters</li>
+            </ul>
+            <Button onClick={() => navigate('/identity-verification')} className="w-full">
+              Complete Verification
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
