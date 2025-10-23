@@ -40,7 +40,7 @@ export default function Feed() {
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number; serviceRadius: number } | null>(null);
   const [activeTab, setActiveTab] = useState("list");
-  const [geocodedRequests, setGeocodedRequests] = useState<Map<string, { latitude: number; longitude: number }>>(new Map());
+  const [geocodedRequests, setGeocodedRequests] = useState<globalThis.Map<string, { latitude: number; longitude: number }>>(new globalThis.Map());
   const [isGeocoding, setIsGeocoding] = useState(false);
   const { user } = useAuth();
   const { hasProviderAccess, missingRequirements } = useProviderAccess();
@@ -136,7 +136,7 @@ export default function Feed() {
     if (requestsNeedingGeocode.length === 0) return;
 
     setIsGeocoding(true);
-    const newGeocoded = new Map(geocodedRequests);
+    const newGeocoded = new globalThis.Map(geocodedRequests);
 
     for (const request of requestsNeedingGeocode) {
       try {
