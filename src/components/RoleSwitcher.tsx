@@ -1,9 +1,22 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "./ui/button";
 import { UserCircle, Briefcase } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export const RoleSwitcher = () => {
   const { activeRole, userRoles, switchRole } = useAuth();
+  const navigate = useNavigate();
+
+  const handleRoleSwitch = async (role: 'requester' | 'provider') => {
+    await switchRole(role);
+    
+    // Navigate to appropriate dashboard after switching
+    if (role === 'provider') {
+      navigate('/provider-dashboard');
+    } else if (role === 'requester') {
+      navigate('/requester-dashboard');
+    }
+  };
 
   // Only show if user has multiple roles
   if (userRoles.length <= 1) return null;
@@ -13,7 +26,7 @@ export const RoleSwitcher = () => {
       <Button
         variant={activeRole === 'requester' ? 'default' : 'ghost'}
         size="sm"
-        onClick={() => switchRole('requester')}
+        onClick={() => handleRoleSwitch('requester')}
         disabled={!userRoles.includes('requester')}
         className="gap-2"
       >
@@ -23,7 +36,7 @@ export const RoleSwitcher = () => {
       <Button
         variant={activeRole === 'provider' ? 'default' : 'ghost'}
         size="sm"
-        onClick={() => switchRole('provider')}
+        onClick={() => handleRoleSwitch('provider')}
         disabled={!userRoles.includes('provider')}
         className="gap-2"
       >
