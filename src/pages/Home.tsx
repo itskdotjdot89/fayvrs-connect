@@ -63,15 +63,10 @@ export default function Home() {
               Post your request and connect directly with verified providers. 
               No middleman, no customer fees, just straightforward connections.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/post-request">
-                <Button size="lg" className="w-full sm:w-auto">
-                  Post a Request
-                </Button>
-              </Link>
+            <div className="flex justify-center">
               <Link to="/auth">
-                <Button size="lg" variant="outline" className="w-full sm:w-auto">
-                  Sign Up as Provider
+                <Button size="lg" className="w-full sm:w-auto">
+                  Sign In / Sign Up
                 </Button>
               </Link>
             </div>
@@ -269,15 +264,10 @@ export default function Home() {
           <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
             Join Fayvrs today and experience direct connections without the fees.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/post-request">
-              <Button size="lg" className="w-full sm:w-auto">
-                Post Your First Request
-              </Button>
-            </Link>
+          <div className="flex justify-center">
             <Link to="/auth">
-              <Button size="lg" variant="secondary" className="w-full sm:w-auto">
-                Become a Provider
+              <Button size="lg" className="w-full sm:w-auto">
+                Sign In / Sign Up
               </Button>
             </Link>
           </div>
