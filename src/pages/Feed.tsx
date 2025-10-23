@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Clock, MapPin, MessageSquare, Search, List, Map, Info } from "lucide-react";
+import { Clock, MapPin, MessageSquare, Search, List, Map as MapIcon, Info } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { RequestsMapView } from "@/components/RequestsMapView";
 import { useProviderAccess } from "@/hooks/useProviderAccess";
@@ -39,6 +39,9 @@ export default function Feed() {
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number; serviceRadius: number } | null>(null);
+  const [activeTab, setActiveTab] = useState("list");
+  const [geocodedRequests, setGeocodedRequests] = useState<Map<string, { latitude: number; longitude: number }>>(new Map());
+  const [isGeocoding, setIsGeocoding] = useState(false);
   const { user } = useAuth();
   const { hasProviderAccess, missingRequirements } = useProviderAccess();
 
@@ -124,6 +127,60 @@ export default function Feed() {
     
     return matchesSearch && matchesCategory && matchesType;
   });
+
+  const geocodeMissingLocations = async (requestsToGeocode: Request[]) => {
+    const requestsNeedingGeocode = requestsToGeocode.filter(
+      r => r.location && !r.latitude && !r.longitude && !geocodedRequests.has(r.id)
+    );
+
+    if (requestsNeedingGeocode.length === 0) return;
+
+    setIsGeocoding(true);
+    const newGeocoded = new Map(geocodedRequests);
+
+    for (const request of requestsNeedingGeocode) {
+      try {
+        const { data, error } = await supabase.functions.invoke('geocode-location', {
+          body: { location: request.location }
+        });
+
+        if (!error && data?.latitude && data?.longitude) {
+          newGeocoded.set(request.id, {
+            latitude: data.latitude,
+            longitude: data.longitude
+          });
+        }
+      } catch (err) {
+        console.error(`Failed to geocode ${request.location}:`, err);
+      }
+    }
+
+    setGeocodedRequests(newGeocoded);
+    setIsGeocoding(false);
+  };
+
+  useEffect(() => {
+    if (activeTab === 'map' && !loading) {
+      geocodeMissingLocations(filteredRequests);
+    }
+  }, [activeTab, loading]);
+
+  const requestsForMap = filteredRequests
+    .map(r => {
+      const geocoded = geocodedRequests.get(r.id);
+      return {
+        request_id: r.id,
+        title: r.title,
+        description: r.description,
+        category: r.category || 'Other',
+        distance_miles: 0,
+        budget_min: r.budget_min,
+        budget_max: r.budget_max,
+        latitude: geocoded?.latitude || r.latitude,
+        longitude: geocoded?.longitude || r.longitude,
+      };
+    })
+    .filter(r => r.latitude && r.longitude);
 
   const getTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
@@ -244,14 +301,14 @@ export default function Feed() {
             </p>
           </div>
 
-          <Tabs defaultValue="list" className="w-full">
+          <Tabs defaultValue="list" value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="list" className="flex items-center gap-2">
                 <List className="h-4 w-4" />
                 List View
               </TabsTrigger>
               <TabsTrigger value="map" className="flex items-center gap-2">
-                <Map className="h-4 w-4" />
+                <MapIcon className="h-4 w-4" />
                 Map View
               </TabsTrigger>
             </TabsList>
@@ -331,29 +388,19 @@ export default function Feed() {
             </TabsContent>
 
             <TabsContent value="map">
-              {loading ? (
-                <div className="text-center py-8">Loading map...</div>
-              ) : filteredRequests.filter(r => r.latitude && r.longitude).length === 0 ? (
+              {loading || isGeocoding ? (
+                <div className="text-center py-8">
+                  {isGeocoding ? "Geocoding locations..." : "Loading map..."}
+                </div>
+              ) : requestsForMap.length === 0 ? (
                 <Card className="p-8 text-center">
                   <p className="text-muted-foreground">No requests with location data available for map view.</p>
                 </Card>
               ) : (
                 <RequestsMapView
-                  requests={filteredRequests
-                    .filter(r => r.latitude && r.longitude)
-                    .map(r => ({
-                      request_id: r.id,
-                      title: r.title,
-                      description: r.description,
-                      category: r.category || 'Other',
-                      distance_miles: 0, // Not calculated for general feed
-                      budget_min: r.budget_min,
-                      budget_max: r.budget_max,
-                      latitude: r.latitude!,
-                      longitude: r.longitude!,
-                    }))}
-                  providerLatitude={userLocation?.latitude || filteredRequests.find(r => r.latitude)?.latitude || 40.7128}
-                  providerLongitude={userLocation?.longitude || filteredRequests.find(r => r.longitude)?.longitude || -74.0060}
+                  requests={requestsForMap}
+                  providerLatitude={userLocation?.latitude || requestsForMap[0]?.latitude || 40.7128}
+                  providerLongitude={userLocation?.longitude || requestsForMap[0]?.longitude || -74.0060}
                   serviceRadius={userLocation?.serviceRadius || 25}
                 />
               )}
