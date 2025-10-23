@@ -5,7 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import { MobileLayout } from "./components/MobileLayout";
-import { AuthProvider } from "./contexts/AuthContext";
 import { useIsMobile } from "./hooks/use-mobile";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
@@ -98,11 +97,9 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <AuthProvider>
-        <BrowserRouter>
-          <AppContent />
-        </BrowserRouter>
-      </AuthProvider>
+      <BrowserRouter>
+        <AppContent />
+      </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );
