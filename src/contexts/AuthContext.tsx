@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 interface SubscriptionStatus {
   subscribed: boolean;
@@ -38,6 +39,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [activeRole, setActiveRole] = useState<'requester' | 'provider' | 'admin' | null>(null);
   const [userRoles, setUserRoles] = useState<('requester' | 'provider' | 'admin')[]>([]);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Set up auth state listener
@@ -98,7 +100,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const switchRole = async (role: 'requester' | 'provider') => {
+  const switchRole = async (role: 'requester' | 'provider' | 'admin') => {
     if (!userRoles.includes(role)) {
       toast({
         title: "Role not available",
@@ -115,6 +117,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       title: "Role switched",
       description: `Switched to ${role} mode`
     });
+    
+    // Navigate to appropriate dashboard
+    if (role === 'provider') {
+      navigate('/provider-dashboard');
+    } else if (role === 'requester') {
+      navigate('/requester-dashboard');
+    } else if (role === 'admin') {
+      navigate('/admin/kyc-review');
+    }
   };
 
   // Check subscription whenever session changes
