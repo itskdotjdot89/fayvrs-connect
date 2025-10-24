@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Request {
   request_id: string;
@@ -41,6 +42,41 @@ export const RequestsMapView = ({
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const navigate = useNavigate();
+  const [onlineRequesters, setOnlineRequesters] = useState<Set<string>>(new Set());
+
+  // Subscribe to online status updates for requesters
+  useEffect(() => {
+    const requesterIds = requests.map(r => r.request_id);
+    if (requesterIds.length === 0) return;
+
+    const channel = supabase
+      .channel('requesters-presence')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+        },
+        (payload) => {
+          const data = payload.new as { id: string; is_online: boolean };
+          setOnlineRequesters(prev => {
+            const newSet = new Set(prev);
+            if (data.is_online) {
+              newSet.add(data.id);
+            } else {
+              newSet.delete(data.id);
+            }
+            return newSet;
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [requests]);
 
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
@@ -103,10 +139,27 @@ export const RequestsMapView = ({
         if (!map.current) return;
         
         const color = CATEGORY_COLORS[request.category] || CATEGORY_COLORS.default;
+        const isOnline = onlineRequesters.has(request.request_id);
+        
+        // Create marker element with pulse animation for online users
+        const el = document.createElement('div');
+        el.className = 'request-marker';
+        el.style.cssText = `
+          background-color: ${color};
+          width: 30px;
+          height: 30px;
+          border-radius: 50%;
+          border: 3px solid white;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+          ${isOnline ? 'animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;' : ''}
+        `;
         
         const popupContent = `
           <div class="p-2">
-            <h3 class="font-semibold mb-1">${request.title}</h3>
+            <div class="flex items-center gap-2 mb-1">
+              <h3 class="font-semibold">${request.title}</h3>
+              ${isOnline ? '<div class="w-2 h-2 bg-green-500 rounded-full animate-pulse" title="Requester is online"></div>' : ''}
+            </div>
             <p class="text-sm text-muted-foreground mb-2">${request.category}</p>
             <p class="text-sm mb-2 line-clamp-2">${request.description}</p>
             ${request.budget_min && request.budget_max ? 
@@ -121,7 +174,7 @@ export const RequestsMapView = ({
           </div>
         `;
 
-        new mapboxgl.Marker({ color })
+        new mapboxgl.Marker({ element: el })
           .setLngLat([request.longitude, request.latitude])
           .setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(popupContent))
           .addTo(map.current);

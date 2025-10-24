@@ -1,8 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Provider {
   provider_id: string;
@@ -43,6 +44,41 @@ export const ProvidersMapView = ({
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const navigate = useNavigate();
+  const [onlineProviders, setOnlineProviders] = useState<Set<string>>(new Set());
+
+  // Subscribe to online status updates
+  useEffect(() => {
+    const providerIds = providers.map(p => p.provider_id);
+    if (providerIds.length === 0) return;
+
+    const channel = supabase
+      .channel('providers-presence')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+        },
+        (payload) => {
+          const data = payload.new as { id: string; is_online: boolean };
+          setOnlineProviders(prev => {
+            const newSet = new Set(prev);
+            if (data.is_online) {
+              newSet.add(data.id);
+            } else {
+              newSet.delete(data.id);
+            }
+            return newSet;
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [providers]);
 
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
@@ -109,13 +145,31 @@ export const ProvidersMapView = ({
           ? SPECIALTY_COLORS[provider.specialties[0]] || SPECIALTY_COLORS.default
           : SPECIALTY_COLORS.default;
         
+        const isOnline = onlineProviders.has(provider.provider_id);
+        
+        // Create custom marker element with pulse for online providers
+        const el = document.createElement('div');
+        el.className = 'provider-marker';
+        el.style.cssText = `
+          background-color: ${color};
+          width: 30px;
+          height: 30px;
+          border-radius: 50%;
+          border: 3px solid white;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+          ${isOnline ? 'animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;' : ''}
+        `;
+        
         const verifiedBadge = provider.is_verified 
           ? '<span class="inline-flex items-center gap-1 text-green-600 text-xs font-medium"><svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>Verified</span>'
           : '';
         
         const popupContent = `
           <div class="p-2 min-w-[200px]">
-            <h3 class="font-semibold mb-1">${provider.provider_name}</h3>
+            <div class="flex items-center gap-2 mb-1">
+              <h3 class="font-semibold">${provider.provider_name}</h3>
+              ${isOnline ? '<div class="w-2 h-2 bg-green-500 rounded-full animate-pulse" title="Provider is online"></div>' : ''}
+            </div>
             ${verifiedBadge}
             ${provider.provider_bio ? `<p class="text-sm text-muted-foreground mb-2 line-clamp-2">${provider.provider_bio}</p>` : ''}
             ${provider.specialties?.length > 0 
@@ -137,7 +191,7 @@ export const ProvidersMapView = ({
           </div>
         `;
 
-        new mapboxgl.Marker({ color })
+        new mapboxgl.Marker({ element: el })
           .setLngLat([provider.longitude, provider.latitude])
           .setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(popupContent))
           .addTo(map.current);

@@ -8,6 +8,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ArrowLeft, Send, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { useUserPresence } from "@/hooks/useUserPresence";
+import { OnlineIndicator } from "@/components/OnlineIndicator";
 
 export default function Messages() {
   const { userId } = useParams();
@@ -16,6 +18,7 @@ export default function Messages() {
   const queryClient = useQueryClient();
   const [message, setMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { isOnline, statusText } = useUserPresence(userId);
 
   // Fetch recipient profile (only public fields - no email, phone, latitude, longitude)
   const { data: recipient } = useQuery({
@@ -152,20 +155,29 @@ export default function Messages() {
               <ArrowLeft className="w-5 h-5" />
             </Button>
             
-            <Avatar className="w-10 h-10 border-2 border-accent">
-              <AvatarImage src={recipient?.avatar_url} />
-              <AvatarFallback className="bg-primary text-white font-semibold">
-                {recipient?.full_name?.substring(0, 2).toUpperCase() || 'U'}
-              </AvatarFallback>
-            </Avatar>
+            <div className="relative">
+              <Avatar className="w-10 h-10 border-2 border-accent">
+                <AvatarImage src={recipient?.avatar_url} />
+                <AvatarFallback className="bg-primary text-white font-semibold">
+                  {recipient?.full_name?.substring(0, 2).toUpperCase() || 'U'}
+                </AvatarFallback>
+              </Avatar>
+              <OnlineIndicator 
+                isOnline={isOnline} 
+                size="sm" 
+                className="absolute bottom-0 right-0 border-2 border-white"
+              />
+            </div>
 
             <div className="flex-1 min-w-0">
               <h2 className="font-semibold text-foreground text-sm">
                 {recipient?.full_name || 'User'}
               </h2>
-              {recipient?.location && (
-                <p className="text-xs text-muted-foreground">{recipient.location}</p>
-              )}
+              <OnlineIndicator 
+                isOnline={isOnline} 
+                showText 
+                statusText={statusText}
+              />
             </div>
           </div>
         </div>

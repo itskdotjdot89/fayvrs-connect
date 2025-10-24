@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useLocationTracking } from '@/hooks/useLocationTracking';
 
 interface SubscriptionStatus {
   subscribed: boolean;
@@ -38,6 +39,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [activeRole, setActiveRole] = useState<'requester' | 'provider' | 'admin' | null>(null);
   const [userRoles, setUserRoles] = useState<('requester' | 'provider' | 'admin')[]>([]);
   const { toast } = useToast();
+
+  // Initialize location tracking for authenticated users
+  useLocationTracking();
 
   useEffect(() => {
     // Set up auth state listener

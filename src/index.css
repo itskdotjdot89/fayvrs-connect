@@ -130,4 +130,14 @@ All colors MUST be HSL.
   body {
     overscroll-behavior-y: none;
   }
+
+  /* Pulse animation for online indicators */
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
 }

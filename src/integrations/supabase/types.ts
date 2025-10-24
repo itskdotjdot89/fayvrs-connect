@@ -232,12 +232,18 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           created_at: string
+          current_latitude: number | null
+          current_longitude: number | null
           email: string
           full_name: string | null
           id: string
+          is_online: boolean | null
           is_verified: boolean | null
+          last_seen: string | null
           latitude: number | null
           location: string | null
+          location_sharing_enabled: boolean | null
+          location_updated_at: string | null
           longitude: number | null
           phone: string | null
           service_radius: number | null
@@ -247,12 +253,18 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          current_latitude?: number | null
+          current_longitude?: number | null
           email: string
           full_name?: string | null
           id: string
+          is_online?: boolean | null
           is_verified?: boolean | null
+          last_seen?: string | null
           latitude?: number | null
           location?: string | null
+          location_sharing_enabled?: boolean | null
+          location_updated_at?: string | null
           longitude?: number | null
           phone?: string | null
           service_radius?: number | null
@@ -262,12 +274,18 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          current_latitude?: number | null
+          current_longitude?: number | null
           email?: string
           full_name?: string | null
           id?: string
+          is_online?: boolean | null
           is_verified?: boolean | null
+          last_seen?: string | null
           latitude?: number | null
           location?: string | null
+          location_sharing_enabled?: boolean | null
+          location_updated_at?: string | null
           longitude?: number | null
           phone?: string | null
           service_radius?: number | null
