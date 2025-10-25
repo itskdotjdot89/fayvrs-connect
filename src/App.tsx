@@ -21,6 +21,7 @@ import Settings from "./pages/Settings";
 import ProviderSettings from "./pages/ProviderSettings";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { OnboardingWrapper } from "./components/OnboardingWrapper";
 import KYCReview from "./pages/admin/KYCReview";
 import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -47,9 +48,10 @@ const AppContent = () => {
   const LayoutComponent = isMobile ? MobileLayout : Layout;
 
   return (
-    <LayoutComponent>
-      <Routes>
-            <Route path="/" element={<Home />} />
+    <OnboardingWrapper>
+      <LayoutComponent>
+        <Routes>
+              <Route path="/" element={<Home />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/post-request" element={<PostRequest />} />
             <Route path="/feed" element={<Feed />} />
@@ -88,7 +90,8 @@ const AppContent = () => {
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
-    </LayoutComponent>
+      </LayoutComponent>
+    </OnboardingWrapper>
   );
 };
 
