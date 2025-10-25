@@ -3,6 +3,9 @@ project_id = "etnlkygkxlnnwxxkkcbi"
 [functions.analyze-request-openai]
 verify_jwt = true
 
+[functions.get-market-pricing]
+verify_jwt = true
+
 [functions.check-subscription]
 verify_jwt = true
 

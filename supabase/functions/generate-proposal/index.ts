@@ -28,16 +28,13 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
-    // Determine which API to use
-    // Use Lovable AI (Gemini) by default during promotional period (until Oct 6, 2025)
-    // Fall back to OpenAI after that or if Lovable AI fails
-    const isPromotionalPeriod = new Date() < new Date('2025-10-06');
-    const useLovableAI = LOVABLE_API_KEY && isPromotionalPeriod;
+    // Use OpenAI as primary, Lovable AI as fallback
+    const useOpenAI = !!OPENAI_API_KEY;
 
-    console.log('[GENERATE-PROPOSAL] Using API:', useLovableAI ? 'Lovable AI (Gemini)' : 'OpenAI');
+    console.log('[GENERATE-PROPOSAL] Using API:', useOpenAI ? 'OpenAI' : 'Lovable AI (Gemini)');
 
     // Build context for AI
     const budgetText = requestBudget?.min && requestBudget?.max 
@@ -85,8 +82,63 @@ Generate a professional proposal based on the provider's notes above.`;
     let generatedProposal = '';
     let modelUsed = '';
 
-    if (useLovableAI) {
+    // Try OpenAI first
+    if (useOpenAI) {
       try {
+        console.log('[GENERATE-PROPOSAL] Using OpenAI GPT-5 Mini');
+        
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${OPENAI_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-5-mini-2025-08-07',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            max_completion_tokens: 500,
+          }),
+        });
+
+        if (!response.ok) {
+          if (response.status === 429) {
+            return new Response(
+              JSON.stringify({ error: 'OpenAI rate limit exceeded. Please try again shortly.' }),
+              { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+          if (response.status === 401) {
+            console.log('[GENERATE-PROPOSAL] Invalid OpenAI key, trying Lovable AI fallback');
+            throw new Error('Invalid OpenAI key');
+          }
+          if (response.status === 402) {
+            console.log('[GENERATE-PROPOSAL] OpenAI payment required, trying Lovable AI fallback');
+            throw new Error('OpenAI payment required');
+          }
+          const errorText = await response.text();
+          console.error('[GENERATE-PROPOSAL] OpenAI error:', response.status, errorText);
+          throw new Error(`OpenAI error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        generatedProposal = data.choices[0].message.content;
+        modelUsed = 'OpenAI GPT-5 Mini';
+        console.log('[GENERATE-PROPOSAL] Successfully generated with OpenAI');
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.error('[GENERATE-PROPOSAL] OpenAI failed, trying Lovable AI fallback:', errorMessage);
+        // Fall through to Lovable AI fallback
+      }
+    }
+
+    // Fallback to Lovable AI if OpenAI fails or isn't configured
+    if (!generatedProposal && LOVABLE_API_KEY) {
+      try {
+        console.log('[GENERATE-PROPOSAL] Using Lovable AI (Gemini) as fallback');
+        
         const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -110,60 +162,17 @@ Generate a professional proposal based on the provider's notes above.`;
               { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
             );
           }
-          if (response.status === 402) {
-            console.log('[GENERATE-PROPOSAL] Lovable AI credits depleted, falling back to OpenAI');
-            throw new Error('Credits depleted, switching to OpenAI');
-          }
           throw new Error(`Lovable AI error: ${response.status}`);
         }
 
         const data = await response.json();
         generatedProposal = data.choices[0].message.content;
-        modelUsed = 'Lovable AI (Gemini 2.5 Flash)';
-        console.log('[GENERATE-PROPOSAL] Successfully generated with Lovable AI');
+        modelUsed = 'Lovable AI (Gemini 2.5 Flash - Fallback)';
+        console.log('[GENERATE-PROPOSAL] Successfully generated with Lovable AI fallback');
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        console.error('[GENERATE-PROPOSAL] Lovable AI failed, falling back to OpenAI:', errorMessage);
-        // Fall through to OpenAI
+        console.error('[GENERATE-PROPOSAL] Lovable AI fallback also failed:', errorMessage);
       }
-    }
-
-    // Use OpenAI if Lovable AI wasn't used or failed
-    if (!generatedProposal && OPENAI_API_KEY) {
-      console.log('[GENERATE-PROPOSAL] Using OpenAI GPT-5 Mini');
-      
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-5-mini-2025-08-07',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-          max_completion_tokens: 500,
-        }),
-      });
-
-      if (!response.ok) {
-        if (response.status === 429) {
-          return new Response(
-            JSON.stringify({ error: 'AI service is busy. Please try again in a moment.' }),
-            { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-        const errorText = await response.text();
-        console.error('[GENERATE-PROPOSAL] OpenAI error:', response.status, errorText);
-        throw new Error(`OpenAI error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      generatedProposal = data.choices[0].message.content;
-      modelUsed = 'OpenAI GPT-5 Mini';
-      console.log('[GENERATE-PROPOSAL] Successfully generated with OpenAI');
     }
 
     if (!generatedProposal) {
