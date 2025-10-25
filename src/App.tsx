@@ -58,6 +58,7 @@ const AppContent = () => {
             <Route path="/provider-checkout" element={<ProviderCheckout />} />
             <Route path="/identity-verification" element={<IdentityVerification />} />
             <Route path="/request/:id" element={<RequestDetails />} />
+            <Route path="/messages" element={<Messages />} />
             <Route path="/messages/:userId" element={<Messages />} />
             <Route path="/provider-dashboard" element={<ProviderDashboard />} />
             <Route path="/requester-dashboard" element={<RequesterDashboard />} />

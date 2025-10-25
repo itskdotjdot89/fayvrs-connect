@@ -132,6 +132,17 @@ export default function Messages() {
     sendMessageMutation.mutate(message.trim());
   };
 
+  if (!userId) {
+    return (
+      <div className="min-h-screen bg-surface flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground mb-4">Select a conversation to start messaging</p>
+          <Button onClick={() => navigate('/feed')}>Go to Feed</Button>
+        </div>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-surface flex items-center justify-center">
