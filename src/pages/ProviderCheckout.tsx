@@ -64,7 +64,11 @@ export default function ProviderCheckout() {
 
       if (data?.url) {
         console.log('Opening checkout URL:', data.url);
-        window.location.href = data.url; // Changed from window.open to direct redirect
+        window.open(data.url, '_blank');
+        toast({
+          title: "Opening checkout",
+          description: "Redirecting you to secure payment..."
+        });
       } else {
         throw new Error('No checkout URL returned');
       }
