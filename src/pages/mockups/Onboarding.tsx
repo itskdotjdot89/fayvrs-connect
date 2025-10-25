@@ -16,24 +16,28 @@ import { markOnboardingComplete } from "@/utils/onboardingHelper";
 const slides = [
   {
     icon: Handshake,
+    videoUrl: "/videos/onboarding-welcome.mp4",
     title: "Welcome to Fayvrs",
     subtitle: "No platform fees. Verified community.",
     description: "Connect directly with local service providers and get things done without the middleman.",
   },
   {
     icon: MessageSquare,
+    videoUrl: "/videos/onboarding-requesters.mp4",
     title: "Need Something Done?",
     subtitle: "Post your request for free",
     description: "Get responses from verified local providers within 72 hours. No platform fees, ever.",
   },
   {
     icon: Briefcase,
+    videoUrl: "/videos/onboarding-providers.mp4",
     title: "Grow Your Business",
     subtitle: "For service providers",
     description: "Get verified, receive qualified leads, and connect directly with customers in your area.",
   },
   {
     icon: Shield,
+    videoUrl: "/videos/onboarding-security.mp4",
     title: "Verified & Secure",
     subtitle: "Trust and safety first",
     description: "All providers are identity-verified. In-app messaging keeps your communication safe and secure.",
@@ -106,12 +110,32 @@ export default function Onboarding() {
               return (
                 <CarouselItem key={index}>
                   <div className="flex flex-col items-center text-center space-y-8 py-12 px-4">
-                    {/* Logo */}
-                    <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg animate-scale-in p-4">
+                    {/* Video/Logo Container */}
+                    <div className="w-64 h-64 rounded-3xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg animate-scale-in overflow-hidden">
                       {index === 0 ? (
-                        <img src={fayvrsLogo} alt="Fayvrs Logo" className="w-full h-full object-contain" />
+                        <img src={fayvrsLogo} alt="Fayvrs Logo" className="w-24 h-24 object-contain" />
                       ) : (
-                        <Icon className="w-12 h-12 text-primary-foreground" strokeWidth={2.5} />
+                        <video
+                          autoPlay
+                          loop
+                          muted
+                          playsInline
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // Fallback to icon if video fails
+                            e.currentTarget.style.display = 'none';
+                            const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                            if (fallback) fallback.style.display = 'flex';
+                          }}
+                        >
+                          <source src={slide.videoUrl} type="video/mp4" />
+                        </video>
+                      )}
+                      {/* Fallback Icon (hidden by default) */}
+                      {index !== 0 && (
+                        <div className="hidden w-full h-full items-center justify-center">
+                          <Icon className="w-16 h-16 text-primary-foreground" strokeWidth={2.5} />
+                        </div>
                       )}
                     </div>
 
