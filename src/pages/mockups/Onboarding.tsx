@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Handshake, MessageSquare, Briefcase, Shield } from "lucide-react";
+import fayvrsLogo from "@/assets/fayvrs-logo.png";
 import {
   Carousel,
   CarouselContent,
@@ -105,9 +106,13 @@ export default function Onboarding() {
               return (
                 <CarouselItem key={index}>
                   <div className="flex flex-col items-center text-center space-y-8 py-12 px-4">
-                    {/* Icon */}
-                    <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg animate-scale-in">
-                      <Icon className="w-12 h-12 text-primary-foreground" strokeWidth={2.5} />
+                    {/* Logo */}
+                    <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg animate-scale-in p-4">
+                      {index === 0 ? (
+                        <img src={fayvrsLogo} alt="Fayvrs Logo" className="w-full h-full object-contain" />
+                      ) : (
+                        <Icon className="w-12 h-12 text-primary-foreground" strokeWidth={2.5} />
+                      )}
                     </div>
 
                     {/* Title & Subtitle */}
