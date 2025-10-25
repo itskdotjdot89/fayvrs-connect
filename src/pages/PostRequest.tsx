@@ -52,6 +52,9 @@ export default function PostRequest() {
   const [parsedData, setParsedData] = useState<RequestData | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
+  
+  // Geolocation state
+  const [userCoords, setUserCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   useEffect(() => {
     const checkVerification = async () => {
       if (!user) {
@@ -89,6 +92,25 @@ export default function PostRequest() {
       navigate("/identity-verification");
     }
   }, [user, loading, isVerified, checkingVerification, navigate, toast]);
+
+  // Get user's geolocation on mount
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserCoords({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          });
+          console.log('User location obtained:', position.coords.latitude, position.coords.longitude);
+        },
+        (error) => {
+          console.log('Geolocation permission denied or unavailable:', error);
+          // Don't show error toast - just silently fail
+        }
+      );
+    }
+  }, []);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -152,12 +174,35 @@ export default function PostRequest() {
       if (data.error) {
         throw new Error(data.details || data.error);
       }
+      
+      // If no location detected and we have user coords, reverse geocode
+      let finalLocation = data.location || "";
+      if (!finalLocation && userCoords) {
+        console.log('No location in request, using geolocation...');
+        try {
+          const { data: reverseData, error: reverseError } = await supabase.functions.invoke('reverse-geocode', {
+            body: {
+              latitude: userCoords.latitude,
+              longitude: userCoords.longitude
+            }
+          });
+          
+          if (!reverseError && reverseData?.formatted) {
+            finalLocation = reverseData.formatted;
+            console.log('Auto-detected location:', finalLocation);
+          }
+        } catch (error) {
+          console.error('Reverse geocode failed:', error);
+          // Continue without location
+        }
+      }
+      
       setParsedData({
         title: data.title,
         description: data.description,
         request_type: data.request_type,
         category: data.category || "",
-        location: data.location || "",
+        location: finalLocation,
         budget_min: data.budget_min || null,
         budget_max: data.budget_max || null,
         tags: data.tags || [],

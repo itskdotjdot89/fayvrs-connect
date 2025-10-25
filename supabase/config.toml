@@ -21,6 +21,9 @@ verify_jwt = true
 [functions.geocode-location]
 verify_jwt = false
 
+[functions.reverse-geocode]
+verify_jwt = false
+
 [functions.match-providers]
 verify_jwt = true
 
