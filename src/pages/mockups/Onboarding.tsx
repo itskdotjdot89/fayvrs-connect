@@ -78,13 +78,13 @@ export default function Onboarding() {
   const isLastSlide = current === slides.length - 1;
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-6 relative">
-      {/* Skip Button */}
+    <div className="min-h-screen bg-background flex items-center justify-center p-6">
+      {/* Skip Button - Fixed to viewport */}
       {!isLastSlide && (
         <Button
           variant="ghost"
           onClick={handleSkip}
-          className="absolute top-6 right-6 text-muted-foreground hover:text-foreground"
+          className="fixed top-4 right-4 z-50 text-muted-foreground hover:text-foreground"
         >
           Skip
         </Button>
