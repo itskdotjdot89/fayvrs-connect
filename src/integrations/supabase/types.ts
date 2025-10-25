@@ -1016,6 +1016,18 @@ export type Database = {
         Returns: boolean
       }
       geomfromewkt: { Args: { "": string }; Returns: unknown }
+      get_user_conversations: {
+        Args: { user_uuid: string }
+        Returns: {
+          conversation_id: string
+          last_message: string
+          last_message_at: string
+          last_sender_id: string
+          message_count: number
+          user1_id: string
+          user2_id: string
+        }[]
+      }
       gettransactionid: { Args: never; Returns: unknown }
       has_role: {
         Args: {

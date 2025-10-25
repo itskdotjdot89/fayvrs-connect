@@ -20,6 +20,7 @@ import Portfolio from "./pages/Portfolio";
 import Settings from "./pages/Settings";
 import ProviderSettings from "./pages/ProviderSettings";
 import NotFound from "./pages/NotFound";
+import Conversations from "./pages/Conversations";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { OnboardingWrapper } from "./components/OnboardingWrapper";
 import KYCReview from "./pages/admin/KYCReview";
