@@ -41,7 +41,7 @@ export const useWebRTC = ({
           from_user_id: localUserId,
           to_user_id: remoteUserId,
           signal_type: "ice-candidate",
-          signal_data: event.candidate.toJSON(),
+          signal_data: event.candidate.toJSON() as any,
         });
       }
     };
@@ -100,7 +100,7 @@ export const useWebRTC = ({
         from_user_id: localUserId,
         to_user_id: remoteUserId,
         signal_type: "offer",
-        signal_data: offer,
+        signal_data: offer as any,
       });
     } catch (err) {
       setError("Failed to create offer");
@@ -121,7 +121,7 @@ export const useWebRTC = ({
           from_user_id: localUserId,
           to_user_id: remoteUserId,
           signal_type: "answer",
-          signal_data: answer,
+          signal_data: answer as any,
         });
       } catch (err) {
         setError("Failed to create answer");

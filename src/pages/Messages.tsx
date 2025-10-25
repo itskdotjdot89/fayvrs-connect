@@ -5,11 +5,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowLeft, Send, Loader2 } from "lucide-react";
+import { ArrowLeft, Send, Loader2, Video } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useUserPresence } from "@/hooks/useUserPresence";
 import { OnlineIndicator } from "@/components/OnlineIndicator";
+import { VideoCallModal } from "@/components/VideoCallModal";
+import { IncomingCallModal } from "@/components/IncomingCallModal";
 
 export default function Messages() {
   const { userId } = useParams();
@@ -19,6 +21,15 @@ export default function Messages() {
   const [message, setMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { isOnline, statusText } = useUserPresence(userId);
+  const [showVideoCall, setShowVideoCall] = useState(false);
+  const [showIncomingCall, setShowIncomingCall] = useState(false);
+  const [incomingCallData, setIncomingCallData] = useState<{
+    sessionId: string;
+    callerId: string;
+    callerName: string;
+    callerAvatar?: string;
+  } | null>(null);
+  const [activeCallSessionId, setActiveCallSessionId] = useState<string | null>(null);
 
   // Fetch recipient profile (only public fields - no email, phone, latitude, longitude)
   const { data: recipient } = useQuery({
@@ -76,6 +87,95 @@ export default function Messages() {
       supabase.removeChannel(channel);
     };
   }, [user?.id, userId, queryClient]);
+
+  // Listen for incoming video calls
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const callChannel = supabase
+      .channel('incoming-calls')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'call_sessions',
+          filter: `receiver_id=eq.${user.id}`,
+        },
+        async (payload: any) => {
+          const callSession = payload.new;
+          if (callSession.status === 'pending') {
+            const { data: callerProfile } = await supabase
+              .from('profiles')
+              .select('full_name, avatar_url')
+              .eq('id', callSession.caller_id)
+              .single();
+            
+            setIncomingCallData({
+              sessionId: callSession.id,
+              callerId: callSession.caller_id,
+              callerName: callerProfile?.full_name || 'Unknown',
+              callerAvatar: callerProfile?.avatar_url,
+            });
+            setShowIncomingCall(true);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(callChannel);
+    };
+  }, [user?.id]);
+
+  const startVideoCall = async () => {
+    if (!user?.id || !userId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('call_sessions')
+        .insert({
+          caller_id: user.id,
+          receiver_id: userId,
+          status: 'pending',
+        } as any)
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      setActiveCallSessionId(data.id);
+      setShowVideoCall(true);
+    } catch (error) {
+      toast.error('Failed to start video call');
+      console.error(error);
+    }
+  };
+
+  const acceptCall = () => {
+    if (incomingCallData) {
+      setActiveCallSessionId(incomingCallData.sessionId);
+      setShowIncomingCall(false);
+      setShowVideoCall(true);
+      
+      supabase
+        .from('call_sessions')
+        .update({ status: 'active' })
+        .eq('id', incomingCallData.sessionId);
+    }
+  };
+
+  const declineCall = () => {
+    if (incomingCallData) {
+      supabase
+        .from('call_sessions')
+        .update({ status: 'declined' })
+        .eq('id', incomingCallData.sessionId);
+      
+      setShowIncomingCall(false);
+      setIncomingCallData(null);
+    }
+  };
 
   // Send message mutation
   const sendMessageMutation = useMutation({
@@ -190,6 +290,15 @@ export default function Messages() {
                 statusText={statusText}
               />
             </div>
+
+            <Button
+              onClick={startVideoCall}
+              size="icon"
+              variant="ghost"
+              className="rounded-xl"
+            >
+              <Video className="w-5 h-5" />
+            </Button>
           </div>
         </div>
       </div>
@@ -256,6 +365,31 @@ export default function Messages() {
           </Button>
         </form>
       </div>
+
+      {showVideoCall && activeCallSessionId && user?.id && userId && (
+        <VideoCallModal
+          isOpen={showVideoCall}
+          onClose={() => {
+            setShowVideoCall(false);
+            setActiveCallSessionId(null);
+          }}
+          callSessionId={activeCallSessionId}
+          localUserId={user.id}
+          remoteUserId={userId}
+          remoteUserName={recipient?.full_name || 'User'}
+          isInitiator={incomingCallData?.callerId !== user.id}
+        />
+      )}
+
+      {showIncomingCall && incomingCallData && (
+        <IncomingCallModal
+          isOpen={showIncomingCall}
+          callerName={incomingCallData.callerName}
+          callerAvatar={incomingCallData.callerAvatar}
+          onAccept={acceptCall}
+          onDecline={declineCall}
+        />
+      )}
     </div>
   );
 }

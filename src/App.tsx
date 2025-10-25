@@ -14,13 +14,13 @@ import ProviderCheckout from "./pages/ProviderCheckout";
 import IdentityVerification from "./pages/IdentityVerification";
 import RequestDetails from "./pages/RequestDetails";
 import Messages from "./pages/Messages";
+import Conversations from "./pages/Conversations";
 import ProviderDashboard from "./pages/ProviderDashboard";
 import RequesterDashboard from "./pages/RequesterDashboard";
 import Portfolio from "./pages/Portfolio";
 import Settings from "./pages/Settings";
 import ProviderSettings from "./pages/ProviderSettings";
 import NotFound from "./pages/NotFound";
-import Conversations from "./pages/Conversations";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { OnboardingWrapper } from "./components/OnboardingWrapper";
 import KYCReview from "./pages/admin/KYCReview";
@@ -59,8 +59,8 @@ const AppContent = () => {
             <Route path="/provider-checkout" element={<ProviderCheckout />} />
             <Route path="/identity-verification" element={<IdentityVerification />} />
             <Route path="/request/:id" element={<RequestDetails />} />
-            <Route path="/messages" element={<Messages />} />
-            <Route path="/messages/:userId" element={<Messages />} />
+            <Route path="/conversations" element={<ProtectedRoute><Conversations /></ProtectedRoute>} />
+            <Route path="/messages/:userId" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
             <Route path="/provider-dashboard" element={<ProviderDashboard />} />
             <Route path="/requester-dashboard" element={<RequesterDashboard />} />
             <Route path="/portfolio" element={<Portfolio />} />

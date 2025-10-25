@@ -6,7 +6,7 @@ import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  requiredRole: 'admin' | 'provider' | 'requester';
+  requiredRole?: 'admin' | 'provider' | 'requester';
 }
 
 export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
@@ -18,6 +18,13 @@ export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) 
     const checkRole = async () => {
       if (!user) {
         setHasPermission(false);
+        setChecking(false);
+        return;
+      }
+
+      // If no required role, just check if user is authenticated
+      if (!requiredRole) {
+        setHasPermission(true);
         setChecking(false);
         return;
       }

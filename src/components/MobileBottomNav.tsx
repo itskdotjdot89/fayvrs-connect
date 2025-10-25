@@ -27,7 +27,7 @@ export const MobileBottomNav = () => {
       isCenter: true,
     },
     {
-      to: "/messages",
+      to: "/conversations",
       icon: MessageCircle,
       label: "Messages",
       show: !!user,
