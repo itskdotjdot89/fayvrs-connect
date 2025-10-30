@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { NearbyRequestsWidget } from "@/components/NearbyRequestsWidget";
 import { useProviderAccess } from "@/hooks/useProviderAccess";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ReferralEarningsCard } from "@/components/ReferralEarningsCard";
 
 export default function ProviderDashboard() {
   const navigate = useNavigate();
@@ -189,6 +190,9 @@ export default function ProviderDashboard() {
             </Button>
           </div>
         )}
+
+        {/* Referral Earnings */}
+        <ReferralEarningsCard variant="full" />
 
         {/* Stats Grid */}
         <div className="grid grid-cols-3 gap-3">

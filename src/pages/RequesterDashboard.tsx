@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
 import { FileText, MessageSquare, CheckCircle, Clock, DollarSign } from "lucide-react";
 import { NearbyProvidersWidget } from "@/components/NearbyProvidersWidget";
+import { ReferralEarningsCard } from "@/components/ReferralEarningsCard";
 
 export default function RequesterDashboard() {
   const { user } = useAuth();
@@ -129,6 +130,8 @@ export default function RequesterDashboard() {
             <p className="text-xs text-muted-foreground">Finished projects</p>
           </CardContent>
         </Card>
+
+        <ReferralEarningsCard variant="compact" />
       </div>
 
       {/* Nearby Providers Widget */}
