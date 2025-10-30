@@ -26,6 +26,8 @@ import { OnboardingWrapper } from "./components/OnboardingWrapper";
 import KYCReview from "./pages/admin/KYCReview";
 import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import ReferralLanding from "./pages/ReferralLanding";
+import ReferralDashboard from "./pages/ReferralDashboard";
 
 // Fayvrs Mockup Screens
 import Onboarding from "./pages/mockups/Onboarding";
@@ -68,6 +70,8 @@ const AppContent = () => {
             <Route path="/provider-settings" element={<ProviderSettings />} />
             <Route path="/terms-of-service" element={<TermsOfService />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/r/:code" element={<ReferralLanding />} />
+            <Route path="/referrals" element={<ProtectedRoute><ReferralDashboard /></ProtectedRoute>} />
             <Route path="/admin/kyc-review" element={
               <ProtectedRoute requiredRole="admin">
                 <KYCReview />

@@ -152,10 +152,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => clearInterval(interval);
   }, [session]);
 
-  const signUp = async (email: string, password: string, fullName: string, role: 'requester' | 'provider', phone?: string) => {
+  const signUp = async (email: string, password: string, fullName: string, role: 'requester' | 'provider', phone?: string, referralCode?: string) => {
     const redirectUrl = `${window.location.origin}/identity-verification`;
     
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -179,6 +179,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         title: "Success!",
         description: "Account created! Please complete identity verification."
       });
+
+      // Apply referral code if provided
+      if (referralCode && data.user) {
+        try {
+          await supabase.functions.invoke('apply-referral-code', {
+            body: { referral_code: referralCode }
+          });
+        } catch (err) {
+          console.error('Error applying referral code:', err);
+          // Don't show error to user - signup was successful
+        }
+      }
     }
 
     return { error };

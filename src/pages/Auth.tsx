@@ -29,6 +29,7 @@ export default function Auth() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [mode, setMode] = useState<string | null>(null);
+  const [referralCode, setReferralCode] = useState<string | null>(null);
   const {
     user,
     signUp,
@@ -68,6 +69,21 @@ export default function Auth() {
     };
 
     handlePasswordReset();
+
+    // Check for referral code in localStorage
+    const storedCode = localStorage.getItem('referral_code');
+    const storedExpiry = localStorage.getItem('referral_expires');
+    
+    if (storedCode && storedExpiry) {
+      const expiryTime = parseInt(storedExpiry);
+      if (Date.now() < expiryTime) {
+        setReferralCode(storedCode);
+      } else {
+        // Clear expired referral code
+        localStorage.removeItem('referral_code');
+        localStorage.removeItem('referral_expires');
+      }
+    }
   }, [user, navigate, mode]);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,8 +91,11 @@ export default function Auth() {
     if (isSignUp) {
       const {
         error
-      } = await signUp(email, password, fullName, role, phone);
+      } = await signUp(email, password, fullName, role, phone, referralCode || undefined);
       if (!error) {
+        // Clear referral code from localStorage after successful signup
+        localStorage.removeItem('referral_code');
+        localStorage.removeItem('referral_expires');
         navigate('/identity-verification');
       }
     } else {
@@ -305,6 +324,14 @@ export default function Auth() {
                   Back to other options
                 </Button>
               </form>}
+
+            {/* Referral Code Indicator */}
+            {!mode && !showPasswordReset && !showPhoneAuth && isSignUp && referralCode && (
+              <div className="mb-4 p-3 bg-primary/10 border border-primary/20 rounded-lg text-center">
+                <p className="text-sm font-medium text-primary">🎉 Referral code applied!</p>
+                <p className="text-xs text-muted-foreground mt-1">You'll get your first month free</p>
+              </div>
+            )}
 
             {/* Email/Password Form */}
             {!mode && !showPasswordReset && !showPhoneAuth && isSignUp && <div className="mb-6">

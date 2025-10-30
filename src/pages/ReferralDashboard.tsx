@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Copy, DollarSign, Users, TrendingUp } from 'lucide-react';
-import Layout from '@/components/Layout';
+import { Layout } from '@/components/Layout';
 
 export default function ReferralDashboard() {
   const { user } = useAuth();
