@@ -38,7 +38,13 @@ export default function Feed() {
   const [serviceTypeFilter, setServiceTypeFilter] = useState("all");
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
-  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number; serviceRadius: number } | null>(null);
+  const [userLocation, setUserLocation] = useState<{ 
+    latitude: number; 
+    longitude: number; 
+    currentLatitude?: number; 
+    currentLongitude?: number; 
+    serviceRadius: number;
+  } | null>(null);
   const [activeTab, setActiveTab] = useState("list");
   const [geocodedRequests, setGeocodedRequests] = useState<globalThis.Map<string, { latitude: number; longitude: number }>>(new globalThis.Map());
   const [isGeocoding, setIsGeocoding] = useState(false);
@@ -75,7 +81,7 @@ export default function Feed() {
     
     const { data } = await supabase
       .from('profiles')
-      .select('latitude, longitude, service_radius')
+      .select('latitude, longitude, current_latitude, current_longitude, service_radius')
       .eq('id', user.id)
       .single();
     
@@ -83,6 +89,8 @@ export default function Feed() {
       setUserLocation({
         latitude: Number(data.latitude),
         longitude: Number(data.longitude),
+        currentLatitude: data.current_latitude ? Number(data.current_latitude) : undefined,
+        currentLongitude: data.current_longitude ? Number(data.current_longitude) : undefined,
         serviceRadius: data.service_radius || 25
       });
     }
@@ -401,6 +409,8 @@ export default function Feed() {
                   requests={requestsForMap}
                   providerLatitude={userLocation?.latitude || requestsForMap[0]?.latitude || 40.7128}
                   providerLongitude={userLocation?.longitude || requestsForMap[0]?.longitude || -74.0060}
+                  currentLatitude={userLocation?.currentLatitude}
+                  currentLongitude={userLocation?.currentLongitude}
                   serviceRadius={userLocation?.serviceRadius || 25}
                 />
               )}

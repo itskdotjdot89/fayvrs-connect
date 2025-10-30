@@ -22,7 +22,7 @@ export const NearbyProvidersWidget = () => {
 
       const { data, error } = await supabase
         .from("profiles")
-        .select("latitude, longitude")
+        .select("latitude, longitude, current_latitude, current_longitude")
         .eq("id", user.id)
         .single();
 
@@ -167,6 +167,8 @@ export const NearbyProvidersWidget = () => {
                 providers={nearbyProviders}
                 requesterLatitude={profile.latitude}
                 requesterLongitude={profile.longitude}
+                currentLatitude={profile.current_latitude}
+                currentLongitude={profile.current_longitude}
                 searchRadius={searchRadius}
               />
             </TabsContent>

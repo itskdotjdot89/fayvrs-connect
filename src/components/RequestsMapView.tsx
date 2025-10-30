@@ -20,6 +20,8 @@ interface RequestsMapViewProps {
   requests: Request[];
   providerLatitude: number;
   providerLongitude: number;
+  currentLatitude?: number;
+  currentLongitude?: number;
   serviceRadius: number;
 }
 
@@ -36,13 +38,20 @@ const CATEGORY_COLORS: Record<string, string> = {
 export const RequestsMapView = ({ 
   requests, 
   providerLatitude, 
-  providerLongitude, 
+  providerLongitude,
+  currentLatitude,
+  currentLongitude,
   serviceRadius 
 }: RequestsMapViewProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const navigate = useNavigate();
   const [onlineRequesters, setOnlineRequesters] = useState<Set<string>>(new Set());
+  const currentMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  
+  // Use current location if available, otherwise fall back to profile location
+  const displayLatitude = currentLatitude || providerLatitude;
+  const displayLongitude = currentLongitude || providerLongitude;
 
   // Subscribe to online status updates for requesters
   useEffect(() => {
@@ -86,7 +95,7 @@ export const RequestsMapView = ({
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/streets-v12',
-      center: [providerLongitude, providerLatitude],
+      center: [displayLongitude, displayLatitude],
       zoom: 11,
     });
 
@@ -95,7 +104,7 @@ export const RequestsMapView = ({
     map.current.on('load', () => {
       if (!map.current) return;
 
-      // Add service radius circle
+      // Add service radius circle (centered on profile location)
       const radiusInMeters = serviceRadius * 1609.34; // Convert miles to meters
       const radiusGeoJSON = createCircle([providerLongitude, providerLatitude], radiusInMeters);
 
@@ -121,18 +130,62 @@ export const RequestsMapView = ({
         paint: {
           'line-color': 'hsl(var(--primary))',
           'line-width': 2,
-          'line-opacity': 0.5
+          'line-opacity': 0.5,
+          'line-dasharray': [2, 2]
         }
       });
 
-      // Add provider location marker
-      new mapboxgl.Marker({ color: 'hsl(var(--primary))' })
-        .setLngLat([providerLongitude, providerLatitude])
+      // Add current location marker (pulsing blue dot)
+      const currentLocationEl = document.createElement('div');
+      currentLocationEl.className = 'current-location-marker';
+      currentLocationEl.style.cssText = `
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        border: 3px solid white;
+        box-shadow: 0 0 0 rgba(59, 130, 246, 0.4);
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        cursor: pointer;
+      `;
+
+      currentMarkerRef.current = new mapboxgl.Marker({ element: currentLocationEl })
+        .setLngLat([displayLongitude, displayLatitude])
         .setPopup(
           new mapboxgl.Popup({ offset: 25 })
-            .setHTML('<strong>Your Location</strong><p>Service Radius: ' + serviceRadius + ' miles</p>')
+            .setHTML(`
+              <div class="p-2">
+                <strong class="text-blue-600">Your Current Location</strong>
+                ${currentLatitude ? '<p class="text-xs text-green-600 mt-1">● Live tracking active</p>' : '<p class="text-xs text-muted-foreground mt-1">Using profile location</p>'}
+              </div>
+            `)
         )
         .addTo(map.current);
+
+      // Add profile location marker (if different from current)
+      if (currentLatitude && currentLongitude && 
+          (Math.abs(currentLatitude - providerLatitude) > 0.001 || 
+           Math.abs(currentLongitude - providerLongitude) > 0.001)) {
+        const profileLocationEl = document.createElement('div');
+        profileLocationEl.className = 'profile-location-marker';
+        profileLocationEl.style.cssText = `
+          background-color: hsl(var(--primary));
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          border: 2px solid white;
+          opacity: 0.6;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        `;
+
+        new mapboxgl.Marker({ element: profileLocationEl })
+          .setLngLat([providerLongitude, providerLatitude])
+          .setPopup(
+            new mapboxgl.Popup({ offset: 25 })
+              .setHTML('<div class="p-2"><strong>Service Area Center</strong><p class="text-xs mt-1">Radius: ' + serviceRadius + ' miles</p></div>')
+          )
+          .addTo(map.current);
+      }
 
       // Add request markers
       requests.forEach((request) => {
@@ -185,7 +238,14 @@ export const RequestsMapView = ({
       map.current?.remove();
       map.current = null;
     };
-  }, [requests, providerLatitude, providerLongitude, serviceRadius, navigate]);
+  }, [requests, providerLatitude, providerLongitude, currentLatitude, currentLongitude, serviceRadius, navigate, onlineRequesters]);
+
+  // Update current location marker when coordinates change
+  useEffect(() => {
+    if (currentMarkerRef.current && currentLatitude && currentLongitude) {
+      currentMarkerRef.current.setLngLat([currentLongitude, currentLatitude]);
+    }
+  }, [currentLatitude, currentLongitude]);
 
   return <div ref={mapContainer} className="w-full h-[500px] rounded-lg" />;
 };

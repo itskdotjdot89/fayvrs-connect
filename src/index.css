@@ -135,9 +135,26 @@ All colors MUST be HSL.
   @keyframes pulse {
     0%, 100% {
       opacity: 1;
+      box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
     }
     50% {
       opacity: 0.5;
     }
+    70% {
+      box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+    }
+  }
+
+  /* Location marker styles */
+  .current-location-marker {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .provider-marker, .request-marker {
+    transition: transform 0.3s ease-out;
+  }
+
+  .provider-marker:hover, .request-marker:hover {
+    transform: scale(1.1);
   }
 }
