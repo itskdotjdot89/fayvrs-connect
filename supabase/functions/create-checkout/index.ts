@@ -66,20 +66,56 @@ serve(async (req) => {
       console.log('[CREATE-CHECKOUT] No existing customer found');
     }
 
-    console.log('[CREATE-CHECKOUT] Creating checkout session...');
-    const session = await stripe.checkout.sessions.create({
+    // Check for referral relationship
+    console.log('[CREATE-CHECKOUT] Checking for referral relationship...');
+    const serviceClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+    
+    const { data: referralRelationship } = await serviceClient
+      .from("referral_relationships")
+      .select("referrer_id, referral_code_id")
+      .eq("referred_user_id", user.id)
+      .eq("status", "pending")
+      .single();
+
+    const sessionConfig: any = {
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
+      line_items: [{ price: priceId, quantity: 1 }],
       mode: "subscription",
       success_url: `${req.headers.get("origin")}/feed?subscription=success`,
       cancel_url: `${req.headers.get("origin")}/auth?subscription=cancelled`,
-    });
+    };
+
+    // Apply 30-day free trial if referred
+    if (referralRelationship) {
+      console.log('[CREATE-CHECKOUT] Applying referral trial...');
+      sessionConfig.subscription_data = {
+        trial_period_days: 30,
+        metadata: {
+          referred_by: referralRelationship.referrer_id,
+          referral_code_id: referralRelationship.referral_code_id,
+          is_referral: "true",
+        },
+      };
+    }
+
+    console.log('[CREATE-CHECKOUT] Creating checkout session...');
+    const session = await stripe.checkout.sessions.create(sessionConfig);
+
+    // Store subscription ID in referral relationship
+    if (referralRelationship && session.subscription) {
+      await serviceClient
+        .from("referral_relationships")
+        .update({
+          stripe_subscription_id: session.subscription as string,
+          stripe_customer_id: customerId || session.customer as string,
+        })
+        .eq("referred_user_id", user.id)
+        .eq("status", "pending");
+    }
 
     console.log('[CREATE-CHECKOUT] Session created:', session.id);
     return new Response(JSON.stringify({ url: session.url }), {

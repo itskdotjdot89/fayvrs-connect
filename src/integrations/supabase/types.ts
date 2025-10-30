@@ -482,6 +482,368 @@ export type Database = {
           },
         ]
       }
+      referral_codes: {
+        Row: {
+          code: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          referral_link: string
+          total_clicks: number | null
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          referral_link: string
+          total_clicks?: number | null
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          referral_link?: string
+          total_clicks?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_codes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_commissions: {
+        Row: {
+          becomes_available_at: string
+          commission_amount: number
+          commission_rate: number | null
+          created_at: string | null
+          id: string
+          payment_number: number
+          referral_relationship_id: string
+          referred_user_id: string
+          referrer_id: string
+          status:
+            | Database["public"]["Enums"]["referral_commission_status"]
+            | null
+          stripe_invoice_id: string | null
+          stripe_payment_intent_id: string | null
+          subscription_amount: number
+          subscription_period_end: string | null
+          subscription_period_start: string | null
+          withdrawn_at: string | null
+        }
+        Insert: {
+          becomes_available_at: string
+          commission_amount: number
+          commission_rate?: number | null
+          created_at?: string | null
+          id?: string
+          payment_number: number
+          referral_relationship_id: string
+          referred_user_id: string
+          referrer_id: string
+          status?:
+            | Database["public"]["Enums"]["referral_commission_status"]
+            | null
+          stripe_invoice_id?: string | null
+          stripe_payment_intent_id?: string | null
+          subscription_amount: number
+          subscription_period_end?: string | null
+          subscription_period_start?: string | null
+          withdrawn_at?: string | null
+        }
+        Update: {
+          becomes_available_at?: string
+          commission_amount?: number
+          commission_rate?: number | null
+          created_at?: string | null
+          id?: string
+          payment_number?: number
+          referral_relationship_id?: string
+          referred_user_id?: string
+          referrer_id?: string
+          status?:
+            | Database["public"]["Enums"]["referral_commission_status"]
+            | null
+          stripe_invoice_id?: string | null
+          stripe_payment_intent_id?: string | null
+          subscription_amount?: number
+          subscription_period_end?: string | null
+          subscription_period_start?: string | null
+          withdrawn_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_commissions_referral_relationship_id_fkey"
+            columns: ["referral_relationship_id"]
+            isOneToOne: false
+            referencedRelation: "referral_relationships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_commissions_referred_user_id_fkey"
+            columns: ["referred_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_commissions_referrer_id_fkey"
+            columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_link_clicks: {
+        Row: {
+          clicked_at: string | null
+          converted_to_signup: boolean | null
+          converted_user_id: string | null
+          id: string
+          ip_address: string | null
+          referral_code_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          clicked_at?: string | null
+          converted_to_signup?: boolean | null
+          converted_user_id?: string | null
+          id?: string
+          ip_address?: string | null
+          referral_code_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          clicked_at?: string | null
+          converted_to_signup?: boolean | null
+          converted_user_id?: string | null
+          id?: string
+          ip_address?: string | null
+          referral_code_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_link_clicks_converted_user_id_fkey"
+            columns: ["converted_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_link_clicks_referral_code_id_fkey"
+            columns: ["referral_code_id"]
+            isOneToOne: false
+            referencedRelation: "referral_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_relationships: {
+        Row: {
+          commission_end_date: string | null
+          created_at: string | null
+          first_payment_date: string | null
+          id: string
+          referral_code_id: string
+          referred_user_id: string
+          referrer_id: string
+          status:
+            | Database["public"]["Enums"]["referral_relationship_status"]
+            | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_start_date: string | null
+          total_commission_earned: number | null
+          total_payments_count: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          commission_end_date?: string | null
+          created_at?: string | null
+          first_payment_date?: string | null
+          id?: string
+          referral_code_id: string
+          referred_user_id: string
+          referrer_id: string
+          status?:
+            | Database["public"]["Enums"]["referral_relationship_status"]
+            | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_start_date?: string | null
+          total_commission_earned?: number | null
+          total_payments_count?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          commission_end_date?: string | null
+          created_at?: string | null
+          first_payment_date?: string | null
+          id?: string
+          referral_code_id?: string
+          referred_user_id?: string
+          referrer_id?: string
+          status?:
+            | Database["public"]["Enums"]["referral_relationship_status"]
+            | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_start_date?: string | null
+          total_commission_earned?: number | null
+          total_payments_count?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_relationships_referral_code_id_fkey"
+            columns: ["referral_code_id"]
+            isOneToOne: false
+            referencedRelation: "referral_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_relationships_referred_user_id_fkey"
+            columns: ["referred_user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_relationships_referrer_id_fkey"
+            columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_withdrawals: {
+        Row: {
+          amount: number
+          completed_at: string | null
+          failure_reason: string | null
+          id: string
+          initiated_at: string | null
+          metadata: Json | null
+          payout_method: Database["public"]["Enums"]["payout_method"]
+          paypal_transaction_id: string | null
+          referrer_id: string
+          status: Database["public"]["Enums"]["withdrawal_status"] | null
+          stripe_transfer_id: string | null
+        }
+        Insert: {
+          amount: number
+          completed_at?: string | null
+          failure_reason?: string | null
+          id?: string
+          initiated_at?: string | null
+          metadata?: Json | null
+          payout_method: Database["public"]["Enums"]["payout_method"]
+          paypal_transaction_id?: string | null
+          referrer_id: string
+          status?: Database["public"]["Enums"]["withdrawal_status"] | null
+          stripe_transfer_id?: string | null
+        }
+        Update: {
+          amount?: number
+          completed_at?: string | null
+          failure_reason?: string | null
+          id?: string
+          initiated_at?: string | null
+          metadata?: Json | null
+          payout_method?: Database["public"]["Enums"]["payout_method"]
+          paypal_transaction_id?: string | null
+          referrer_id?: string
+          status?: Database["public"]["Enums"]["withdrawal_status"] | null
+          stripe_transfer_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_withdrawals_referrer_id_fkey"
+            columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referrer_earnings: {
+        Row: {
+          active_referrals_count: number | null
+          available_balance: number | null
+          created_at: string | null
+          id: string
+          last_withdrawal_date: string | null
+          lifetime_earnings: number | null
+          paypal_email: string | null
+          pending_balance: number | null
+          preferred_payout_method:
+            | Database["public"]["Enums"]["payout_method"]
+            | null
+          stripe_connect_account_id: string | null
+          total_referrals_count: number | null
+          total_withdrawn: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          active_referrals_count?: number | null
+          available_balance?: number | null
+          created_at?: string | null
+          id?: string
+          last_withdrawal_date?: string | null
+          lifetime_earnings?: number | null
+          paypal_email?: string | null
+          pending_balance?: number | null
+          preferred_payout_method?:
+            | Database["public"]["Enums"]["payout_method"]
+            | null
+          stripe_connect_account_id?: string | null
+          total_referrals_count?: number | null
+          total_withdrawn?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          active_referrals_count?: number | null
+          available_balance?: number | null
+          created_at?: string | null
+          id?: string
+          last_withdrawal_date?: string | null
+          lifetime_earnings?: number | null
+          paypal_email?: string | null
+          pending_balance?: number | null
+          preferred_payout_method?:
+            | Database["public"]["Enums"]["payout_method"]
+            | null
+          stripe_connect_account_id?: string | null
+          total_referrals_count?: number | null
+          total_withdrawn?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referrer_earnings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       requests: {
         Row: {
           budget_max: number | null
@@ -665,6 +1027,28 @@ export type Database = {
           type?: string | null
         }
         Relationships: []
+      }
+      referrer_performance_view: {
+        Row: {
+          active_referrals: number | null
+          available_balance: number | null
+          avg_payments_per_referral: number | null
+          email: string | null
+          full_name: string | null
+          lifetime_earnings: number | null
+          pending_balance: number | null
+          referrer_id: string | null
+          total_referrals: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_relationships_referrer_id_fkey"
+            columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {
@@ -1672,8 +2056,20 @@ export type Database = {
     }
     Enums: {
       app_role: "requester" | "provider" | "admin"
+      payout_method: "stripe_connect" | "paypal" | "subscription_credit"
+      referral_commission_status:
+        | "pending"
+        | "available"
+        | "withdrawn"
+        | "cancelled"
+      referral_relationship_status:
+        | "pending"
+        | "active"
+        | "completed"
+        | "cancelled"
       request_status: "open" | "in_progress" | "completed" | "cancelled"
       request_type: "service" | "product" | "other"
+      withdrawal_status: "pending" | "processing" | "completed" | "failed"
     }
     CompositeTypes: {
       geometry_dump: {
@@ -1810,8 +2206,22 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["requester", "provider", "admin"],
+      payout_method: ["stripe_connect", "paypal", "subscription_credit"],
+      referral_commission_status: [
+        "pending",
+        "available",
+        "withdrawn",
+        "cancelled",
+      ],
+      referral_relationship_status: [
+        "pending",
+        "active",
+        "completed",
+        "cancelled",
+      ],
       request_status: ["open", "in_progress", "completed", "cancelled"],
       request_type: ["service", "product", "other"],
+      withdrawal_status: ["pending", "processing", "completed", "failed"],
     },
   },
 } as const

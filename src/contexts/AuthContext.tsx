@@ -18,7 +18,7 @@ interface AuthContextType {
   activeRole: 'requester' | 'provider' | 'admin' | null;
   userRoles: ('requester' | 'provider' | 'admin')[];
   switchRole: (role: 'requester' | 'provider' | 'admin') => Promise<void>;
-  signUp: (email: string, password: string, fullName: string, role: 'requester' | 'provider', phone?: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, fullName: string, role: 'requester' | 'provider', phone?: string, referralCode?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signInWithGoogle: () => Promise<{ error: any }>;
   signInWithApple: () => Promise<{ error: any }>;
