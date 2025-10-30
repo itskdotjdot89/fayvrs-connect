@@ -25,17 +25,26 @@ export default function ReferralDashboard() {
   const loadReferralData = async () => {
     if (!user) return;
 
-    const { data: codeData } = await supabase
+    const { data: codeData, error: codeError } = await supabase
       .from('referral_codes')
       .select('code, referral_link')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
-    const { data: earningsData } = await supabase
+    const { data: earningsData, error: earningsError } = await supabase
       .from('referrer_earnings')
       .select('*')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
+
+    if (codeError) {
+      console.error('Error loading referral code:', codeError);
+      toast({ title: 'Error', description: 'Failed to load referral code', variant: 'destructive' });
+    }
+
+    if (earningsError) {
+      console.error('Error loading earnings:', earningsError);
+    }
 
     if (codeData) setReferralCode(codeData.referral_link);
     if (earningsData) {
