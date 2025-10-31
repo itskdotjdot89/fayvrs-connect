@@ -115,17 +115,6 @@ export default function Onboarding() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6">
-      {/* Skip Button - Fixed to viewport */}
-      {!isLastSlide && (
-        <Button
-          variant="ghost"
-          onClick={handleSkip}
-          className="fixed top-4 right-4 z-50 text-muted-foreground hover:text-foreground"
-        >
-          Skip
-        </Button>
-      )}
-
       <div className="w-full max-w-md">
         <Carousel
           setApi={handleCarouselChange}
@@ -212,13 +201,21 @@ export default function Onboarding() {
             </Button>
           </div>
         ) : (
-          <div className="pt-12">
+          <div className="pt-12 space-y-3">
             <Button
               size="lg"
               onClick={handleNext}
               className="w-full h-14 text-base font-semibold rounded-2xl shadow-lg"
             >
               Next
+            </Button>
+            <Button
+              variant="ghost"
+              size="lg"
+              onClick={handleSkip}
+              className="w-full text-muted-foreground hover:text-foreground"
+            >
+              Skip
             </Button>
           </div>
         )}
