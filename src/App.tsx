@@ -29,8 +29,11 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import ReferralLanding from "./pages/ReferralLanding";
 import ReferralDashboard from "./pages/ReferralDashboard";
 
+// Production Onboarding
+import Onboarding from "./pages/Onboarding";
+
 // Fayvrs Mockup Screens
-import Onboarding from "./pages/mockups/Onboarding";
+import OnboardingMockup from "./pages/mockups/Onboarding";
 import DemoFeed from "./pages/mockups/DemoFeed";
 import SignUpLogin from "./pages/mockups/SignUpLogin";
 import IdentityVerificationMockup from "./pages/mockups/IdentityVerification";
@@ -54,7 +57,8 @@ const AppContent = () => {
     <OnboardingWrapper>
       <LayoutComponent>
         <Routes>
-              <Route path="/" element={<Home />} />
+            <Route path="/" element={<Home />} />
+            <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/post-request" element={<PostRequest />} />
             <Route path="/feed" element={<Feed />} />
@@ -80,7 +84,7 @@ const AppContent = () => {
               
               {/* Fayvrs Mockups */}
               <Route path="/mockups" element={<MockupIndex />} />
-              <Route path="/mockup/onboarding" element={<Onboarding />} />
+              <Route path="/mockup/onboarding" element={<OnboardingMockup />} />
               <Route path="/mockup/demo-feed" element={<DemoFeed />} />
               <Route path="/mockup/signup" element={<SignUpLogin />} />
               <Route path="/mockup/verification" element={<IdentityVerificationMockup />} />

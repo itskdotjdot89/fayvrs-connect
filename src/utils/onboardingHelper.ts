@@ -15,11 +15,31 @@ export function hasSeenOnboarding(): boolean {
 }
 
 /**
- * Mark onboarding as completed
+ * Track which slides were viewed during onboarding
+ * @param slideIndex - The index of the slide being viewed
  */
-export function markOnboardingComplete(): void {
+export function trackOnboardingProgress(slideIndex: number): void {
+  try {
+    const progress = localStorage.getItem('fayvrs_onboarding_progress') || '[]';
+    const slides = JSON.parse(progress);
+    if (!slides.includes(slideIndex)) {
+      slides.push(slideIndex);
+      localStorage.setItem('fayvrs_onboarding_progress', JSON.stringify(slides));
+    }
+  } catch (error) {
+    console.error('Error tracking onboarding progress:', error);
+  }
+}
+
+/**
+ * Mark onboarding as completed
+ * @param method - How the user completed onboarding ('signup', 'guest', or 'skip')
+ */
+export function markOnboardingComplete(method: 'signup' | 'guest' | 'skip' = 'signup'): void {
   try {
     localStorage.setItem(ONBOARDING_KEY, 'true');
+    localStorage.setItem('fayvrs_onboarding_method', method);
+    localStorage.setItem('fayvrs_onboarding_completed_at', new Date().toISOString());
   } catch (error) {
     console.error('Error marking onboarding complete:', error);
   }
