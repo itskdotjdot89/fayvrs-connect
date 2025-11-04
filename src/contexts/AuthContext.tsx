@@ -120,7 +120,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Check subscription whenever session changes
   useEffect(() => {
     const checkSubscription = async () => {
-      if (!session) {
+      // Always get a fresh session to avoid using expired tokens
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      
+      if (!currentSession) {
         setSubscriptionStatus(null);
         return;
       }
@@ -128,7 +131,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         const { data, error } = await supabase.functions.invoke('check-subscription', {
           headers: {
-            Authorization: `Bearer ${session.access_token}`
+            Authorization: `Bearer ${currentSession.access_token}`
           }
         });
 
