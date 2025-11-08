@@ -107,6 +107,18 @@ export default function ReferralDashboard() {
           </AlertDescription>
         </Alert>
 
+        <Card>
+          <CardHeader>
+            <CardTitle>Your Referral Link</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-2">
+              <Input value={referralCode} readOnly />
+              <Button onClick={copyReferralLink}><Copy className="h-4 w-4" /></Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* How It Works Section */}
         <Card>
           <CardHeader>
@@ -272,18 +284,6 @@ export default function ReferralDashboard() {
             </CardContent>
           </Card>
         </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Your Referral Link</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-2">
-              <Input value={referralCode} readOnly />
-              <Button onClick={copyReferralLink}><Copy className="h-4 w-4" /></Button>
-            </div>
-          </CardContent>
-        </Card>
 
         <Card>
           <CardHeader>
