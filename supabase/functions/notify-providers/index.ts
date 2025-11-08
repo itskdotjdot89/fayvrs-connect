@@ -74,6 +74,25 @@ function validateNotificationRequest(data: NotifyProvidersRequest): { valid: boo
   return { valid: true };
 }
 
+// Safe error message helper
+function getSafeErrorMessage(error: unknown): string {
+  console.error('[NOTIFY-PROVIDERS] Error details:', error);
+  
+  if (error instanceof Error) {
+    if (error.message.includes('not found') || error.message.includes('does not exist')) {
+      return 'One or more resources not found. Please verify the request details.';
+    }
+    if (error.message.includes('validation') || error.message.includes('Invalid')) {
+      return error.message; // Validation errors are safe to show
+    }
+    if (error.message.includes('network') || error.message.includes('timeout')) {
+      return 'Network error. Please check your connection and try again.';
+    }
+  }
+  
+  return 'An error occurred while sending notifications. Please try again.';
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -232,9 +251,9 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('[NOTIFY-PROVIDERS] Error:', error);
+    const safeMessage = getSafeErrorMessage(error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ error: safeMessage }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

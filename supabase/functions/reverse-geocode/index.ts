@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,6 +12,70 @@ interface ReverseGeocodeResponse {
   formatted: string;
 }
 
+// Rate limiting helper
+async function checkRateLimit(supabase: any, clientIp: string): Promise<boolean> {
+  const rateLimitKey = `reverse-geocode:${clientIp}`;
+  const limit = 20; // 20 requests
+  const windowMs = 60000; // per minute
+  
+  const { data, error } = await supabase
+    .from('rate_limits')
+    .select('count, last_request')
+    .eq('key', rateLimitKey)
+    .maybeSingle();
+  
+  if (error && error.code !== 'PGRST116') {
+    console.error('[REVERSE-GEOCODE] Rate limit check error:', error);
+    return true; // Allow on error
+  }
+  
+  const now = Date.now();
+  
+  if (data) {
+    const timeSinceLastRequest = now - new Date(data.last_request).getTime();
+    
+    if (timeSinceLastRequest < windowMs) {
+      if (data.count >= limit) {
+        return false; // Rate limit exceeded
+      }
+      // Increment count
+      await supabase
+        .from('rate_limits')
+        .update({ count: data.count + 1, last_request: new Date().toISOString() })
+        .eq('key', rateLimitKey);
+    } else {
+      // Reset count (new window)
+      await supabase
+        .from('rate_limits')
+        .update({ count: 1, last_request: new Date().toISOString() })
+        .eq('key', rateLimitKey);
+    }
+  } else {
+    // First request
+    await supabase
+      .from('rate_limits')
+      .insert({ key: rateLimitKey, count: 1, last_request: new Date().toISOString() });
+  }
+  
+  return true; // Allow request
+}
+
+// Safe error message helper
+function getSafeErrorMessage(error: unknown): string {
+  console.error('[REVERSE-GEOCODE] Error details:', error);
+  
+  if (error instanceof Error) {
+    if (error.message.includes('not found') || error.message.includes('coordinates')) {
+      return 'Location not found for these coordinates. Please try different coordinates.';
+    }
+    if (error.message.includes('Rate limit') || error.message.includes('429')) {
+      return 'Service temporarily unavailable. Please try again in a moment.';
+    }
+  }
+  
+  return 'Unable to reverse geocode coordinates. Please try again.';
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -18,6 +83,28 @@ serve(async (req) => {
   }
 
   try {
+    // Initialize Supabase client for rate limiting
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    
+    // Rate limiting check
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || 
+                     req.headers.get('x-real-ip') || 
+                     'unknown';
+    
+    const allowed = await checkRateLimit(supabase, clientIp);
+    if (!allowed) {
+      console.log('[REVERSE-GEOCODE] Rate limit exceeded for IP:', clientIp);
+      return new Response(
+        JSON.stringify({ error: 'Too many requests. Please try again in a minute.' }),
+        { 
+          status: 429, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+    
     const { latitude, longitude } = await req.json();
     console.log('[REVERSE-GEOCODE] Reverse geocoding:', { latitude, longitude });
 
@@ -74,9 +161,9 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('[REVERSE-GEOCODE] Error:', error);
+    const safeMessage = getSafeErrorMessage(error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ error: safeMessage }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

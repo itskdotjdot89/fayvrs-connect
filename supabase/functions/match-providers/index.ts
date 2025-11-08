@@ -14,6 +14,25 @@ interface MatchRequest {
   radius_miles?: number;
 }
 
+// Safe error message helper
+function getSafeErrorMessage(error: unknown): string {
+  console.error('[MATCH-PROVIDERS] Error details:', error);
+  
+  if (error instanceof Error) {
+    if (error.message.includes('not found') || error.message.includes('does not exist')) {
+      return 'Request not found or no providers available in the area.';
+    }
+    if (error.message.includes('required')) {
+      return 'Missing required location information. Please provide valid coordinates.';
+    }
+    if (error.message.includes('database') || error.message.includes('rpc')) {
+      return 'Unable to search for providers at this time. Please try again.';
+    }
+  }
+  
+  return 'An error occurred while matching providers. Please try again.';
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -110,9 +129,9 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('[MATCH-PROVIDERS] Error:', error);
+    const safeMessage = getSafeErrorMessage(error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ error: safeMessage }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

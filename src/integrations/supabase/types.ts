@@ -482,6 +482,30 @@ export type Database = {
           },
         ]
       }
+      rate_limits: {
+        Row: {
+          count: number
+          created_at: string
+          id: string
+          key: string
+          last_request: string
+        }
+        Insert: {
+          count?: number
+          created_at?: string
+          id?: string
+          key: string
+          last_request?: string
+        }
+        Update: {
+          count?: number
+          created_at?: string
+          id?: string
+          key?: string
+          last_request?: string
+        }
+        Relationships: []
+      }
       referral_codes: {
         Row: {
           code: string
@@ -1183,6 +1207,7 @@ export type Database = {
         Args: { lat1: number; lat2: number; lng1: number; lng2: number }
         Returns: number
       }
+      cleanup_old_rate_limits: { Args: never; Returns: undefined }
       delete_old_call_signals: { Args: never; Returns: undefined }
       disablelongtransactions: { Args: never; Returns: string }
       dropgeometrycolumn:
