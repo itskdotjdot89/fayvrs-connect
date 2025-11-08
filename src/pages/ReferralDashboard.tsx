@@ -8,7 +8,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Copy, DollarSign, Users, TrendingUp } from 'lucide-react';
-import { Layout } from '@/components/Layout';
 
 export default function ReferralDashboard() {
   const { user } = useAuth();
@@ -86,7 +85,7 @@ export default function ReferralDashboard() {
   };
 
   return (
-    <Layout>
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto p-6 space-y-6">
         <h1 className="text-3xl font-bold">Referral Dashboard</h1>
 
@@ -174,6 +173,6 @@ export default function ReferralDashboard() {
           </CardContent>
         </Card>
       </div>
-    </Layout>
+    </div>
   );
 }
