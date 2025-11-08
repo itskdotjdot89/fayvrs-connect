@@ -15,7 +15,18 @@ serve(async (req) => {
     const { code } = await req.json();
 
     if (!code) {
-      throw new Error("Referral code is required");
+      return new Response(
+        JSON.stringify({ valid: false, message: "Referral code is required" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+
+    // Validate code format (alphanumeric, max 50 chars)
+    if (!/^[a-zA-Z0-9_-]+$/.test(code) || code.length > 50) {
+      return new Response(
+        JSON.stringify({ valid: false, message: "Invalid referral code format" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
     }
 
     const supabaseClient = createClient(
@@ -51,17 +62,18 @@ serve(async (req) => {
       );
     }
 
-    // Track the click
-    const { error: clickError } = await supabaseClient
-      .from("referral_link_clicks")
-      .insert({
-        referral_code_id: referralCode.id,
-        ip_address: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip"),
-        user_agent: req.headers.get("user-agent"),
-      });
-
-    if (clickError) {
+    // Track the click (don't fail the request if tracking fails)
+    try {
+      await supabaseClient
+        .from("referral_link_clicks")
+        .insert({
+          referral_code_id: referralCode.id,
+          ip_address: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip"),
+          user_agent: req.headers.get("user-agent"),
+        });
+    } catch (clickError) {
       console.error("Error tracking click:", clickError);
+      // Continue processing even if click tracking fails
     }
 
     // Increment click counter
@@ -82,7 +94,10 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error validating referral code:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ 
+        valid: false, 
+        message: "An error occurred while validating the referral code. Please try again." 
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
     );
   }

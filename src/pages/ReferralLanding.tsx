@@ -11,27 +11,56 @@ export default function ReferralLanding() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [referrerInfo, setReferrerInfo] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const validateCode = async () => {
-      if (!code) return;
-
-      const { data } = await supabase.functions.invoke('validate-referral-code', {
-        body: { code },
-      });
-
-      if (data?.valid) {
-        setReferrerInfo(data);
-        localStorage.setItem('referral_code', code);
-        localStorage.setItem('referral_expires', String(Date.now() + 7 * 24 * 60 * 60 * 1000));
+      if (!code) {
+        setError('No referral code provided');
+        setLoading(false);
+        return;
       }
+
+      try {
+        const { data, error: invokeError } = await supabase.functions.invoke('validate-referral-code', {
+          body: { code },
+        });
+
+        if (invokeError) {
+          console.error('Referral validation error:', invokeError);
+          setError('Unable to validate referral code');
+          setLoading(false);
+          return;
+        }
+
+        if (data?.valid) {
+          setReferrerInfo(data);
+          localStorage.setItem('referral_code', code);
+          localStorage.setItem('referral_expires', String(Date.now() + 7 * 24 * 60 * 60 * 1000));
+        } else {
+          setError(data?.message || 'Invalid referral code');
+        }
+      } catch (err) {
+        console.error('Network error validating referral:', err);
+        setError('Connection error. Please try again.');
+      }
+      
       setLoading(false);
     };
 
     validateCode();
   }, [code]);
 
-  if (loading) return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Validating referral code...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-primary/10 to-background">
@@ -58,8 +87,17 @@ export default function ReferralLanding() {
           </div>
         )}
 
+        {error && (
+          <div className="space-y-4">
+            <p className="text-muted-foreground">{error}</p>
+            <p className="text-sm text-muted-foreground">
+              You can still sign up and join Fayvrs!
+            </p>
+          </div>
+        )}
+
         <Button onClick={() => navigate('/auth')} size="lg" className="w-full">
-          Sign Up Now
+          {referrerInfo ? 'Sign Up Now' : 'Continue to Sign Up'}
         </Button>
       </Card>
     </div>
