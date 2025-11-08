@@ -7,12 +7,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, DollarSign, Users, TrendingUp } from 'lucide-react';
+import { Copy, DollarSign, Users, TrendingUp, Home, Settings as SettingsIcon } from 'lucide-react';
 import { Layout } from '@/components/Layout';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function ReferralDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [referralCode, setReferralCode] = useState('');
   const [earnings, setEarnings] = useState<any>(null);
   const [payoutMethod, setPayoutMethod] = useState('');
@@ -46,7 +50,14 @@ export default function ReferralDashboard() {
       console.error('Error loading earnings:', earningsError);
     }
 
-    if (codeData) setReferralCode(codeData.referral_link);
+    if (codeData) {
+      // Ensure the referral link is a full URL
+      const baseUrl = window.location.origin;
+      const link = codeData.referral_link?.startsWith('http') 
+        ? codeData.referral_link 
+        : `${baseUrl}/r/${codeData.code}`;
+      setReferralCode(link);
+    }
     if (earningsData) {
       setEarnings(earningsData);
       setPayoutMethod(earningsData.preferred_payout_method || '');
@@ -81,7 +92,25 @@ export default function ReferralDashboard() {
   return (
     <Layout>
       <div className="container mx-auto p-6 space-y-6">
-        <h1 className="text-3xl font-bold">Referral Dashboard</h1>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-3xl font-bold">Referral Dashboard</h1>
+          <Tabs value="dashboard" className="w-full sm:w-auto">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="dashboard" onClick={() => navigate('/referrals')}>
+                <DollarSign className="w-4 h-4 mr-2" />
+                Dashboard
+              </TabsTrigger>
+              <TabsTrigger value="home" onClick={() => navigate('/')}>
+                <Home className="w-4 h-4 mr-2" />
+                Home
+              </TabsTrigger>
+              <TabsTrigger value="settings" onClick={() => navigate('/settings')}>
+                <SettingsIcon className="w-4 h-4 mr-2" />
+                Settings
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
 
         <div className="grid md:grid-cols-4 gap-4">
           <Card>
