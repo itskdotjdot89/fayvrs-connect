@@ -46,12 +46,9 @@ export default function ReferralDashboard() {
     }
 
     if (codeData) {
-      // Ensure the referral link is a full URL
-      const baseUrl = window.location.origin;
-      const link = codeData.referral_link?.startsWith('http') 
-        ? codeData.referral_link 
-        : `${baseUrl}/r/${codeData.code}`;
-      setReferralCode(link);
+      // Construct full URL from relative path
+      const fullUrl = `${window.location.origin}${codeData.referral_link}`;
+      setReferralCode(fullUrl);
     }
     if (earningsData) {
       setEarnings(earningsData);
