@@ -46,8 +46,13 @@ export default function ReferralDashboard() {
     }
 
     if (codeData) {
-      // Construct full URL from relative path
-      const fullUrl = `${window.location.origin}${codeData.referral_link}`;
+      // Ensure referral_link has leading slash
+      const path = codeData.referral_link?.startsWith('/') 
+        ? codeData.referral_link 
+        : `/${codeData.referral_link}`;
+      
+      // Construct full URL with proper domain
+      const fullUrl = `${window.location.origin}${path}`;
       setReferralCode(fullUrl);
     }
     if (earningsData) {
