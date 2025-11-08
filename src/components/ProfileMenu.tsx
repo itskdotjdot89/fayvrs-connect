@@ -108,7 +108,7 @@ export const ProfileMenu = ({ open, onOpenChange, profile }: ProfileMenuProps) =
                 <Button variant="ghost" className="w-full justify-start text-base h-12 relative">
                   <Shield className="w-5 h-5 mr-3" />
                   KYC Review
-                  {pendingCount && pendingCount > 0 && (
+                  {pendingCount > 0 && (
                     <Badge className="ml-auto bg-destructive text-white">
                       {pendingCount}
                     </Badge>
