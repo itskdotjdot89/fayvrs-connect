@@ -8,6 +8,36 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Prohibited content patterns for content moderation
+const PROHIBITED_PATTERNS = {
+  adult_content: ['escort', 'adult entertainment', 'erotic', 'sugar daddy', 'massage parlor', 'sensual massage', 'happy ending', 'companionship services', 'adult services'],
+  illegal_substances: ['weed delivery', 'marijuana', 'cannabis delivery', 'drug', 'cocaine', 'meth', 'pills without prescription', 'buy prescription', 'xanax', 'adderall'],
+  weapons: ['gun', 'firearm', 'ammunition', 'explosive', 'weapon sale', 'AR-15', 'handgun', 'bullets'],
+  medical: ['surgery', 'medical procedure', 'diagnosis', 'botox injection', 'prescription medication', 'medical treatment', 'IV therapy'],
+  financial_scams: ['get rich quick', 'investment advice', 'crypto trading signals', 'MLM', 'pyramid scheme', 'guaranteed returns'],
+  gambling: ['betting service', 'casino', 'poker games', 'lottery', 'sports betting', 'online gambling'],
+  counterfeit: ['fake ID', 'replica', 'knockoff designer', 'counterfeit', 'fake documents', 'forged']
+};
+
+function checkProhibitedContent(text: string): { matched: string[], categories: string[] } {
+  const matched: string[] = [];
+  const categories: string[] = [];
+  const lowerText = text.toLowerCase();
+  
+  for (const [category, patterns] of Object.entries(PROHIBITED_PATTERNS)) {
+    for (const pattern of patterns) {
+      if (lowerText.includes(pattern.toLowerCase())) {
+        matched.push(pattern);
+        if (!categories.includes(category)) {
+          categories.push(category);
+        }
+      }
+    }
+  }
+  
+  return { matched, categories };
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -32,6 +62,32 @@ serve(async (req) => {
 
     console.log('[ANALYZE-REQUEST] Using OpenAI GPT-5 Mini');
 
+    // Step 1: Check for prohibited keywords
+    const keywordCheck = checkProhibitedContent(prompt);
+    console.log('[ANALYZE-REQUEST] Keyword check:', keywordCheck);
+
+    // Step 2: OpenAI Moderation API check
+    let moderationResult: any = null;
+    try {
+      const moderationResponse = await fetch('https://api.openai.com/v1/moderations', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ input: prompt }),
+      });
+
+      if (moderationResponse.ok) {
+        const moderationData = await moderationResponse.json();
+        moderationResult = moderationData.results[0];
+        console.log('[ANALYZE-REQUEST] OpenAI moderation:', moderationResult);
+      }
+    } catch (error) {
+      console.error('[ANALYZE-REQUEST] Moderation API error:', error);
+    }
+
+    // Step 3: Main AI analysis with moderation context
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -43,7 +99,7 @@ serve(async (req) => {
         messages: [
           { 
             role: 'system', 
-            content: 'You are an expert assistant that analyzes user service/product requests and extracts structured information. If images are provided, analyze them to better understand the request. Be comprehensive and professional in your parsing. IMPORTANT: You are also a pricing expert - analyze the service/product request and provide realistic market-rate budget suggestions based on: service complexity, location-based pricing, typical labor/material costs, and current market rates. Be realistic but fair to both requesters and providers. Consider factors like urgency, specialized skills, materials, and regional pricing differences.' 
+            content: 'You are an expert assistant that analyzes user service/product requests and extracts structured information. If images are provided, analyze them to better understand the request. Be comprehensive and professional in your parsing. IMPORTANT: You are also a pricing expert - analyze the service/product request and provide realistic market-rate budget suggestions based on: service complexity, location-based pricing, typical labor/material costs, and current market rates. Be realistic but fair to both requesters and providers. Consider factors like urgency, specialized skills, materials, and regional pricing differences.\n\nCRITICAL CONTENT MODERATION: You must also evaluate if the request violates platform policies. Prohibited content includes: adult/escort services, illegal substances/drugs, weapons/firearms, unlicensed medical services, gambling, counterfeit goods, financial scams, or anything illegal. Analyze the INTENT behind the request, not just keywords. Rate risk_level as: "high" (clear violation, auto-reject), "medium" (suspicious/unclear, needs review), "low" (borderline/minor concerns), "none" (legitimate request).' 
           },
           { 
             role: 'user', 
@@ -124,9 +180,34 @@ serve(async (req) => {
                     type: 'string',
                     enum: ['low', 'medium', 'high'],
                     description: 'Confidence in the suggested budget range. Use "high" for common services with well-known pricing, "medium" for less common services, "low" for highly variable or unclear requests.'
+                  },
+                  moderation_flags: {
+                    type: 'object',
+                    description: 'Content moderation assessment',
+                    properties: {
+                      is_safe: {
+                        type: 'boolean',
+                        description: 'Whether the request is safe and policy-compliant'
+                      },
+                      flagged_categories: {
+                        type: 'array',
+                        items: { type: 'string' },
+                        description: 'Array of policy categories violated (e.g., "adult_content", "illegal_substances")'
+                      },
+                      risk_level: {
+                        type: 'string',
+                        enum: ['none', 'low', 'medium', 'high'],
+                        description: 'Risk assessment: none (safe), low (minor concern), medium (needs review), high (clear violation)'
+                      },
+                      reason: {
+                        type: 'string',
+                        description: 'Explanation of why it was flagged or deemed safe'
+                      }
+                    },
+                    required: ['is_safe', 'flagged_categories', 'risk_level', 'reason']
                   }
                 },
-                required: ['title', 'description', 'request_type', 'category', 'tags', 'confidence']
+                required: ['title', 'description', 'request_type', 'category', 'tags', 'confidence', 'moderation_flags']
               }
             }
           }
@@ -162,7 +243,37 @@ serve(async (req) => {
     }
 
     const extractedData = JSON.parse(toolCall.function.arguments);
-    console.log('[ANALYZE-REQUEST] Extracted data:', extractedData);
+    
+    // Override risk level if OpenAI moderation or keyword checks found issues
+    if (moderationResult?.flagged || keywordCheck.matched.length >= 3) {
+      extractedData.moderation_flags = extractedData.moderation_flags || {};
+      extractedData.moderation_flags.risk_level = 'high';
+      extractedData.moderation_flags.is_safe = false;
+      if (moderationResult?.flagged) {
+        const flaggedCategories = Object.entries(moderationResult.categories)
+          .filter(([_, flagged]) => flagged)
+          .map(([category]) => category);
+        extractedData.moderation_flags.flagged_categories = [
+          ...new Set([...extractedData.moderation_flags.flagged_categories || [], ...flaggedCategories])
+        ];
+      }
+      if (keywordCheck.matched.length > 0) {
+        extractedData.moderation_flags.flagged_categories = [
+          ...new Set([...extractedData.moderation_flags.flagged_categories || [], ...keywordCheck.categories])
+        ];
+        extractedData.moderation_flags.reason = `Prohibited content detected: ${keywordCheck.matched.join(', ')}`;
+      }
+    } else if (keywordCheck.matched.length >= 1) {
+      // Single keyword match = medium risk
+      extractedData.moderation_flags = extractedData.moderation_flags || {};
+      if (extractedData.moderation_flags.risk_level === 'none') {
+        extractedData.moderation_flags.risk_level = 'medium';
+        extractedData.moderation_flags.flagged_categories = keywordCheck.categories;
+        extractedData.moderation_flags.reason = `Potential policy violation detected: ${keywordCheck.matched.join(', ')}. Needs manual review.`;
+      }
+    }
+    
+    console.log('[ANALYZE-REQUEST] Final extracted data with moderation:', extractedData);
 
     return new Response(JSON.stringify(extractedData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -876,11 +876,16 @@ export type Database = {
           created_at: string
           description: string
           expires_at: string | null
+          flagged_reason: string | null
           id: string
           images: string[] | null
           latitude: number | null
           location: string | null
           longitude: number | null
+          moderated_at: string | null
+          moderated_by: string | null
+          moderation_notes: string | null
+          moderation_status: string | null
           request_type: Database["public"]["Enums"]["request_type"]
           selected_proposal_id: string | null
           status: Database["public"]["Enums"]["request_status"]
@@ -896,11 +901,16 @@ export type Database = {
           created_at?: string
           description: string
           expires_at?: string | null
+          flagged_reason?: string | null
           id?: string
           images?: string[] | null
           latitude?: number | null
           location?: string | null
           longitude?: number | null
+          moderated_at?: string | null
+          moderated_by?: string | null
+          moderation_notes?: string | null
+          moderation_status?: string | null
           request_type: Database["public"]["Enums"]["request_type"]
           selected_proposal_id?: string | null
           status?: Database["public"]["Enums"]["request_status"]
@@ -916,11 +926,16 @@ export type Database = {
           created_at?: string
           description?: string
           expires_at?: string | null
+          flagged_reason?: string | null
           id?: string
           images?: string[] | null
           latitude?: number | null
           location?: string | null
           longitude?: number | null
+          moderated_at?: string | null
+          moderated_by?: string | null
+          moderation_notes?: string | null
+          moderation_status?: string | null
           request_type?: Database["public"]["Enums"]["request_type"]
           selected_proposal_id?: string | null
           status?: Database["public"]["Enums"]["request_status"]
@@ -930,6 +945,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "requests_moderated_by_fkey"
+            columns: ["moderated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "requests_selected_proposal_id_fkey"
             columns: ["selected_proposal_id"]

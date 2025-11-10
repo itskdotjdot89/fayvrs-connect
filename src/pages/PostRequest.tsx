@@ -26,6 +26,12 @@ type RequestData = {
   suggested_budget_max?: number;
   budget_reasoning?: string;
   budget_confidence?: 'low' | 'medium' | 'high';
+  moderation_flags?: {
+    is_safe: boolean;
+    flagged_categories: string[];
+    risk_level: 'none' | 'low' | 'medium' | 'high';
+    reason: string;
+  };
 };
 export default function PostRequest() {
   const navigate = useNavigate();
@@ -197,6 +203,29 @@ export default function PostRequest() {
         }
       }
       
+      // Check moderation flags
+      const moderationFlags = data.moderation_flags;
+      console.log('Moderation flags:', moderationFlags);
+      
+      // Handle high-risk content - auto-reject
+      if (moderationFlags?.risk_level === 'high') {
+        toast({
+          title: "Content Policy Violation",
+          description: moderationFlags.reason || "This request violates our content policies and cannot be posted.",
+          variant: "destructive"
+        });
+        setIsAnalyzing(false);
+        return;
+      }
+
+      // Show info for medium-risk content
+      if (moderationFlags?.risk_level === 'medium') {
+        toast({
+          title: "Under Review",
+          description: "Your request will be reviewed by our team within 24 hours before appearing in the feed.",
+        });
+      }
+      
       setParsedData({
         title: data.title,
         description: data.description,
@@ -210,7 +239,8 @@ export default function PostRequest() {
         suggested_budget_min: data.suggested_budget_min,
         suggested_budget_max: data.suggested_budget_max,
         budget_reasoning: data.budget_reasoning,
-        budget_confidence: data.budget_confidence
+        budget_confidence: data.budget_confidence,
+        moderation_flags: data.moderation_flags
       });
       setStep(2);
     } catch (error) {
@@ -283,7 +313,33 @@ export default function PostRequest() {
         }
       }
 
-      // Step 3: Insert the request
+      // Step 3: Determine moderation status based on risk level
+      let moderationStatus = 'approved';
+      let flaggedReason = null;
+      
+      if (parsedData.moderation_flags) {
+        const { risk_level, reason } = parsedData.moderation_flags;
+        
+        if (risk_level === 'high') {
+          // This shouldn't happen as we block at analysis stage, but just in case
+          toast({
+            title: "Content Policy Violation",
+            description: reason || "This request cannot be posted.",
+            variant: "destructive"
+          });
+          setIsSubmitting(false);
+          return;
+        } else if (risk_level === 'medium') {
+          moderationStatus = 'pending';
+          flaggedReason = reason;
+        } else if (risk_level === 'low') {
+          moderationStatus = 'flagged';
+          flaggedReason = reason;
+        }
+        // 'none' = 'approved' (default)
+      }
+
+      // Step 4: Insert the request with moderation status
       const {
         data: newRequest,
         error: insertError
@@ -300,11 +356,23 @@ export default function PostRequest() {
         budget_max: parsedData.budget_max,
         tags: parsedData.tags,
         status: 'open',
-        images: imageUrls
+        images: imageUrls,
+        moderation_status: moderationStatus,
+        flagged_reason: flaggedReason
       }).select().single();
       if (insertError) throw insertError;
 
-      // Step 4: Match providers if we have coordinates
+      // Step 5: Handle post-submission based on moderation status
+      if (moderationStatus === 'pending') {
+        toast({
+          title: "Request Submitted for Review",
+          description: "Your request is being reviewed by our team. You'll be notified within 24 hours."
+        });
+        navigate("/requester-dashboard");
+        return;
+      }
+
+      // Step 6: Match providers if we have coordinates and request is approved/flagged
       if (latitude && longitude && newRequest) {
         const {
           data: matchData

@@ -28,6 +28,7 @@ import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import ReferralLanding from "./pages/ReferralLanding";
 import ReferralDashboard from "./pages/ReferralDashboard";
+import ModerationQueue from "./pages/admin/ModerationQueue";
 
 // Production Onboarding
 import Onboarding from "./pages/Onboarding";
@@ -79,6 +80,11 @@ const AppContent = () => {
             <Route path="/admin/kyc-review" element={
               <ProtectedRoute requiredRole="admin">
                 <KYCReview />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/moderation-queue" element={
+              <ProtectedRoute requiredRole="admin">
+                <ModerationQueue />
               </ProtectedRoute>
             } />
               

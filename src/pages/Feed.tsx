@@ -112,10 +112,11 @@ export default function Feed() {
         budget_max,
         status,
         created_at,
-        profiles:user_id (
+        profiles!requests_user_id_fkey (
           full_name
         )
       `)
+      .in('moderation_status', ['approved', 'flagged'])
       .eq('status', 'open')
       .order('created_at', { ascending: false });
 
