@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface ProfileMenuProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  profile: { avatar_url: string; full_name: string } | null | undefined;
+  profile: { avatar_url: string; full_name: string; username?: string | null } | null | undefined;
 }
 
 export const ProfileMenu = ({ open, onOpenChange, profile }: ProfileMenuProps) => {
@@ -53,7 +53,11 @@ export const ProfileMenu = ({ open, onOpenChange, profile }: ProfileMenuProps) =
       <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl">
         <SheetHeader className="text-left mb-6">
           <SheetTitle className="sr-only">Profile Menu</SheetTitle>
-          <div className="flex items-center gap-4">
+          <Link 
+            to={profile?.username ? `/profile/${profile.username}` : '#'} 
+            onClick={handleLinkClick}
+            className="flex items-center gap-4 hover:opacity-80 transition-opacity"
+          >
             <Avatar className="w-16 h-16 ring-2 ring-primary/20">
               <AvatarImage src={profile?.avatar_url} />
               <AvatarFallback className="bg-primary text-white text-xl">
@@ -62,7 +66,12 @@ export const ProfileMenu = ({ open, onOpenChange, profile }: ProfileMenuProps) =
             </Avatar>
             <div>
               <h2 className="text-xl font-bold">{profile?.full_name || "User"}</h2>
-              <p className="text-sm text-muted-foreground">{user?.email}</p>
+              {profile?.username && (
+                <p className="text-sm text-muted-foreground">@{profile.username}</p>
+              )}
+              {!profile?.username && (
+                <p className="text-sm text-muted-foreground">{user?.email}</p>
+              )}
               <Badge className="mt-1 text-xs" variant="secondary">
                 {activeRole === 'provider' ? (
                   <><Briefcase className="w-3 h-3 mr-1" /> Provider</>
@@ -71,7 +80,7 @@ export const ProfileMenu = ({ open, onOpenChange, profile }: ProfileMenuProps) =
                 )}
               </Badge>
             </div>
-          </div>
+          </Link>
         </SheetHeader>
 
         <div className="space-y-4">

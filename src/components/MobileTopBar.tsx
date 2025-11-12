@@ -20,7 +20,7 @@ export const MobileTopBar = () => {
       if (!user?.id) return null;
       const { data, error } = await supabase
         .from('profiles')
-        .select('avatar_url, full_name')
+        .select('avatar_url, full_name, username')
         .eq('id', user.id)
         .single();
       

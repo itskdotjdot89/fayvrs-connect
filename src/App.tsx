@@ -29,6 +29,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import ReferralLanding from "./pages/ReferralLanding";
 import ReferralDashboard from "./pages/ReferralDashboard";
 import ModerationQueue from "./pages/admin/ModerationQueue";
+import PublicProfile from "./pages/PublicProfile";
 
 // Production Onboarding
 import Onboarding from "./pages/Onboarding";
@@ -77,6 +78,7 @@ const AppContent = () => {
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/r/:code" element={<ReferralLanding />} />
             <Route path="/referrals" element={<ProtectedRoute><ReferralDashboard /></ProtectedRoute>} />
+            <Route path="/profile/:username" element={<PublicProfile />} />
             <Route path="/admin/kyc-review" element={
               <ProtectedRoute requiredRole="admin">
                 <KYCReview />

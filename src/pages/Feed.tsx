@@ -27,6 +27,7 @@ interface Request {
   status: string;
   created_at: string;
   profiles: {
+    username: string | null;
     full_name: string | null;
   };
 }
@@ -113,6 +114,7 @@ export default function Feed() {
         status,
         created_at,
         profiles!requests_user_id_fkey (
+          username,
           full_name
         )
       `)
@@ -374,7 +376,7 @@ export default function Feed() {
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <div className="flex items-center gap-1">
                             <MessageSquare className="h-4 w-4" />
-                            <span>Posted by {request.profiles?.full_name || "User"}</span>
+                            <span>Posted by @{request.profiles?.username || request.profiles?.full_name || "User"}</span>
                           </div>
                         </div>
                       </div>

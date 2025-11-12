@@ -24,7 +24,7 @@ export default function RequestDetails() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('requests')
-        .select('*, profiles(id, full_name, avatar_url, location, bio, is_verified)')
+        .select('*, profiles(id, username, full_name, avatar_url, location, bio, is_verified)')
         .eq('id', id)
         .single();
       
@@ -40,7 +40,7 @@ export default function RequestDetails() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('proposals')
-        .select('*, profiles(id, full_name, avatar_url, location, bio, is_verified)')
+        .select('*, profiles(id, username, full_name, avatar_url, location, bio, is_verified)')
         .eq('request_id', id)
         .order('price', { ascending: true });
       
@@ -217,7 +217,7 @@ export default function RequestDetails() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <h4 className="font-semibold text-foreground text-sm">
-                        {proposal.profiles?.full_name || 'Provider'}
+                        @{proposal.profiles?.username || proposal.profiles?.full_name || 'Provider'}
                       </h4>
                       {proposal.profiles?.is_verified && (
                         <Badge variant="default" className="text-xs px-2 py-0 rounded-full bg-verified">
