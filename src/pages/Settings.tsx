@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Loader2, User, Bell, Mail, MessageSquare } from "lucide-react";
+import { Upload, Loader2, User, Bell, Mail, MessageSquare, AtSign } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -18,6 +18,8 @@ export default function Settings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
+  const [username, setUsername] = useState("");
+  const [usernameError, setUsernameError] = useState("");
 
   // Fetch notification preferences
   const { data: preferences } = useQuery({
@@ -105,6 +107,70 @@ export default function Settings() {
     },
     enabled: !!user?.id,
   });
+
+  // Update local username when profile loads
+  useEffect(() => {
+    if (profile?.username) {
+      setUsername(profile.username);
+    }
+  }, [profile?.username]);
+
+  // Update username mutation
+  const updateUsernameMutation = useMutation({
+    mutationFn: async (newUsername: string) => {
+      if (!user?.id) throw new Error('Not authenticated');
+
+      // Validate username format
+      const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+      if (!usernameRegex.test(newUsername)) {
+        throw new Error('Username must be 3-20 characters and contain only letters, numbers, and underscores');
+      }
+
+      // Check if username is available (case-insensitive)
+      const { data: existingUser } = await supabase
+        .from('profiles')
+        .select('id')
+        .ilike('username', newUsername)
+        .neq('id', user.id)
+        .maybeSingle();
+
+      if (existingUser) {
+        throw new Error('Username is already taken');
+      }
+
+      // Update username
+      const { error } = await supabase
+        .from('profiles')
+        .update({ username: newUsername })
+        .eq('id', user.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
+      setUsernameError("");
+      toast({
+        title: "Success",
+        description: "Username updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      setUsernameError(error.message);
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleUsernameSubmit = () => {
+    if (!username.trim()) {
+      setUsernameError("Username cannot be empty");
+      return;
+    }
+    updateUsernameMutation.mutate(username.trim());
+  };
 
   // Upload avatar mutation
   const uploadAvatarMutation = useMutation({
@@ -202,6 +268,57 @@ export default function Settings() {
       <div className="space-y-6">
         {/* Verification Status Card */}
         <VerificationStatus />
+
+        {/* Username Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Username</CardTitle>
+            <CardDescription>
+              Choose a unique username for your profile
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center">
+                <AtSign className="w-5 h-5 text-primary" />
+              </div>
+              <div className="flex-1 space-y-2">
+                <Label htmlFor="username">Username</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="username"
+                    value={username}
+                    onChange={(e) => {
+                      setUsername(e.target.value);
+                      setUsernameError("");
+                    }}
+                    placeholder="Enter username"
+                    className={usernameError ? "border-destructive" : ""}
+                  />
+                  <Button 
+                    onClick={handleUsernameSubmit}
+                    disabled={updateUsernameMutation.isPending || !username.trim() || username === profile?.username}
+                  >
+                    {updateUsernameMutation.isPending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      "Save"
+                    )}
+                  </Button>
+                </div>
+                {usernameError && (
+                  <p className="text-sm text-destructive">{usernameError}</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  3-20 characters. Letters, numbers, and underscores only.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>

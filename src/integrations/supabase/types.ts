@@ -322,6 +322,7 @@ export type Database = {
           phone: string | null
           service_radius: number | null
           updated_at: string
+          username: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -343,6 +344,7 @@ export type Database = {
           phone?: string | null
           service_radius?: number | null
           updated_at?: string
+          username?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -364,6 +366,7 @@ export type Database = {
           phone?: string | null
           service_radius?: number | null
           updated_at?: string
+          username?: string | null
         }
         Relationships: []
       }
@@ -1228,6 +1231,10 @@ export type Database = {
       calculate_distance_miles: {
         Args: { lat1: number; lat2: number; lng1: number; lng2: number }
         Returns: number
+      }
+      check_username_available: {
+        Args: { username_to_check: string }
+        Returns: boolean
       }
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
       delete_old_call_signals: { Args: never; Returns: undefined }
