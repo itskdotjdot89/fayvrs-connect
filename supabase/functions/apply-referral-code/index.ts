@@ -113,6 +113,41 @@ serve(async (req) => {
       message: "Someone just signed up using your referral link!",
     });
 
+    // Notify founder
+    try {
+      const { data: referrerProfile } = await supabaseClient
+        .from("profiles")
+        .select("email, full_name")
+        .eq("id", codeData.user_id)
+        .single();
+
+      const { data: referredProfile } = await supabaseClient
+        .from("profiles")
+        .select("email, full_name")
+        .eq("id", user.id)
+        .single();
+
+      await supabaseClient.functions.invoke("send-founder-notification", {
+        body: {
+          event_type: "Referral Signup",
+          urgency: "info",
+          title: "New Referral Signup",
+          message: `A new user has signed up using a referral code.`,
+          user_id: user.id,
+          user_email: referredProfile?.email,
+          related_id: codeData.id,
+          metadata: {
+            "Referrer": referrerProfile?.full_name || "Unknown",
+            "Referrer Email": referrerProfile?.email || "Unknown",
+            "New User": referredProfile?.full_name || "Unknown",
+            "Referral Code": referral_code
+          }
+        }
+      });
+    } catch (notifError) {
+      console.error("Failed to send founder notification:", notifError);
+    }
+
     return new Response(
       JSON.stringify({
         success: true,

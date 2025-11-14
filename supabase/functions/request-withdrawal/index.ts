@@ -81,6 +81,35 @@ serve(async (req) => {
       throw withdrawalError;
     }
 
+    // Notify founder of withdrawal request
+    try {
+      const { data: referrerProfile } = await supabaseClient
+        .from("profiles")
+        .select("email, full_name")
+        .eq("id", user.id)
+        .single();
+
+      await supabaseClient.functions.invoke("send-founder-notification", {
+        body: {
+          event_type: "Withdrawal Request Submitted",
+          urgency: "urgent",
+          title: "New Withdrawal Request",
+          message: `A user has requested to withdraw $${amount.toFixed(2)} via ${payout_method}.`,
+          user_id: user.id,
+          user_email: referrerProfile?.email,
+          related_id: withdrawal.id,
+          metadata: {
+            "Amount": `$${amount.toFixed(2)}`,
+            "Payout Method": payout_method,
+            "Available Balance": `$${earnings.available_balance}`,
+            "User Name": referrerProfile?.full_name || "Unknown"
+          }
+        }
+      });
+    } catch (notifError) {
+      console.error("Failed to send founder notification:", notifError);
+    }
+
     // Process based on payout method
     let transferId = null;
     let newStatus = "processing";

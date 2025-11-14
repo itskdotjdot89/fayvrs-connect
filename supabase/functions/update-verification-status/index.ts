@@ -141,6 +141,24 @@ serve(async (req) => {
             request_id: verification_id
           }
         });
+
+        // Notify founder
+        await supabaseClient.functions.invoke('send-founder-notification', {
+          body: {
+            event_type: `Identity Verification ${status === 'approved' ? 'Approved' : 'Rejected'}`,
+            urgency: 'info',
+            title: `Identity Verification ${status === 'approved' ? 'Approved' : 'Rejected'}`,
+            message: `A user's identity verification has been ${status}.`,
+            user_id: verification.user_id,
+            user_email: profile.email,
+            related_id: verification_id,
+            metadata: {
+              "User Name": profile.full_name || "Unknown",
+              "Status": status,
+              "Reviewer Notes": reviewer_notes || "None"
+            }
+          }
+        });
       } catch (emailError) {
         console.error('Error sending email notification:', emailError);
         // Don't fail the request if email fails
