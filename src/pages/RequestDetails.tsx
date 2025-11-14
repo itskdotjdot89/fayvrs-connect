@@ -10,6 +10,8 @@ import { MapPin, Clock, DollarSign, ArrowLeft, MessageCircle, Loader2 } from "lu
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { ProposalForm } from "@/components/ProposalForm";
+import { useProviderAccess } from "@/hooks/useProviderAccess";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function RequestDetails() {
   const { id } = useParams();
@@ -17,6 +19,7 @@ export default function RequestDetails() {
   const { user, activeRole } = useAuth();
   const queryClient = useQueryClient();
   const [showProposalForm, setShowProposalForm] = useState(false);
+  const { hasProviderAccess, missingRequirements } = useProviderAccess();
 
   // Fetch request details (only public profile fields)
   const { data: request, isLoading: loadingRequest } = useQuery({
@@ -275,13 +278,43 @@ export default function RequestDetails() {
 
         {/* Proposal Form for Providers */}
         {isProvider && request.status === 'open' && !hasUserProposal && (
-          <ProposalForm 
-            requestId={request.id} 
-            requestTitle={request.title}
-            requestDescription={request.description}
-            requestBudget={{ min: request.budget_min, max: request.budget_max }}
-            onSuccess={() => setShowProposalForm(false)}
-          />
+          hasProviderAccess ? (
+            <ProposalForm 
+              requestId={request.id} 
+              requestTitle={request.title}
+              requestDescription={request.description}
+              requestBudget={{ min: request.budget_min, max: request.budget_max }}
+              onSuccess={() => setShowProposalForm(false)}
+            />
+          ) : (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>
+                    <Button 
+                      className="w-full" 
+                      disabled
+                    >
+                      Submit Proposal
+                    </Button>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="font-semibold mb-1">
+                    {missingRequirements.needsVerification && "Verification required"}
+                    {missingRequirements.needsVerification && missingRequirements.needsSubscription && " & "}
+                    {!missingRequirements.needsVerification && missingRequirements.needsSubscription && "Subscription required"}
+                  </p>
+                  <p className="text-xs">
+                    {missingRequirements.needsVerification && "Complete identity verification "}
+                    {missingRequirements.needsVerification && missingRequirements.needsSubscription && "and subscribe "}
+                    {!missingRequirements.needsVerification && missingRequirements.needsSubscription && "Subscribe "}
+                    to respond to requests
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )
         )}
         
         {isProvider && hasUserProposal && (

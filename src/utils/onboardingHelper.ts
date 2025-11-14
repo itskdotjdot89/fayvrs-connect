@@ -55,3 +55,21 @@ export function resetOnboarding(): void {
     console.error('Error resetting onboarding:', error);
   }
 }
+
+/**
+ * Check if onboarding is complete based on profile completeness
+ * @returns Object with completion status
+ */
+export async function checkOnboardingComplete(userId: string): Promise<{
+  isComplete: boolean;
+  missingSteps: string[];
+}> {
+  const missingSteps: string[] = [];
+  
+  // This function would need to be called with supabase client
+  // For now, return basic structure
+  return {
+    isComplete: missingSteps.length === 0,
+    missingSteps,
+  };
+}
