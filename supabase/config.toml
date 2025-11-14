@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.validate-referral-code]
 verify_jwt = false
+
+[functions.send-founder-notification]
+verify_jwt = false

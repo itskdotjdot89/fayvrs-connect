@@ -1475,6 +1475,19 @@ export type Database = {
         Returns: boolean
       }
       longtransactionsenabled: { Args: never; Returns: boolean }
+      notify_founder: {
+        Args: {
+          p_event_type: string
+          p_message: string
+          p_metadata?: Json
+          p_related_id?: string
+          p_title: string
+          p_urgency: string
+          p_user_email?: string
+          p_user_id?: string
+        }
+        Returns: undefined
+      }
       populate_geometry_columns:
         | { Args: { use_typmod?: boolean }; Returns: string }
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }

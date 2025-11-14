@@ -83,6 +83,41 @@ serve(async (req) => {
               title: "Referral Activated! 💰",
               message: "Your referral just activated their subscription. You'll earn 20% commission for 12 months!",
             });
+
+            // Notify founder
+            try {
+              const { data: referrerProfile } = await supabaseClient
+                .from("profiles")
+                .select("email, full_name")
+                .eq("id", relationship.referrer_id)
+                .single();
+
+              const { data: referredProfile } = await supabaseClient
+                .from("profiles")
+                .select("email")
+                .eq("id", relationship.referred_user_id)
+                .single();
+
+              await supabaseClient.functions.invoke("send-founder-notification", {
+                body: {
+                  event_type: "Referral Activated",
+                  urgency: "info",
+                  title: "Referral Subscription Activated",
+                  message: `A referral subscription has been activated. Referrer will earn 20% commission for 12 months.`,
+                  user_id: relationship.referrer_id,
+                  user_email: referrerProfile?.email,
+                  related_id: relationship.id,
+                  metadata: {
+                    "Referrer": referrerProfile?.full_name || "Unknown",
+                    "Referred User": referredProfile?.email || "Unknown",
+                    "Subscription ID": subscription.id,
+                    "Commission Period": "12 months"
+                  }
+                }
+              });
+            } catch (notifError) {
+              console.error("Failed to send founder notification:", notifError);
+            }
           }
         }
         break;
@@ -180,6 +215,36 @@ serve(async (req) => {
           message: `You earned $${commissionAmount.toFixed(2)} from your referral (Payment ${paymentNumber}/12). Available for withdrawal in 30 days.`,
         });
 
+        // Notify founder
+        try {
+          const { data: referrerProfile } = await supabaseClient
+            .from("profiles")
+            .select("email, full_name")
+            .eq("id", relationship.referrer_id)
+            .single();
+
+          await supabaseClient.functions.invoke("send-founder-notification", {
+            body: {
+              event_type: "Commission Earned",
+              urgency: "urgent",
+              title: "Commission Earned",
+              message: `A referrer has earned $${commissionAmount.toFixed(2)} commission (Payment ${paymentNumber} of 12).`,
+              user_id: relationship.referrer_id,
+              user_email: referrerProfile?.email,
+              related_id: relationship.id,
+              metadata: {
+                "Referrer": referrerProfile?.full_name || "Unknown",
+                "Commission Amount": `$${commissionAmount.toFixed(2)}`,
+                "Subscription Amount": `$${invoiceAmount.toFixed(2)}`,
+                "Payment Number": `${paymentNumber} of 12`,
+                "Available In": "30 days"
+              }
+            }
+          });
+        } catch (notifError) {
+          console.error("Failed to send founder notification:", notifError);
+        }
+
         break;
       }
 
@@ -233,6 +298,34 @@ serve(async (req) => {
           title: "Referral Subscription Cancelled",
           message: "One of your referrals cancelled their subscription. Future commissions from this referral have been cancelled.",
         });
+
+        // Notify founder
+        try {
+          const { data: referrerProfile } = await supabaseClient
+            .from("profiles")
+            .select("email, full_name")
+            .eq("id", relationship.referrer_id)
+            .single();
+
+          await supabaseClient.functions.invoke("send-founder-notification", {
+            body: {
+              event_type: "Referral Subscription Cancelled",
+              urgency: "info",
+              title: "Referral Subscription Cancelled",
+              message: `A referral subscription has been cancelled.`,
+              user_id: relationship.referrer_id,
+              user_email: referrerProfile?.email,
+              related_id: relationship.id,
+              metadata: {
+                "Referrer": referrerProfile?.full_name || "Unknown",
+                "Subscription ID": subscription.id,
+                "Previous Status": relationship.status
+              }
+            }
+          });
+        } catch (notifError) {
+          console.error("Failed to send founder notification:", notifError);
+        }
 
         break;
       }
