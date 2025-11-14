@@ -5,15 +5,35 @@ import { Button } from "@/components/ui/button";
 import { Shield, CheckCircle, Upload, Camera, FileCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { WelcomeModal } from "@/components/WelcomeModal";
+import { useQuery } from "@tanstack/react-query";
 export default function IdentityVerification() {
   const [uploading, setUploading] = useState(false);
   const [idDocumentFile, setIdDocumentFile] = useState<File | null>(null);
   const [selfieFile, setSelfieFile] = useState<File | null>(null);
   const [idPreview, setIdPreview] = useState<string | null>(null);
   const [selfiePreview, setSelfiePreview] = useState<string | null>(null);
-  const { user } = useAuth();
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [isSkipped, setIsSkipped] = useState(false);
+  const { user, activeRole } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Fetch user role
+  const { data: userRole } = useQuery({
+    queryKey: ['user-role', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .limit(1)
+        .single();
+      return data?.role as 'requester' | 'provider' || 'requester';
+    },
+    enabled: !!user?.id,
+  });
 const validateFile = (file: File, type: 'id' | 'selfie'): boolean => {
   // Max 5MB
   if (file.size > 5 * 1024 * 1024) {
@@ -130,18 +150,8 @@ const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'id' | '
         description: "Your verification has been submitted. We'll review it within 24 hours."
       });
 
-      // Check user role and redirect accordingly
-      const { data: userRole } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .single();
-      
-      if (userRole?.role === 'provider') {
-        navigate('/provider-checkout');
-      } else {
-        navigate('/feed');
-      }
+      setIsSkipped(false);
+      setShowWelcomeModal(true);
     } catch (error: any) {
       console.error('Verification error:', error);
       toast({
@@ -154,17 +164,8 @@ const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'id' | '
     }
   };
   const handleSkip = async () => {
-    if (!user) return;
-
-    // Check user role and redirect accordingly
-    const {
-      data: userRole
-    } = await supabase.from('user_roles').select('role').eq('user_id', user.id).single();
-    if (userRole?.role === 'provider') {
-      navigate('/provider-checkout');
-    } else {
-      navigate('/feed');
-    }
+    setIsSkipped(true);
+    setShowWelcomeModal(true);
   };
   return <div className="min-h-screen bg-surface flex items-center justify-center p-6">
       <div className="w-full max-w-sm space-y-8">
@@ -267,5 +268,12 @@ const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'id' | '
           </button>
         </p>
       </div>
+
+      <WelcomeModal
+        open={showWelcomeModal}
+        onOpenChange={setShowWelcomeModal}
+        role={userRole || 'requester'}
+        isSkipped={isSkipped}
+      />
     </div>;
 }

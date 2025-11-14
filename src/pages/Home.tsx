@@ -4,8 +4,12 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle2, Shield, Clock, MessageSquare, MapPin, Sparkles } from "lucide-react";
 import heroImage from "@/assets/hero-marketplace.jpg";
+import { useAuth } from "@/contexts/AuthContext";
+import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 
 export default function Home() {
+  const { user } = useAuth();
+  
   // Demo feed data (obfuscated for guests)
   const demoRequests = [
     {
@@ -191,6 +195,13 @@ export default function Home() {
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
+            {/* Show onboarding checklist for logged in users */}
+            {user && (
+              <div className="mb-12">
+                <OnboardingChecklist />
+              </div>
+            )}
+            
             <h2 className="text-3xl md:text-4xl font-bold mb-12 text-center text-secondary">
               How It Works
             </h2>

@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Loader2, User, Bell, Mail, MessageSquare, AtSign } from "lucide-react";
+import { Upload, Loader2, User, Bell, Mail, MessageSquare, AtSign, CheckCircle2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -268,6 +268,62 @@ export default function Settings() {
       <div className="space-y-6">
         {/* Verification Status Card */}
         <VerificationStatus />
+
+        {/* Profile Completion Card */}
+        {profile && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Profile Completion</CardTitle>
+              <CardDescription>
+                Complete your profile to make the most of Fayvrs
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {(() => {
+                const completionItems = [
+                  { label: 'Username set', completed: !!profile.username },
+                  { label: 'Profile picture uploaded', completed: !!profile.avatar_url },
+                  { label: 'Bio added', completed: !!profile.bio },
+                  { label: 'Location set', completed: !!profile.location },
+                ];
+                
+                const completedCount = completionItems.filter(item => item.completed).length;
+                const percentage = Math.round((completedCount / completionItems.length) * 100);
+                
+                return (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">{percentage}% Complete</span>
+                      <span className="text-xs text-muted-foreground">
+                        {completedCount} of {completionItems.length} items
+                      </span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2">
+                      <div 
+                        className="bg-primary h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 mt-4">
+                      {completionItems.map((item, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          {item.completed ? (
+                            <CheckCircle2 className="h-4 w-4 text-primary" />
+                          ) : (
+                            <div className="h-4 w-4 rounded-full border-2 border-muted-foreground" />
+                          )}
+                          <span className={`text-sm ${item.completed ? 'text-muted-foreground' : 'font-medium'}`}>
+                            {item.label}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Username Card */}
         <Card>

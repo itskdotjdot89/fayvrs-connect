@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { User, Briefcase } from "lucide-react";
+import { User, Briefcase, CheckCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -21,6 +21,10 @@ export default function Auth() {
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [fullName, setFullName] = useState("");
+  const [username, setUsername] = useState("");
+  const [usernameError, setUsernameError] = useState("");
+  const [usernameChecking, setUsernameChecking] = useState(false);
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showPhoneAuth, setShowPhoneAuth] = useState(false);
   const [showOTPInput, setShowOTPInput] = useState(false);
@@ -85,14 +89,103 @@ export default function Auth() {
       }
     }
   }, [user, navigate, mode]);
+  // Username validation function
+  const checkUsernameAvailability = async (usernameValue: string) => {
+    if (!usernameValue) {
+      setUsernameError("");
+      setUsernameAvailable(null);
+      return;
+    }
+
+    // Format validation
+    const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+    if (!usernameRegex.test(usernameValue)) {
+      setUsernameError("Username must be 3-20 characters (letters, numbers, underscores only)");
+      setUsernameAvailable(false);
+      return;
+    }
+
+    setUsernameChecking(true);
+    setUsernameError("");
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('username', usernameValue.toLowerCase())
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        setUsernameError("Username is already taken");
+        setUsernameAvailable(false);
+      } else {
+        setUsernameAvailable(true);
+      }
+    } catch (error) {
+      console.error('Error checking username:', error);
+      setUsernameError("Error checking username availability");
+      setUsernameAvailable(false);
+    } finally {
+      setUsernameChecking(false);
+    }
+  };
+
+  // Debounce username check
+  useEffect(() => {
+    if (!isSignUp) return;
+    
+    const timer = setTimeout(() => {
+      if (username) {
+        checkUsernameAvailability(username);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [username, isSignUp]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (isSignUp) {
+      // Validate username for signup
+      if (!username) {
+        toast({
+          title: "Username required",
+          description: "Please enter a username",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!usernameAvailable) {
+        toast({
+          title: "Invalid username",
+          description: usernameError || "Please choose a valid username",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     setIsLoading(true);
     if (isSignUp) {
       const {
         error
       } = await signUp(email, password, fullName, role, phone, referralCode || undefined);
       if (!error) {
+        // Get the current session to access the new user
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          // Update profile with username
+          await supabase
+            .from('profiles')
+            .update({ username: username.toLowerCase() })
+            .eq('id', session.user.id);
+        }
+        
         // Clear referral code from localStorage after successful signup
         localStorage.removeItem('referral_code');
         localStorage.removeItem('referral_expires');
@@ -364,6 +457,48 @@ export default function Auth() {
                   <Input id="signup-phone" type="tel" placeholder="+1 (555) 123-4567" value={phone} onChange={e => setPhone(e.target.value)} required={isSignUp} />
                 </div>
               </>}
+
+              {isSignUp && (
+                <div className="space-y-2">
+                  <Label htmlFor="username">Username</Label>
+                  <div className="relative">
+                    <Input 
+                      id="username" 
+                      type="text" 
+                      placeholder="johndoe" 
+                      value={username} 
+                      onChange={e => setUsername(e.target.value.toLowerCase())} 
+                      required
+                      minLength={3}
+                      maxLength={20}
+                      pattern="[a-zA-Z0-9_]+"
+                      className={usernameError ? "border-destructive" : usernameAvailable ? "border-primary" : ""}
+                    />
+                    {usernameChecking && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    )}
+                    {!usernameChecking && usernameAvailable !== null && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        {usernameAvailable ? (
+                          <CheckCircle className="h-4 w-4 text-primary" />
+                        ) : (
+                          <span className="text-destructive text-lg">✕</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {usernameError && (
+                    <p className="text-xs text-destructive">{usernameError}</p>
+                  )}
+                  {!usernameError && username && (
+                    <p className="text-xs text-muted-foreground">
+                      3-20 characters, letters, numbers, and underscores only
+                    </p>
+                  )}
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
