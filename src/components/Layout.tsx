@@ -233,8 +233,8 @@ export const Layout = ({
               <h3 className="font-semibold mb-4">Support</h3>
               <ul className="space-y-2">
                 <li>
-                  <a href="mailto:support@fayvrs.com" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                    support@fayvrs.com
+                  <a href="mailto:contact@fayvrs.com" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                    contact@fayvrs.com
                   </a>
                 </li>
               </ul>
