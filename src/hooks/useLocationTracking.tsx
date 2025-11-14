@@ -2,14 +2,14 @@ import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
-export const useLocationTracking = () => {
+export const useLocationTracking = (enabled: boolean = true) => {
   const { user } = useAuth();
   const watchIdRef = useRef<number | null>(null);
   const updateIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastUpdateRef = useRef<number>(0);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !enabled) return;
 
     const updateLocation = async (position: GeolocationPosition) => {
       const now = Date.now();
@@ -105,5 +105,5 @@ export const useLocationTracking = () => {
         })
         .eq('id', user.id);
     };
-  }, [user]);
+  }, [user, enabled]);
 };

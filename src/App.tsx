@@ -3,53 +3,73 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { lazy, Suspense } from "react";
 import { Layout } from "./components/Layout";
 import { MobileLayout } from "./components/MobileLayout";
 import { useIsMobile } from "./hooks/use-mobile";
-import Home from "./pages/Home";
-import Auth from "./pages/Auth";
-import PostRequest from "./pages/PostRequest";
-import Feed from "./pages/Feed";
-import ProviderCheckout from "./pages/ProviderCheckout";
-import IdentityVerification from "./pages/IdentityVerification";
-import RequestDetails from "./pages/RequestDetails";
-import Messages from "./pages/Messages";
-import Conversations from "./pages/Conversations";
-import ProviderDashboard from "./pages/ProviderDashboard";
-import RequesterDashboard from "./pages/RequesterDashboard";
-import Portfolio from "./pages/Portfolio";
-import Settings from "./pages/Settings";
-import ProviderSettings from "./pages/ProviderSettings";
-import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { OnboardingWrapper } from "./components/OnboardingWrapper";
-import KYCReview from "./pages/admin/KYCReview";
-import TermsOfService from "./pages/TermsOfService";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import ReferralLanding from "./pages/ReferralLanding";
-import ReferralDashboard from "./pages/ReferralDashboard";
-import ModerationQueue from "./pages/admin/ModerationQueue";
-import PublicProfile from "./pages/PublicProfile";
+import { Loader2 } from "lucide-react";
 
-// Production Onboarding
-import Onboarding from "./pages/Onboarding";
+// Critical pages - loaded immediately
+import Home from "./pages/Home";
+import Auth from "./pages/Auth";
+import Feed from "./pages/Feed";
+import NotFound from "./pages/NotFound";
 
-// Fayvrs Mockup Screens
-import OnboardingMockup from "./pages/mockups/Onboarding";
-import DemoFeed from "./pages/mockups/DemoFeed";
-import SignUpLogin from "./pages/mockups/SignUpLogin";
-import IdentityVerificationMockup from "./pages/mockups/IdentityVerification";
-import AIRequestChat from "./pages/mockups/AIRequestChat";
-import RequestFeed from "./pages/mockups/RequestFeed";
-import RequestDetailsMockup from "./pages/mockups/RequestDetails";
-import MessagingMockup from "./pages/mockups/Messaging";
-import ProviderDashboardMockup from "./pages/mockups/ProviderDashboard";
-import PortfolioMockup from "./pages/mockups/Portfolio";
-import Billing from "./pages/mockups/Billing";
-import SettingsMockup from "./pages/mockups/Settings";
-import MockupIndex from "./pages/mockups/Index";
+// Lazy load non-critical pages
+const PostRequest = lazy(() => import("./pages/PostRequest"));
+const ProviderCheckout = lazy(() => import("./pages/ProviderCheckout"));
+const IdentityVerification = lazy(() => import("./pages/IdentityVerification"));
+const RequestDetails = lazy(() => import("./pages/RequestDetails"));
+const Messages = lazy(() => import("./pages/Messages"));
+const Conversations = lazy(() => import("./pages/Conversations"));
+const ProviderDashboard = lazy(() => import("./pages/ProviderDashboard"));
+const RequesterDashboard = lazy(() => import("./pages/RequesterDashboard"));
+const Portfolio = lazy(() => import("./pages/Portfolio"));
+const Settings = lazy(() => import("./pages/Settings"));
+const ProviderSettings = lazy(() => import("./pages/ProviderSettings"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const ReferralLanding = lazy(() => import("./pages/ReferralLanding"));
+const ReferralDashboard = lazy(() => import("./pages/ReferralDashboard"));
+const PublicProfile = lazy(() => import("./pages/PublicProfile"));
+const Onboarding = lazy(() => import("./pages/Onboarding"));
 
-const queryClient = new QueryClient();
+// Admin pages - lazy loaded
+const KYCReview = lazy(() => import("./pages/admin/KYCReview"));
+const ModerationQueue = lazy(() => import("./pages/admin/ModerationQueue"));
+
+// Mockup pages - lazy loaded
+const OnboardingMockup = lazy(() => import("./pages/mockups/Onboarding"));
+const DemoFeed = lazy(() => import("./pages/mockups/DemoFeed"));
+const SignUpLogin = lazy(() => import("./pages/mockups/SignUpLogin"));
+const IdentityVerificationMockup = lazy(() => import("./pages/mockups/IdentityVerification"));
+const AIRequestChat = lazy(() => import("./pages/mockups/AIRequestChat"));
+const RequestFeed = lazy(() => import("./pages/mockups/RequestFeed"));
+const RequestDetailsMockup = lazy(() => import("./pages/mockups/RequestDetails"));
+const MessagingMockup = lazy(() => import("./pages/mockups/Messaging"));
+const ProviderDashboardMockup = lazy(() => import("./pages/mockups/ProviderDashboard"));
+const PortfolioMockup = lazy(() => import("./pages/mockups/Portfolio"));
+const Billing = lazy(() => import("./pages/mockups/Billing"));
+const SettingsMockup = lazy(() => import("./pages/mockups/Settings"));
+const MockupIndex = lazy(() => import("./pages/mockups/Index"));
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+const LoadingFallback = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  </div>
+);
 
 const AppContent = () => {
   const isMobile = useIsMobile();
@@ -58,7 +78,8 @@ const AppContent = () => {
   return (
     <OnboardingWrapper>
       <LayoutComponent>
-        <Routes>
+        <Suspense fallback={<LoadingFallback />}>
+          <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/auth" element={<Auth />} />
@@ -90,24 +111,25 @@ const AppContent = () => {
               </ProtectedRoute>
             } />
               
-              {/* Fayvrs Mockups */}
-              <Route path="/mockups" element={<MockupIndex />} />
-              <Route path="/mockup/onboarding" element={<OnboardingMockup />} />
-              <Route path="/mockup/demo-feed" element={<DemoFeed />} />
-              <Route path="/mockup/signup" element={<SignUpLogin />} />
-              <Route path="/mockup/verification" element={<IdentityVerificationMockup />} />
-              <Route path="/mockup/ai-chat" element={<AIRequestChat />} />
-              <Route path="/mockup/request-feed" element={<RequestFeed />} />
-              <Route path="/mockup/request-details" element={<RequestDetailsMockup />} />
-              <Route path="/mockup/messaging" element={<MessagingMockup />} />
-              <Route path="/mockup/dashboard" element={<ProviderDashboardMockup />} />
-              <Route path="/mockup/portfolio" element={<PortfolioMockup />} />
-              <Route path="/mockup/billing" element={<Billing />} />
-              <Route path="/mockup/settings" element={<SettingsMockup />} />
+            {/* Fayvrs Mockups */}
+            <Route path="/mockups" element={<MockupIndex />} />
+            <Route path="/mockup/onboarding" element={<OnboardingMockup />} />
+            <Route path="/mockup/demo-feed" element={<DemoFeed />} />
+            <Route path="/mockup/signup" element={<SignUpLogin />} />
+            <Route path="/mockup/verification" element={<IdentityVerificationMockup />} />
+            <Route path="/mockup/ai-chat" element={<AIRequestChat />} />
+            <Route path="/mockup/request-feed" element={<RequestFeed />} />
+            <Route path="/mockup/request-details" element={<RequestDetailsMockup />} />
+            <Route path="/mockup/messaging" element={<MessagingMockup />} />
+            <Route path="/mockup/dashboard" element={<ProviderDashboardMockup />} />
+            <Route path="/mockup/portfolio" element={<PortfolioMockup />} />
+            <Route path="/mockup/billing" element={<Billing />} />
+            <Route path="/mockup/settings" element={<SettingsMockup />} />
               
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
       </LayoutComponent>
     </OnboardingWrapper>
   );
