@@ -7,11 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { Toaster } from "@/components/ui/toaster";
 import { Upload, Loader2, User, Bell, Mail, MessageSquare, AtSign, CheckCircle2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import VerificationStatus from "@/components/VerificationStatus";
+import { Link } from "react-router-dom";
 
 export default function Settings() {
   const { user } = useAuth();
@@ -516,7 +518,95 @@ export default function Settings() {
             </div>
           </CardContent>
         </Card>
+
+        {/* App & Legal Links */}
+        <Card>
+          <CardHeader>
+            <CardTitle>App & Legal</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Link to="/safety-center">
+              <Button variant="ghost" className="w-full justify-start">
+                Safety Center
+              </Button>
+            </Link>
+            <Link to="/subscription-details">
+              <Button variant="ghost" className="w-full justify-start">
+                Subscription Details
+              </Button>
+            </Link>
+            <Link to="/privacy-policy">
+              <Button variant="ghost" className="w-full justify-start">
+                Privacy Policy
+              </Button>
+            </Link>
+            <Link to="/terms-of-service">
+              <Button variant="ghost" className="w-full justify-start">
+                Terms of Service
+              </Button>
+            </Link>
+            <Link to="/community-guidelines">
+              <Button variant="ghost" className="w-full justify-start">
+                Community Guidelines
+              </Button>
+            </Link>
+            <Link to="/refund-policy">
+              <Button variant="ghost" className="w-full justify-start">
+                Refund Policy
+              </Button>
+            </Link>
+            <Link to="/app-store-readiness">
+              <Button variant="ghost" className="w-full justify-start">
+                App Store Readiness
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        {/* Account Deletion */}
+        <Card className="border-destructive/50">
+          <CardHeader>
+            <CardTitle className="text-destructive">Delete Account</CardTitle>
+            <CardDescription>
+              Permanently delete your account and all associated data. This action cannot be undone.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              variant="destructive"
+              className="w-full"
+              onClick={async () => {
+                if (confirm("Are you sure you want to delete your account? This action cannot be undone and will remove:\n\n• Your profile and personal information\n• All your messages\n• All your requests and proposals\n• Your subscription status\n• All other associated data\n\nType 'DELETE' in the next prompt to confirm.")) {
+                  const confirmation = prompt("Type 'DELETE' to confirm account deletion:");
+                  if (confirmation === 'DELETE') {
+                    try {
+                      // Call edge function to delete all user data
+                      const { error: deleteError } = await supabase.functions.invoke('delete-user-account', {
+                        body: { userId: user?.id }
+                      });
+
+                      if (deleteError) throw deleteError;
+
+                      // Sign out the user
+                      await supabase.auth.signOut();
+                      
+                      toast({ title: "Account deleted", description: "Your account has been successfully deleted" });
+                      window.location.href = '/';
+                    } catch (error) {
+                      console.error('Error deleting account:', error);
+                      toast({ title: "Error", description: "Failed to delete account. Please contact support.", variant: "destructive" });
+                    }
+                  }
+                }
+              }}
+            >
+              Delete My Account
+            </Button>
+          </CardContent>
+        </Card>
       </div>
+
+      <Toaster />
     </div>
   );
 }

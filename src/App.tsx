@@ -31,6 +31,11 @@ const Settings = lazy(() => import("./pages/Settings"));
 const ProviderSettings = lazy(() => import("./pages/ProviderSettings"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const CommunityGuidelines = lazy(() => import("./pages/CommunityGuidelines"));
+const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
+const SafetyCenter = lazy(() => import("./pages/SafetyCenter"));
+const SubscriptionDetails = lazy(() => import("./pages/SubscriptionDetails"));
+const AppStoreReadiness = lazy(() => import("./pages/AppStoreReadiness"));
 const ReferralLanding = lazy(() => import("./pages/ReferralLanding"));
 const ReferralDashboard = lazy(() => import("./pages/ReferralDashboard"));
 const PublicProfile = lazy(() => import("./pages/PublicProfile"));
@@ -97,6 +102,11 @@ const AppContent = () => {
             <Route path="/provider-settings" element={<ProviderSettings />} />
             <Route path="/terms-of-service" element={<TermsOfService />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/community-guidelines" element={<CommunityGuidelines />} />
+            <Route path="/refund-policy" element={<RefundPolicy />} />
+            <Route path="/safety-center" element={<SafetyCenter />} />
+            <Route path="/subscription-details" element={<SubscriptionDetails />} />
+            <Route path="/app-store-readiness" element={<AppStoreReadiness />} />
             <Route path="/r/:code" element={<ReferralLanding />} />
             <Route path="/referrals" element={<ProtectedRoute><ReferralDashboard /></ProtectedRoute>} />
             <Route path="/profile/:username" element={<PublicProfile />} />
