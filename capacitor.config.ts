@@ -13,6 +13,11 @@ const config: CapacitorConfig = {
   },
   android: {
     backgroundColor: '#ffffff'
+  },
+  plugins: {
+    PushNotifications: {
+      presentationOptions: ['badge', 'sound', 'alert']
+    }
   }
 };
 

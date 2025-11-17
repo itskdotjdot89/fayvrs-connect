@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, MapPin, MessageCircle } from "lucide-react";
+import { ArrowLeft, MapPin, MessageCircle, Flag } from "lucide-react";
 import { Loader2 } from "lucide-react";
+import { ReportDialog } from "@/components/ReportDialog";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface PortfolioItem {
   id: string;
@@ -30,6 +32,7 @@ interface UserProfile {
 export default function PublicProfile() {
   const { username } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   // Fetch user profile by username
   const { data: profile, isLoading } = useQuery<UserProfile | null>({
@@ -146,13 +149,25 @@ export default function PublicProfile() {
                 </div>
               )}
 
-              <Button 
-                className="w-full max-w-xs"
-                onClick={() => navigate(`/messages/${profile.id}`)}
-              >
-                <MessageCircle className="w-4 h-4 mr-2" />
-                Send Message
-              </Button>
+              <div className="flex gap-2 w-full">
+                <Button 
+                  className="flex-1"
+                  onClick={() => navigate(`/messages/${profile.id}`)}
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Send Message
+                </Button>
+                {user?.id && user.id !== profile.id && (
+                  <ReportDialog 
+                    reportedUserId={profile.id}
+                    triggerButton={
+                      <Button variant="outline" size="icon">
+                        <Flag className="w-4 h-4" />
+                      </Button>
+                    }
+                  />
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>

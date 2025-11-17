@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MapPin, Clock, DollarSign, ArrowLeft, MessageCircle, Loader2 } from "lucide-react";
+import { MapPin, Clock, DollarSign, ArrowLeft, MessageCircle, Loader2, Flag } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { ProposalForm } from "@/components/ProposalForm";
 import { useProviderAccess } from "@/hooks/useProviderAccess";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ReportDialog } from "@/components/ReportDialog";
 
 export default function RequestDetails() {
   const { id } = useParams();
@@ -124,7 +125,17 @@ export default function RequestDetails() {
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <h1 className="text-lg font-semibold text-foreground">Request Details</h1>
+            <h1 className="text-lg font-semibold text-foreground flex-1">Request Details</h1>
+            {user?.id && user.id !== request.user_id && (
+              <ReportDialog 
+                reportedRequestId={request.id}
+                triggerButton={
+                  <Button variant="ghost" size="icon">
+                    <Flag className="w-4 h-4" />
+                  </Button>
+                }
+              />
+            )}
           </div>
         </div>
       </div>

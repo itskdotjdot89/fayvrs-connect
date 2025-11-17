@@ -5,13 +5,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowLeft, Send, Loader2, Video } from "lucide-react";
+import { ArrowLeft, Send, Loader2, Video, Flag } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useUserPresence } from "@/hooks/useUserPresence";
 import { OnlineIndicator } from "@/components/OnlineIndicator";
 import { VideoCallModal } from "@/components/VideoCallModal";
 import { IncomingCallModal } from "@/components/IncomingCallModal";
+import { ReportDialog } from "@/components/ReportDialog";
 
 export default function Messages() {
   const { userId } = useParams();
@@ -299,6 +300,17 @@ export default function Messages() {
             >
               <Video className="w-5 h-5" />
             </Button>
+            
+            {userId && (
+              <ReportDialog 
+                reportedUserId={userId}
+                triggerButton={
+                  <Button variant="ghost" size="icon" className="rounded-xl">
+                    <Flag className="w-4 h-4" />
+                  </Button>
+                }
+              />
+            )}
           </div>
         </div>
       </div>
