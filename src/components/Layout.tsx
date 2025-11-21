@@ -202,7 +202,7 @@ export const Layout = ({
       {/* Footer */}
       <footer className="border-t bg-muted/30">
         <div className="container mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <img src={fayvrsLogo} alt="Fayvrs" className="h-6 w-6" />
@@ -226,11 +226,42 @@ export const Layout = ({
                     Privacy Policy
                   </Link>
                 </li>
+                <li>
+                  <Link to="/community-guidelines" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                    Community Guidelines
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/refund-policy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                    Refund Policy
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 className="font-semibold mb-4">Safety & Help</h3>
+              <ul className="space-y-2">
+                <li>
+                  <Link to="/safety-center" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                    Safety Center
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/subscription-details" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                    Subscription Details
+                  </Link>
+                </li>
+                <li>
+                  <a href="mailto:contact@fayvrs.com" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                    Contact Support
+                  </a>
+                </li>
               </ul>
             </div>
             
             <div>
-              <h3 className="font-semibold mb-4">Support</h3>
+              <h3 className="font-semibold mb-4">Company</h3>
               <ul className="space-y-2">
                 <li>
                   <a href="mailto:contact@fayvrs.com" className="text-sm text-muted-foreground hover:text-primary transition-colors">

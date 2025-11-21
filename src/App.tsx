@@ -36,6 +36,7 @@ const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
 const SafetyCenter = lazy(() => import("./pages/SafetyCenter"));
 const SubscriptionDetails = lazy(() => import("./pages/SubscriptionDetails"));
 const AppStoreReadiness = lazy(() => import("./pages/AppStoreReadiness"));
+const DataDeletion = lazy(() => import("./pages/DataDeletion"));
 const ReferralLanding = lazy(() => import("./pages/ReferralLanding"));
 const ReferralDashboard = lazy(() => import("./pages/ReferralDashboard"));
 const PublicProfile = lazy(() => import("./pages/PublicProfile"));
@@ -107,6 +108,7 @@ const AppContent = () => {
             <Route path="/safety-center" element={<SafetyCenter />} />
             <Route path="/subscription-details" element={<SubscriptionDetails />} />
             <Route path="/app-store-readiness" element={<AppStoreReadiness />} />
+            <Route path="/data-deletion" element={<DataDeletion />} />
             <Route path="/r/:code" element={<ReferralLanding />} />
             <Route path="/referrals" element={<ProtectedRoute><ReferralDashboard /></ProtectedRoute>} />
             <Route path="/profile/:username" element={<PublicProfile />} />
