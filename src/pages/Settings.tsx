@@ -535,6 +535,11 @@ export default function Settings() {
                 Subscription Details
               </Button>
             </Link>
+            <Link to="/data-deletion">
+              <Button variant="ghost" className="w-full justify-start">
+                Data Deletion Information
+              </Button>
+            </Link>
             <Link to="/privacy-policy">
               <Button variant="ghost" className="w-full justify-start">
                 Privacy Policy
