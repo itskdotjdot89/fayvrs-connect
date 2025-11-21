@@ -61,23 +61,6 @@ const Billing = lazy(() => import("./pages/mockups/Billing"));
 const SettingsMockup = lazy(() => import("./pages/mockups/Settings"));
 const MockupIndex = lazy(() => import("./pages/mockups/Index"));
 
-// Ad mockup pages - lazy loaded
-const AdMockupsIndex = lazy(() => import("./pages/mockups/ads/Index"));
-const HeroSplash = lazy(() => import("./pages/mockups/ads/HeroSplash"));
-const ProblemScreen = lazy(() => import("./pages/mockups/ads/ProblemScreen"));
-const RequestCreationShowcase = lazy(() => import("./pages/mockups/ads/RequestCreationShowcase"));
-const LiveMatchingScreen = lazy(() => import("./pages/mockups/ads/LiveMatchingScreen"));
-const ProviderNotification = lazy(() => import("./pages/mockups/ads/ProviderNotification"));
-const ProposalsComparison = lazy(() => import("./pages/mockups/ads/ProposalsComparison"));
-const VideoCallShowcase = lazy(() => import("./pages/mockups/ads/VideoCallShowcase"));
-const RealTimeTracking = lazy(() => import("./pages/mockups/ads/RealTimeTracking"));
-const SuccessScreen = lazy(() => import("./pages/mockups/ads/SuccessScreen"));
-const EarningsShowcase = lazy(() => import("./pages/mockups/ads/EarningsShowcase"));
-const ReferralEarnings = lazy(() => import("./pages/mockups/ads/ReferralEarnings"));
-const TrustSafety = lazy(() => import("./pages/mockups/ads/TrustSafety"));
-const SocialProof = lazy(() => import("./pages/mockups/ads/SocialProof"));
-const DownloadCTA = lazy(() => import("./pages/mockups/ads/DownloadCTA"));
-
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -154,23 +137,6 @@ const AppContent = () => {
             <Route path="/mockup/portfolio" element={<PortfolioMockup />} />
             <Route path="/mockup/billing" element={<Billing />} />
             <Route path="/mockup/settings" element={<SettingsMockup />} />
-            
-            {/* Ad Mockups */}
-            <Route path="/mockups/ads" element={<AdMockupsIndex />} />
-            <Route path="/mockups/ads/hero-splash" element={<HeroSplash />} />
-            <Route path="/mockups/ads/problem-screen" element={<ProblemScreen />} />
-            <Route path="/mockups/ads/request-creation-showcase" element={<RequestCreationShowcase />} />
-            <Route path="/mockups/ads/live-matching-screen" element={<LiveMatchingScreen />} />
-            <Route path="/mockups/ads/provider-notification" element={<ProviderNotification />} />
-            <Route path="/mockups/ads/proposals-comparison" element={<ProposalsComparison />} />
-            <Route path="/mockups/ads/video-call-showcase" element={<VideoCallShowcase />} />
-            <Route path="/mockups/ads/real-time-tracking" element={<RealTimeTracking />} />
-            <Route path="/mockups/ads/success-screen" element={<SuccessScreen />} />
-            <Route path="/mockups/ads/earnings-showcase" element={<EarningsShowcase />} />
-            <Route path="/mockups/ads/referral-earnings" element={<ReferralEarnings />} />
-            <Route path="/mockups/ads/trust-safety" element={<TrustSafety />} />
-            <Route path="/mockups/ads/social-proof" element={<SocialProof />} />
-            <Route path="/mockups/ads/download-cta" element={<DownloadCTA />} />
               
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
