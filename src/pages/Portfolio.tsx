@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Plus, Star, Trash2, Loader2, Upload, Wrench } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { validateImageFile } from "@/utils/fileValidation";
+import { validateMediaFile, getMediaType } from "@/utils/fileValidation";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -57,12 +57,17 @@ export default function Portfolio() {
     enabled: !!user?.id,
   });
 
-  // Upload image
-  const uploadImage = async (file: File) => {
+  // Upload media (image or video)
+  const uploadMedia = async (file: File): Promise<{ url: string; type: 'image' | 'video' }> => {
     // Validate file before upload
-    const validation = validateImageFile(file);
+    const validation = validateMediaFile(file);
     if (!validation.isValid) {
       throw new Error(validation.error);
+    }
+
+    const mediaType = getMediaType(file);
+    if (!mediaType) {
+      throw new Error('Unsupported file type');
     }
 
     const fileExt = file.name.split('.').pop();
@@ -78,16 +83,16 @@ export default function Portfolio() {
       .from('portfolio-images')
       .getPublicUrl(fileName);
 
-    return publicUrl;
+    return { url: publicUrl, type: mediaType };
   };
 
   // Add portfolio item
   const addItemMutation = useMutation({
     mutationFn: async () => {
-      if (!formData.image) throw new Error("Image is required");
+      if (!formData.image) throw new Error("Media file is required");
       
       setUploading(true);
-      const imageUrl = await uploadImage(formData.image);
+      const { url, type } = await uploadMedia(formData.image);
 
       const { error } = await supabase
         .from('portfolio_items')
@@ -95,7 +100,8 @@ export default function Portfolio() {
           provider_id: user!.id,
           title: formData.title,
           description: formData.description,
-          image_url: imageUrl,
+          image_url: url,
+          media_type: type,
           is_featured: formData.is_featured,
         });
 
@@ -177,14 +183,17 @@ export default function Portfolio() {
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="image">Image (Max 100MB)</Label>
+                    <Label htmlFor="image">Image or Video (Max 100MB)</Label>
                     <div className="mt-2">
                       <Input
                         id="image"
                         type="file"
-                        accept="image/*"
+                        accept="image/*,video/*"
                         onChange={(e) => setFormData({ ...formData, image: e.target.files?.[0] || null })}
                       />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Supported: Images (JPEG, PNG, GIF, WEBP) and Videos (MP4, MOV, AVI, MKV, WEBM)
+                      </p>
                     </div>
                   </div>
                   <div>
@@ -273,11 +282,20 @@ export default function Portfolio() {
             {items.map((item) => (
               <div key={item.id} className="bg-white rounded-card shadow-soft overflow-hidden group">
                 <div className="relative aspect-video">
-                  <img
-                    src={item.image_url}
-                    alt={item.title}
-                    className="w-full h-full object-cover"
-                  />
+                  {item.media_type === 'video' ? (
+                    <video
+                      src={item.image_url}
+                      className="w-full h-full object-cover"
+                      controls
+                      preload="metadata"
+                    />
+                  ) : (
+                    <img
+                      src={item.image_url}
+                      alt={item.title}
+                      className="w-full h-full object-cover"
+                    />
+                  )}
                   <div className="absolute top-2 right-2 flex gap-2">
                     <Button
                       size="icon"

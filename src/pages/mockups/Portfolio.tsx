@@ -1,15 +1,15 @@
 import { Button } from "@/components/ui/button";
-import { Plus, Star, Image as ImageIcon, ArrowLeft } from "lucide-react";
+import { Plus, Star, Image as ImageIcon, ArrowLeft, Video } from "lucide-react";
 
 export default function Portfolio() {
   // Mock portfolio items
   const portfolioItems = [
-    { id: 1, featured: true },
-    { id: 2, featured: false },
-    { id: 3, featured: false },
-    { id: 4, featured: true },
-    { id: 5, featured: false },
-    { id: 6, featured: false },
+    { id: 1, featured: true, mediaType: 'image' },
+    { id: 2, featured: false, mediaType: 'video' },
+    { id: 3, featured: false, mediaType: 'image' },
+    { id: 4, featured: true, mediaType: 'image' },
+    { id: 5, featured: false, mediaType: 'video' },
+    { id: 6, featured: false, mediaType: 'image' },
   ];
 
   return (
@@ -40,9 +40,13 @@ export default function Portfolio() {
               key={item.id}
               className="aspect-square rounded-2xl bg-white shadow-soft overflow-hidden relative group cursor-pointer hover:shadow-md transition-shadow"
             >
-              {/* Placeholder Image */}
+              {/* Placeholder Image/Video */}
               <div className="w-full h-full bg-gradient-to-br from-primary/10 to-accent flex items-center justify-center">
-                <ImageIcon className="w-8 h-8 text-primary/40" />
+                {item.mediaType === 'video' ? (
+                  <Video className="w-8 h-8 text-primary/40" />
+                ) : (
+                  <ImageIcon className="w-8 h-8 text-primary/40" />
+                )}
               </div>
 
               {/* Featured Star */}
@@ -75,7 +79,7 @@ export default function Portfolio() {
             <div>
               <h3 className="font-semibold text-foreground mb-1">Featured Items</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Mark your best work as featured to highlight it at the top of your profile.
+                Mark your best work as featured. Upload images and videos (max 100 MB) to showcase your services.
               </p>
             </div>
           </div>
@@ -87,7 +91,7 @@ export default function Portfolio() {
           <ul className="space-y-1.5 text-sm text-muted-foreground">
             <li className="flex items-start gap-2">
               <span className="text-primary mt-0.5">•</span>
-              <span>Add high-quality images or videos</span>
+              <span>Add high-quality images and videos (max 100 MB)</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="text-primary mt-0.5">•</span>
@@ -95,7 +99,7 @@ export default function Portfolio() {
             </li>
             <li className="flex items-start gap-2">
               <span className="text-primary mt-0.5">•</span>
-              <span>Keep it updated with recent projects</span>
+              <span>Include titles and descriptions for context</span>
             </li>
           </ul>
         </div>
