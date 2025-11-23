@@ -35,11 +35,11 @@ export default function IdentityVerification() {
     enabled: !!user?.id,
   });
 const validateFile = (file: File, type: 'id' | 'selfie'): boolean => {
-  // Max 5MB
-  if (file.size > 5 * 1024 * 1024) {
+  // Max 100MB
+  if (file.size > 100 * 1024 * 1024) {
     toast({
       title: "File too large",
-      description: "File must be less than 5MB",
+      description: "File must be less than 100MB",
       variant: "destructive"
     });
     return false;
@@ -195,7 +195,7 @@ const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'id' | '
             <div className="flex-1 pt-1">
               <h3 className="font-semibold text-foreground mb-1">Upload ID</h3>
               <p className="text-sm text-muted-foreground mb-2">
-                Photo of government-issued ID (Max 5MB)
+                Photo of government-issued ID (Max 100MB)
               </p>
               <input 
                 type="file" 
@@ -227,7 +227,7 @@ const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'id' | '
             <div className="flex-1 pt-1">
               <h3 className="font-semibold text-foreground mb-1">Take Selfie</h3>
               <p className="text-sm text-muted-foreground mb-2">
-                Quick photo to verify it's you (Max 5MB)
+                Quick photo to verify it's you (Max 100MB)
               </p>
               <input 
                 type="file" 

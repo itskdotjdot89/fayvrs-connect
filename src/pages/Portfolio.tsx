@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Plus, Star, Trash2, Loader2, Upload } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { validateImageFile } from "@/utils/fileValidation";
 
 export default function Portfolio() {
   const { user } = useAuth();
@@ -40,6 +41,12 @@ export default function Portfolio() {
 
   // Upload image
   const uploadImage = async (file: File) => {
+    // Validate file before upload
+    const validation = validateImageFile(file);
+    if (!validation.isValid) {
+      throw new Error(validation.error);
+    }
+
     const fileExt = file.name.split('.').pop();
     const fileName = `${user!.id}/${Date.now()}.${fileExt}`;
     
@@ -152,7 +159,7 @@ export default function Portfolio() {
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="image">Image</Label>
+                    <Label htmlFor="image">Image (Max 100MB)</Label>
                     <div className="mt-2">
                       <Input
                         id="image"
