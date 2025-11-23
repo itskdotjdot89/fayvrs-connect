@@ -245,11 +245,11 @@ export default function Settings() {
       return;
     }
 
-    // Validate file size (5MB)
-    if (file.size > 5 * 1024 * 1024) {
+    // Validate file size (100MB)
+    if (file.size > 100 * 1024 * 1024) {
       toast({
         title: "File too large",
-        description: "Please upload an image smaller than 5MB",
+        description: "Please upload an image smaller than 100MB",
         variant: "destructive",
       });
       return;
@@ -419,7 +419,7 @@ export default function Settings() {
                   className="hidden"
                 />
                 <p className="text-sm text-muted-foreground mt-2">
-                  JPG, PNG or GIF. Max size 5MB.
+                  JPG, PNG or GIF. Max size 100MB.
                 </p>
               </div>
             </div>

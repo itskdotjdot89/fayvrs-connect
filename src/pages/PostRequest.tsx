@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Sparkles, MapPin, DollarSign, Wrench, Loader2, Tag, Image as ImageIcon, X, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { validateImageFile, formatFileSize } from "@/utils/fileValidation";
 type RequestData = {
   title: string;
   description: string;
@@ -120,6 +121,8 @@ export default function PostRequest() {
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
+    
+    // Check total count
     if (files.length + uploadedImages.length > 5) {
       toast({
         title: "Too many images",
@@ -129,10 +132,27 @@ export default function PostRequest() {
       return;
     }
 
-    setUploadedImages(prev => [...prev, ...files]);
+    // Validate each file
+    const validFiles: File[] = [];
+    for (const file of files) {
+      const validation = validateImageFile(file);
+      if (!validation.isValid) {
+        toast({
+          title: "Invalid file",
+          description: validation.error,
+          variant: "destructive"
+        });
+        continue;
+      }
+      validFiles.push(file);
+    }
+
+    if (validFiles.length === 0) return;
+
+    setUploadedImages(prev => [...prev, ...validFiles]);
     
     // Create previews
-    files.forEach(file => {
+    validFiles.forEach(file => {
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreviews(prev => [...prev, reader.result as string]);
@@ -453,7 +473,7 @@ export default function PostRequest() {
                     className="cursor-pointer"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Upload up to 5 images to help providers visualize your request
+                    Upload up to 5 images (100MB each) to help providers visualize your request
                   </p>
                   
                   {imagePreviews.length > 0 && (
