@@ -6,10 +6,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Plus, Star, Trash2, Loader2, Upload } from "lucide-react";
+import { Plus, Star, Trash2, Loader2, Upload, Wrench } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { validateImageFile } from "@/utils/fileValidation";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Portfolio() {
   const { user } = useAuth();
@@ -35,6 +37,22 @@ export default function Portfolio() {
       
       if (error) throw error;
       return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  // Fetch specialties
+  const { data: specialties } = useQuery({
+    queryKey: ['specialties', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const { data, error } = await supabase
+        .from('provider_specialties')
+        .select('*')
+        .eq('provider_id', user.id);
+      
+      if (error) throw error;
+      return data || [];
     },
     enabled: !!user?.id,
   });
@@ -143,8 +161,8 @@ export default function Portfolio() {
     <div className="min-h-screen bg-surface">
       {/* Header */}
       <div className="bg-white border-b border-border">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+        <div className="max-w-4xl mx-auto px-4 py-6">
+          <div className="flex items-center justify-between mb-4">
             <h1 className="text-xl font-bold text-foreground">My Portfolio</h1>
             <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
               <DialogTrigger asChild>
@@ -220,6 +238,31 @@ export default function Portfolio() {
               </DialogContent>
             </Dialog>
           </div>
+
+          {/* Service Specialties */}
+          {specialties && specialties.length > 0 && (
+            <Card className="border-0 shadow-none bg-transparent">
+              <CardHeader className="px-0 pt-0">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Wrench className="w-4 h-4" />
+                  Service Specialties
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-0">
+                <div className="flex flex-wrap gap-2">
+                  {specialties.map((specialty) => (
+                    <Badge 
+                      key={specialty.id} 
+                      variant="secondary"
+                      className="px-3 py-1.5 text-sm"
+                    >
+                      {specialty.category}
+                    </Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 

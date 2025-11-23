@@ -6,10 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { MapPin, Loader2, Plus, X, Wrench } from "lucide-react";
+import { MapPin, Loader2, Wrench } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
-import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { ServiceSelector } from "@/components/ServiceSelector";
 
 export default function ProviderSettings() {
   const { user } = useAuth();
@@ -18,7 +18,6 @@ export default function ProviderSettings() {
   
   const [location, setLocation] = useState("");
   const [serviceRadius, setServiceRadius] = useState(25);
-  const [newSpecialty, setNewSpecialty] = useState("");
   const [isGeocoding, setIsGeocoding] = useState(false);
 
   // Fetch profile
@@ -137,73 +136,61 @@ export default function ProviderSettings() {
     },
   });
 
-  // Add specialty mutation
-  const addSpecialtyMutation = useMutation({
-    mutationFn: async (category: string) => {
+  // Update specialties mutation
+  const updateSpecialtiesMutation = useMutation({
+    mutationFn: async (services: string[]) => {
       if (!user?.id) throw new Error('Not authenticated');
       
-      const { error } = await supabase
-        .from('provider_specialties')
-        .insert({
-          provider_id: user.id,
-          category: category.trim(),
-        });
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['specialties', user?.id] });
-      setNewSpecialty("");
-      toast({
-        title: "Specialty added",
-        description: "Your specialty has been added successfully.",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to add specialty",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Remove specialty mutation
-  const removeSpecialtyMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
+      // Delete all existing specialties
+      const { error: deleteError } = await supabase
         .from('provider_specialties')
         .delete()
-        .eq('id', id);
+        .eq('provider_id', user.id);
       
-      if (error) throw error;
+      if (deleteError) throw deleteError;
+
+      // Insert new specialties
+      if (services.length > 0) {
+        const { error: insertError } = await supabase
+          .from('provider_specialties')
+          .insert(
+            services.map((service) => ({
+              provider_id: user.id,
+              category: service,
+            }))
+          );
+        
+        if (insertError) throw insertError;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['specialties', user?.id] });
       toast({
-        title: "Specialty removed",
-        description: "Your specialty has been removed successfully.",
+        title: "Specialties updated",
+        description: "Your service specialties have been updated successfully.",
       });
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: "Error",
-        description: "Failed to remove specialty",
+        description: "Failed to update specialties",
         variant: "destructive",
       });
     },
   });
 
-  const handleAddSpecialty = () => {
-    if (!newSpecialty.trim()) {
+  const selectedServices = specialties?.map((s) => s.category) || [];
+
+  const handleServicesChange = (services: string[]) => {
+    if (services.length > 6) {
       toast({
-        title: "Error",
-        description: "Please enter a specialty",
+        title: "Maximum reached",
+        description: "You can select up to 6 services",
         variant: "destructive",
       });
       return;
     }
-    addSpecialtyMutation.mutate(newSpecialty);
+    updateSpecialtiesMutation.mutate(services);
   };
 
   return (
@@ -276,56 +263,18 @@ export default function ProviderSettings() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Wrench className="w-5 h-5" />
-              Specialties
+              Service Specialties
             </CardTitle>
             <CardDescription>
-              Add your service categories to match with relevant requests
+              Select up to 6 service categories to match with relevant requests
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-2">
-              <Input
-                placeholder="e.g., Plumbing, Electrical"
-                value={newSpecialty}
-                onChange={(e) => setNewSpecialty(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleAddSpecialty();
-                  }
-                }}
-              />
-              <Button 
-                onClick={handleAddSpecialty}
-                disabled={addSpecialtyMutation.isPending}
-              >
-                <Plus className="w-4 h-4" />
-              </Button>
-            </div>
-
-            {specialties && specialties.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {specialties.map((specialty) => (
-                  <Badge 
-                    key={specialty.id} 
-                    variant="secondary"
-                    className="px-3 py-1.5 text-sm flex items-center gap-2"
-                  >
-                    {specialty.category}
-                    <button
-                      onClick={() => removeSpecialtyMutation.mutate(specialty.id)}
-                      className="hover:text-destructive transition-colors"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No specialties added yet. Add your first specialty above.
-              </p>
-            )}
+          <CardContent>
+            <ServiceSelector
+              selectedServices={selectedServices}
+              onServicesChange={handleServicesChange}
+              maxServices={6}
+            />
           </CardContent>
         </Card>
       </div>
