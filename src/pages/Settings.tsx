@@ -8,12 +8,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
-import { Upload, Loader2, User, Bell, Mail, MessageSquare, AtSign, CheckCircle2 } from "lucide-react";
+import { Upload, Loader2, User, Bell, Mail, MessageSquare, AtSign, CheckCircle2, Palette } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import VerificationStatus from "@/components/VerificationStatus";
 import { Link } from "react-router-dom";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function Settings() {
   const { user } = useAuth();
@@ -515,6 +516,28 @@ export default function Settings() {
                 checked={preferences?.in_app_enabled ?? true}
                 onCheckedChange={(checked) => updatePreferencesMutation.mutate({ in_app_enabled: checked })}
               />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Theme Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Appearance</CardTitle>
+            <CardDescription>Customize how Fayvrs looks</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center">
+                  <Palette className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Theme</Label>
+                  <p className="text-xs text-muted-foreground">Toggle between light and dark mode</p>
+                </div>
+              </div>
+              <ThemeToggle />
             </div>
           </CardContent>
         </Card>

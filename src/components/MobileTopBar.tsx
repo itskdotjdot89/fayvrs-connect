@@ -8,6 +8,7 @@ import { useState } from "react";
 import { ProfileMenu } from "./ProfileMenu";
 import fayvrsLogo from "@/assets/fayvrs-logo.png";
 import { NotificationBell } from "./NotificationBell";
+import { ThemeToggle } from "./ThemeToggle";
 
 export const MobileTopBar = () => {
   const { user } = useAuth();
@@ -43,6 +44,7 @@ export const MobileTopBar = () => {
           {/* Right Side */}
           <div className="flex items-center gap-3">
             {user && <NotificationBell />}
+            <ThemeToggle />
             {user && (
               <button onClick={() => setMenuOpen(true)}>
                 <Avatar className="w-9 h-9 ring-2 ring-primary/20 hover:ring-primary/40 transition-all">
