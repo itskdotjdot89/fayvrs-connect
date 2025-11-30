@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.send-founder-notification]
 verify_jwt = false
+
+[functions.setup-demo-accounts]
+verify_jwt = false

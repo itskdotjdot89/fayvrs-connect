@@ -21,43 +21,48 @@ Deno.serve(async (req) => {
     const demoProviderEmail = 'demo-provider@fayvrs.com';
     const demoPassword = 'DemoPass123!';
 
-    console.log('Creating demo auth users...');
+    console.log('Checking for existing demo users...');
 
-    // Create demo requester auth user
-    const { data: requesterAuth, error: requesterAuthError } = await supabaseAdmin.auth.admin.createUser({
-      email: demoRequesterEmail,
-      password: demoPassword,
-      email_confirm: true,
-      user_metadata: {
-        full_name: 'Demo Requester',
-        username: 'demo_requester'
+    // Check if users already exist
+    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+    let requesterId = existingUsers.users.find(u => u.email === demoRequesterEmail)?.id;
+    let providerId = existingUsers.users.find(u => u.email === demoProviderEmail)?.id;
+
+    // Create demo requester if doesn't exist
+    if (!requesterId) {
+      console.log('Creating demo requester...');
+      const { data: requesterAuth, error: requesterAuthError } = await supabaseAdmin.auth.admin.createUser({
+        email: demoRequesterEmail,
+        password: demoPassword,
+        email_confirm: true
+      });
+
+      if (requesterAuthError) {
+        console.error('Error creating requester:', requesterAuthError);
+        throw requesterAuthError;
       }
-    });
-
-    if (requesterAuthError && !requesterAuthError.message.includes('already exists')) {
-      throw requesterAuthError;
+      requesterId = requesterAuth.user.id;
+    } else {
+      console.log('Demo requester already exists, reusing...');
     }
 
-    const requesterId = requesterAuth?.user?.id || (await supabaseAdmin.auth.admin.listUsers())
-      .data.users.find(u => u.email === demoRequesterEmail)?.id;
+    // Create demo provider if doesn't exist
+    if (!providerId) {
+      console.log('Creating demo provider...');
+      const { data: providerAuth, error: providerAuthError } = await supabaseAdmin.auth.admin.createUser({
+        email: demoProviderEmail,
+        password: demoPassword,
+        email_confirm: true
+      });
 
-    // Create demo provider auth user
-    const { data: providerAuth, error: providerAuthError } = await supabaseAdmin.auth.admin.createUser({
-      email: demoProviderEmail,
-      password: demoPassword,
-      email_confirm: true,
-      user_metadata: {
-        full_name: 'Demo Provider',
-        username: 'demo_provider'
+      if (providerAuthError) {
+        console.error('Error creating provider:', providerAuthError);
+        throw providerAuthError;
       }
-    });
-
-    if (providerAuthError && !providerAuthError.message.includes('already exists')) {
-      throw providerAuthError;
+      providerId = providerAuth.user.id;
+    } else {
+      console.log('Demo provider already exists, reusing...');
     }
-
-    const providerId = providerAuth?.user?.id || (await supabaseAdmin.auth.admin.listUsers())
-      .data.users.find(u => u.email === demoProviderEmail)?.id;
 
     if (!requesterId || !providerId) {
       throw new Error('Failed to get user IDs');
