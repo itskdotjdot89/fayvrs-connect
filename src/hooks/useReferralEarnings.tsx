@@ -14,11 +14,10 @@ export const useReferralEarnings = (userId: string | undefined) => {
     queryFn: async () => {
       if (!userId) throw new Error("User ID is required");
       
-      // @ts-ignore - Supabase type complexity issue
       const { data, error } = await supabase
         .from("referrer_earnings")
         .select("pending_balance, available_balance, active_referrals_count, lifetime_earnings")
-        .eq("referrer_id", userId)
+        .eq("user_id", userId)
         .single();
 
       if (error) throw error;
