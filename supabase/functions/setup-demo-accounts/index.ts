@@ -100,10 +100,12 @@ Deno.serve(async (req) => {
       service_radius: 25
     });
 
-    // Assign Roles
+    // Assign Roles - Both accounts get both roles for role switching feature
     await supabaseAdmin.from('user_roles').upsert([
       { user_id: requesterId, role: 'requester' },
-      { user_id: providerId, role: 'provider' }
+      { user_id: requesterId, role: 'provider' },
+      { user_id: providerId, role: 'provider' },
+      { user_id: providerId, role: 'requester' }
     ]);
 
     // Add Provider Specialties
