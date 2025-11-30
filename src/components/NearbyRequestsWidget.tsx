@@ -9,27 +9,21 @@ import { MapPin, DollarSign, Clock, List, Map } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { RequestsMapView } from "./RequestsMapView";
+import { Skeleton } from "@/components/ui/skeleton";
 
-export const NearbyRequestsWidget = () => {
+interface NearbyRequestsWidgetProps {
+  profile?: {
+    latitude: number | null;
+    longitude: number | null;
+    current_latitude: number | null;
+    current_longitude: number | null;
+    service_radius: number | null;
+  } | null;
+}
+
+export const NearbyRequestsWidget = ({ profile }: NearbyRequestsWidgetProps) => {
   const navigate = useNavigate();
   const [view, setView] = useState<'list' | 'map'>('list');
-
-  const { data: profile } = useQuery({
-    queryKey: ["profile"],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
-
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("latitude, longitude, current_latitude, current_longitude, service_radius")
-        .eq("id", user.id)
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-  });
 
   const { data: nearbyRequests, isLoading } = useQuery({
     queryKey: ["nearby-requests", profile?.latitude, profile?.longitude, profile?.service_radius],
@@ -71,9 +65,28 @@ export const NearbyRequestsWidget = () => {
       <Card>
         <CardHeader>
           <CardTitle>Nearby Requests</CardTitle>
+          <CardDescription>
+            <Skeleton className="h-4 w-48" />
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">Loading nearby requests...</p>
+        <CardContent className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="border rounded-lg p-4 space-y-3">
+              <div className="flex items-start justify-between">
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-5 w-3/4" />
+                  <Skeleton className="h-4 w-20" />
+                </div>
+                <Skeleton className="h-4 w-12" />
+              </div>
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-2/3" />
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-9 w-24" />
+              </div>
+            </div>
+          ))}
         </CardContent>
       </Card>
     );

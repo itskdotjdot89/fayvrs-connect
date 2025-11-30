@@ -9,23 +9,25 @@ import { NearbyRequestsWidget } from "@/components/NearbyRequestsWidget";
 import { useProviderAccess } from "@/hooks/useProviderAccess";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ReferralEarningsCard } from "@/components/ReferralEarningsCard";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ProviderDashboard() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, subscriptionStatus } = useAuth();
   const { hasProviderAccess, loading: accessLoading, missingRequirements } = useProviderAccess();
 
-  // Fetch subscription
-  const { data: subscription, isLoading: loadingSubscription } = useQuery({
-    queryKey: ['subscription', user?.id],
+  // Fetch profile for NearbyRequestsWidget
+  const { data: profile } = useQuery({
+    queryKey: ["profile", user?.id],
     queryFn: async () => {
+      if (!user) throw new Error("Not authenticated");
+
       const { data, error } = await supabase
-        .from('provider_subscriptions')
-        .select('*')
-        .eq('provider_id', user!.id)
-        .eq('status', 'active')
+        .from("profiles")
+        .select("latitude, longitude, current_latitude, current_longitude, service_radius")
+        .eq("id", user.id)
         .single();
-      
+
       if (error) throw error;
       return data;
     },
@@ -33,7 +35,7 @@ export default function ProviderDashboard() {
   });
 
   // Fetch proposals count
-  const { data: proposalsCount } = useQuery({
+  const { data: proposalsCount, isLoading: loadingProposals } = useQuery({
     queryKey: ['proposals-count', user?.id],
     queryFn: async () => {
       const { count, error } = await supabase
@@ -48,7 +50,7 @@ export default function ProviderDashboard() {
   });
 
   // Fetch selections count
-  const { data: selectionsCount } = useQuery({
+  const { data: selectionsCount, isLoading: loadingSelections } = useQuery({
     queryKey: ['selections-count', user?.id],
     queryFn: async () => {
       const { count, error } = await supabase
@@ -64,7 +66,7 @@ export default function ProviderDashboard() {
   });
 
   // Fetch recent activity
-  const { data: recentProposals } = useQuery({
+  const { data: recentProposals, isLoading: loadingActivity } = useQuery({
     queryKey: ['recent-proposals', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -80,16 +82,8 @@ export default function ProviderDashboard() {
     enabled: !!user?.id,
   });
 
-  if (accessLoading || loadingSubscription) {
-    return (
-      <div className="min-h-screen bg-surface flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  // Redirect to verification if needed
-  if (missingRequirements.needsVerification) {
+  // Redirect to verification if needed (only block if access check is done)
+  if (!accessLoading && missingRequirements.needsVerification) {
     return (
       <div className="min-h-screen bg-surface flex items-center justify-center p-4">
         <Card className="max-w-md w-full">
@@ -118,15 +112,14 @@ export default function ProviderDashboard() {
   }
 
   const stats = [
-    { label: "Proposals", value: proposalsCount?.toString() || "0", icon: MessageCircle, color: "text-purple-500" },
-    { label: "Selections", value: selectionsCount?.toString() || "0", icon: CheckCircle, color: "text-verified" },
+    { label: "Proposals", value: proposalsCount?.toString() || "0", icon: MessageCircle, color: "text-purple-500", isLoading: loadingProposals },
+    { label: "Selections", value: selectionsCount?.toString() || "0", icon: CheckCircle, color: "text-verified", isLoading: loadingSelections },
     { 
       label: "Renewal", 
-      value: subscription?.expires_at 
-        ? new Date(subscription.expires_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-        : "N/A", 
+      value: subscriptionStatus?.subscribed ? "Active" : "N/A", 
       icon: Calendar, 
-      color: "text-orange-500" 
+      color: "text-orange-500",
+      isLoading: false
     },
   ];
 
@@ -152,20 +145,22 @@ export default function ProviderDashboard() {
 
       <div className="max-w-md mx-auto px-4 py-6 space-y-6">
         {/* Subscription Status */}
-        {subscription ? (
+        {subscriptionStatus?.subscribed ? (
           <div className="bg-gradient-to-br from-primary to-primary-hover rounded-card p-6 shadow-soft text-white space-y-3">
             <div className="flex items-center justify-between">
-              <Badge className="bg-white/20 text-white border-white/30">
-                {subscription.status === 'active' ? 'Active' : 'Inactive'}
-              </Badge>
+              <Badge className="bg-white/20 text-white border-white/30">Active</Badge>
               <TrendingUp className="w-5 h-5" />
             </div>
             <div>
               <p className="text-sm opacity-90">Current Plan</p>
-              <h2 className="text-2xl font-bold capitalize">{subscription.plan} Subscription</h2>
+              <h2 className="text-2xl font-bold capitalize">
+                {subscriptionStatus.plan === 'monthly' ? 'Monthly' : 'Annual'} Subscription
+              </h2>
             </div>
             <div className="flex items-center justify-between pt-2">
-              <span className="text-sm">${subscription.plan === 'monthly' ? '30/month' : '240/year'}</span>
+              <span className="text-sm">
+                ${subscriptionStatus.plan === 'monthly' ? '30/month' : '240/year'}
+              </span>
               <Button 
                 size="sm" 
                 variant="secondary" 
@@ -202,7 +197,11 @@ export default function ProviderDashboard() {
                 <stat.icon className="w-4 h-4" />
               </div>
               <div>
-                <p className="text-xl font-bold text-foreground">{stat.value}</p>
+                {stat.isLoading ? (
+                  <Skeleton className="h-7 w-12 mb-1" />
+                ) : (
+                  <p className="text-xl font-bold text-foreground">{stat.value}</p>
+                )}
                 <p className="text-xs text-muted-foreground">{stat.label}</p>
               </div>
             </div>
@@ -210,13 +209,26 @@ export default function ProviderDashboard() {
         </div>
 
         {/* Nearby Requests */}
-        <NearbyRequestsWidget />
+        <NearbyRequestsWidget profile={profile} />
 
         {/* Recent Activity */}
         <div className="space-y-3">
           <h3 className="font-semibold text-foreground px-1">Recent Activity</h3>
           
-          {recentProposals && recentProposals.length > 0 ? (
+          {loadingActivity ? (
+            <div className="bg-white rounded-card p-4 shadow-soft space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <Skeleton className="w-8 h-8 rounded-lg flex-shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-1/2" />
+                    <Skeleton className="h-3 w-1/3" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : recentProposals && recentProposals.length > 0 ? (
             recentProposals.map((proposal) => (
               <div 
                 key={proposal.id} 
@@ -264,7 +276,7 @@ export default function ProviderDashboard() {
         </div>
 
         {/* Upgrade CTA (only show if on monthly) */}
-        {subscription?.plan === 'monthly' && (
+        {subscriptionStatus?.plan === 'monthly' && (
           <div className="bg-white rounded-card p-6 shadow-soft space-y-3 border-2 border-primary/20">
             <div className="flex items-start gap-3">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary-hover flex items-center justify-center flex-shrink-0">
