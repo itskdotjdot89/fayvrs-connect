@@ -116,13 +116,14 @@ Deno.serve(async (req) => {
       { provider_id: providerId, category: 'Handyman Services' }
     ]);
 
-    // Add Provider Subscription
-    await supabaseAdmin.from('provider_subscriptions').upsert({
+    // Add Provider Subscription - Set far future expiration (2030) to never expire during review
+    await supabaseAdmin.from('provider_subscriptions').delete().eq('provider_id', providerId);
+    await supabaseAdmin.from('provider_subscriptions').insert({
       provider_id: providerId,
       plan: 'monthly',
       status: 'active',
-      started_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
-      expires_at: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString()
+      started_at: new Date().toISOString(),
+      expires_at: '2030-12-31T23:59:59.000Z'
     });
 
     // Add Portfolio Items
@@ -178,6 +179,33 @@ Deno.serve(async (req) => {
       }
     ]);
 
+    // Clean up existing demo data before re-creating
+    console.log('Cleaning up existing demo data...');
+    
+    // Delete existing proposals for demo requests
+    const { data: existingRequests } = await supabaseAdmin
+      .from('requests')
+      .select('id')
+      .eq('user_id', requesterId);
+    
+    if (existingRequests && existingRequests.length > 0) {
+      const existingRequestIds = existingRequests.map(r => r.id);
+      await supabaseAdmin.from('proposals').delete().in('request_id', existingRequestIds);
+      await supabaseAdmin.from('requests').delete().eq('user_id', requesterId);
+    }
+    
+    // Delete existing messages between demo accounts
+    await supabaseAdmin.from('messages')
+      .delete()
+      .or(`sender_id.eq.${requesterId},sender_id.eq.${providerId}`)
+      .or(`recipient_id.eq.${requesterId},recipient_id.eq.${providerId}`);
+    
+    // Delete existing notifications for demo accounts
+    await supabaseAdmin.from('notifications').delete().eq('user_id', requesterId);
+    await supabaseAdmin.from('notifications').delete().eq('user_id', providerId);
+
+    console.log('Creating sample requests...');
+    
     // Create Sample Requests
     const requestIds = {
       plumbing: crypto.randomUUID(),
@@ -403,8 +431,9 @@ Deno.serve(async (req) => {
       selected_proposal_id: proposalIds.electrical
     }).eq('id', requestIds.electrical);
 
+    console.log('Creating sample messages...');
     // Create Sample Messages
-    await supabaseAdmin.from('messages').insert([
+    const { error: messagesError } = await supabaseAdmin.from('messages').insert([
       {
         sender_id: requesterId,
         recipient_id: providerId,
@@ -502,7 +531,14 @@ Deno.serve(async (req) => {
         created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
       }
     ]);
+    
+    if (messagesError) {
+      console.error('Error creating messages:', messagesError);
+    } else {
+      console.log('Messages created successfully');
+    }
 
+    console.log('Creating sample notifications...');
     // Create Sample Notifications
     await supabaseAdmin.from('notifications').insert([
       {
