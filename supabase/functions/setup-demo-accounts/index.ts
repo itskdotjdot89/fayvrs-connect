@@ -116,15 +116,49 @@ Deno.serve(async (req) => {
       { provider_id: providerId, category: 'Handyman Services' }
     ]);
 
-    // Add Provider Subscription - Set far future expiration (2030) to never expire during review
+    // Add Provider Subscriptions for BOTH demo accounts (for role switching feature)
     await supabaseAdmin.from('provider_subscriptions').delete().eq('provider_id', providerId);
-    await supabaseAdmin.from('provider_subscriptions').insert({
-      provider_id: providerId,
-      plan: 'monthly',
-      status: 'active',
-      started_at: new Date().toISOString(),
-      expires_at: '2030-12-31T23:59:59.000Z'
-    });
+    await supabaseAdmin.from('provider_subscriptions').delete().eq('provider_id', requesterId);
+    await supabaseAdmin.from('provider_subscriptions').insert([
+      {
+        provider_id: providerId,
+        plan: 'monthly',
+        status: 'active',
+        started_at: new Date().toISOString(),
+        expires_at: '2030-12-31T23:59:59.000Z'
+      },
+      {
+        provider_id: requesterId,
+        plan: 'monthly',
+        status: 'active',
+        started_at: new Date().toISOString(),
+        expires_at: '2030-12-31T23:59:59.000Z'
+      }
+    ]);
+
+    // Add Identity Verifications for BOTH demo accounts (approved status for app store review)
+    await supabaseAdmin.from('identity_verifications').delete().eq('user_id', providerId);
+    await supabaseAdmin.from('identity_verifications').delete().eq('user_id', requesterId);
+    await supabaseAdmin.from('identity_verifications').insert([
+      {
+        user_id: providerId,
+        status: 'approved',
+        id_document_url: 'https://placeholder.demo/provider-id-document.jpg',
+        selfie_url: 'https://placeholder.demo/provider-selfie.jpg',
+        submitted_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+        reviewed_at: new Date(Date.now() - 29 * 24 * 60 * 60 * 1000).toISOString(),
+        reviewer_notes: 'Demo account - auto-verified for app store review'
+      },
+      {
+        user_id: requesterId,
+        status: 'approved',
+        id_document_url: 'https://placeholder.demo/requester-id-document.jpg',
+        selfie_url: 'https://placeholder.demo/requester-selfie.jpg',
+        submitted_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+        reviewed_at: new Date(Date.now() - 29 * 24 * 60 * 60 * 1000).toISOString(),
+        reviewer_notes: 'Demo account - auto-verified for app store review'
+      }
+    ]);
 
     // Add Portfolio Items
     await supabaseAdmin.from('portfolio_items').delete().eq('provider_id', providerId);
