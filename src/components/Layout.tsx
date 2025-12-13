@@ -11,7 +11,6 @@ import { NotificationBell } from "./NotificationBell";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "./ui/badge";
-import { ThemeToggle } from "./ThemeToggle";
 interface LayoutProps {
   children: ReactNode;
 }
@@ -110,7 +109,6 @@ export const Layout = ({
             {user ? (
               <>
                 <NotificationBell />
-                <ThemeToggle />
                 <Link to="/post-request">
                   <Button variant="outline" size="sm">Post Request</Button>
                 </Link>
@@ -126,7 +124,6 @@ export const Layout = ({
               </>
             ) : (
               <>
-                <ThemeToggle />
                 <Link to="/auth">
                   <Button size="sm">Get Started</Button>
                 </Link>
@@ -187,10 +184,6 @@ export const Layout = ({
                     </Avatar>
                     Settings
                   </Link>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Theme</span>
-                    <ThemeToggle />
-                  </div>
                   <Link to="/post-request" onClick={() => setMobileMenuOpen(false)}>
                     <Button variant="outline" size="sm" className="w-full">Post Request</Button>
                   </Link>
@@ -198,10 +191,6 @@ export const Layout = ({
                 </>
               ) : (
                 <>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Theme</span>
-                    <ThemeToggle />
-                  </div>
                   <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
                     <Button size="sm" className="w-full">Get Started</Button>
                   </Link>
