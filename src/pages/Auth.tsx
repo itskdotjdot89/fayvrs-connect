@@ -547,9 +547,9 @@ export default function Auth() {
             {isSignUp && <div className="mt-6 pt-6 border-t">
                 <p className="text-xs text-muted-foreground text-center">
                   By creating an account, you agree to our{" "}
-                  <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>
+                  <Link to="/terms-of-service" className="text-primary hover:underline">Terms of Service</Link>
                   {" "}and{" "}
-                  <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
+                  <Link to="/privacy-policy" className="text-primary hover:underline">Privacy Policy</Link>.
                   {" "}Identity verification required for all users.
                 </p>
               </div>}
