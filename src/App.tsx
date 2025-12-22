@@ -34,6 +34,7 @@ const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const CommunityGuidelines = lazy(() => import("./pages/CommunityGuidelines"));
 const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
 const SafetyCenter = lazy(() => import("./pages/SafetyCenter"));
+const Support = lazy(() => import("./pages/Support"));
 const SubscriptionDetails = lazy(() => import("./pages/SubscriptionDetails"));
 const AppStoreReadiness = lazy(() => import("./pages/AppStoreReadiness"));
 const DataDeletion = lazy(() => import("./pages/DataDeletion"));
@@ -106,6 +107,7 @@ const AppContent = () => {
             <Route path="/community-guidelines" element={<CommunityGuidelines />} />
             <Route path="/refund-policy" element={<RefundPolicy />} />
             <Route path="/safety-center" element={<SafetyCenter />} />
+            <Route path="/support" element={<Support />} />
             <Route path="/subscription-details" element={<SubscriptionDetails />} />
             <Route path="/app-store-readiness" element={<AppStoreReadiness />} />
             <Route path="/data-deletion" element={<DataDeletion />} />

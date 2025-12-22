@@ -525,6 +525,11 @@ export default function Settings() {
             <CardTitle>App & Legal</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
+            <Link to="/support">
+              <Button variant="ghost" className="w-full justify-start">
+                Help & Support
+              </Button>
+            </Link>
             <Link to="/safety-center">
               <Button variant="ghost" className="w-full justify-start">
                 Safety Center
