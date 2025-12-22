@@ -257,9 +257,9 @@ export const Layout = ({
                   </Link>
                 </li>
                 <li>
-                  <a href="mailto:contact@fayvrs.com" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                    Contact Support
-                  </a>
+                  <Link to="/support" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                    Help & Support
+                  </Link>
                 </li>
               </ul>
             </div>
