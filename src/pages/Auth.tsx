@@ -189,14 +189,15 @@ export default function Auth() {
         // Clear referral code from localStorage after successful signup
         localStorage.removeItem('referral_code');
         localStorage.removeItem('referral_expires');
-        navigate('/identity-verification');
+        // Navigate to feed instead of forcing verification - verification is optional
+        navigate('/feed');
       }
     } else {
       const {
         error
       } = await signIn(email, password);
       if (!error) {
-        navigate('/identity-verification');
+        navigate('/feed');
       }
     }
     setIsLoading(false);
@@ -216,7 +217,7 @@ export default function Auth() {
         error
       } = await verifyOTP(phone, otp);
       if (!error) {
-        navigate('/identity-verification');
+        navigate('/feed');
       }
     }
     setIsLoading(false);
@@ -453,8 +454,9 @@ export default function Auth() {
                   <Input id="name" placeholder="John Doe" value={fullName} onChange={e => setFullName(e.target.value)} required={isSignUp} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signup-phone">Phone Number</Label>
-                  <Input id="signup-phone" type="tel" placeholder="+1 (555) 123-4567" value={phone} onChange={e => setPhone(e.target.value)} required={isSignUp} />
+                  <Label htmlFor="signup-phone">Phone Number (optional)</Label>
+                  <Input id="signup-phone" type="tel" placeholder="+1 (555) 123-4567" value={phone} onChange={e => setPhone(e.target.value)} />
+                  <p className="text-xs text-muted-foreground">Optional. Used for SMS notifications if enabled.</p>
                 </div>
               </>}
 
@@ -550,7 +552,6 @@ export default function Auth() {
                   <Link to="/terms-of-service" className="text-primary hover:underline">Terms of Service</Link>
                   {" "}and{" "}
                   <Link to="/privacy-policy" className="text-primary hover:underline">Privacy Policy</Link>.
-                  {" "}Identity verification required for all users.
                 </p>
               </div>}
           </CardContent>

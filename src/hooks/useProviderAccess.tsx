@@ -2,6 +2,22 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
+/**
+ * Provider Access Hook
+ * 
+ * APPLE APP STORE COMPLIANCE (Guideline 5.1.1):
+ * - Identity verification is OPTIONAL for basic provider actions
+ * - Verification is only required for:
+ *   1. High-value jobs (configurable threshold, e.g., $200+)
+ *   2. Requesting payouts / connecting payout account
+ *   3. Enabling "Verified Provider" badge
+ * 
+ * This hook provides granular access checks for different scenarios.
+ */
+
+// Configurable threshold for high-value jobs requiring verification
+const HIGH_VALUE_JOB_THRESHOLD = 200;
+
 export const useProviderAccess = () => {
   const { user, subscriptionStatus } = useAuth();
   const [isVerified, setIsVerified] = useState<boolean>(false);
@@ -33,23 +49,61 @@ export const useProviderAccess = () => {
     checkVerification();
   }, [user]);
   
-  const hasProviderAccess = !!(
+  // Basic provider access: user + subscription (verification NOT required)
+  const hasBasicProviderAccess = !!(
+    user && 
+    subscriptionStatus?.subscribed
+  );
+
+  // Full provider access: includes verification (for high-value actions)
+  const hasFullProviderAccess = !!(
     user && 
     isVerified && 
     subscriptionStatus?.subscribed
   );
+
+  // Check if a specific job value requires verification
+  const requiresVerificationForJob = (jobValue?: number) => {
+    if (!jobValue) return false;
+    return jobValue >= HIGH_VALUE_JOB_THRESHOLD;
+  };
+
+  // Check if user can accept a specific job
+  const canAcceptJob = (jobValue?: number) => {
+    if (!hasBasicProviderAccess) return false;
+    if (requiresVerificationForJob(jobValue) && !isVerified) return false;
+    return true;
+  };
+
+  // Actions that ALWAYS require verification
+  const canRequestPayout = isVerified && subscriptionStatus?.subscribed;
+  const canEnableVerifiedBadge = isVerified;
   
   const missingRequirements = {
     needsAuth: !user,
-    needsVerification: user && !isVerified,
-    needsSubscription: user && isVerified && !subscriptionStatus?.subscribed,
+    needsSubscription: user && !subscriptionStatus?.subscribed,
+    // Verification is now optional for basic access
+    needsVerification: false, // Changed from: user && !isVerified
+    // New granular checks
+    needsVerificationForPayout: user && subscriptionStatus?.subscribed && !isVerified,
+    needsVerificationForHighValue: (jobValue?: number) => 
+      user && subscriptionStatus?.subscribed && requiresVerificationForJob(jobValue) && !isVerified,
   };
   
   return { 
-    hasProviderAccess, 
+    // Basic access for proposals (verification optional)
+    hasProviderAccess: hasBasicProviderAccess,
+    // Full access including verification
+    hasFullProviderAccess,
     loading,
     isVerified,
     isSubscribed: subscriptionStatus?.subscribed || false,
-    missingRequirements
+    missingRequirements,
+    // Granular permission checks
+    canAcceptJob,
+    canRequestPayout,
+    canEnableVerifiedBadge,
+    requiresVerificationForJob,
+    HIGH_VALUE_JOB_THRESHOLD,
   };
 };
