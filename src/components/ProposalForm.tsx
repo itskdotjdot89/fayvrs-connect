@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, DollarSign, Sparkles, RefreshCw, AlertCircle } from "lucide-react";
+import { Loader2, DollarSign, Sparkles, RefreshCw, AlertCircle, BadgeCheck, Info } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useProviderAccess } from "@/hooks/useProviderAccess";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -22,17 +22,37 @@ interface ProposalFormProps {
   onSuccess?: () => void;
 }
 
+/**
+ * ProposalForm Component
+ * 
+ * APPLE APP STORE COMPLIANCE (Guideline 5.1.1):
+ * - Verification is NOT required to submit proposals
+ * - Subscription is the only requirement for basic provider access
+ * - High-value job warning is informational only
+ */
+
 export function ProposalForm({ requestId, requestTitle, requestDescription = "", requestBudget, onSuccess }: ProposalFormProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const { hasProviderAccess, missingRequirements } = useProviderAccess();
+  const { 
+    hasProviderAccess, 
+    missingRequirements, 
+    isVerified,
+    requiresVerificationForJob,
+    HIGH_VALUE_JOB_THRESHOLD 
+  } = useProviderAccess();
   const [message, setMessage] = useState("");
   const [price, setPrice] = useState("");
   const [useAI, setUseAI] = useState(false);
   const [providerNotes, setProviderNotes] = useState("");
   const [generatedProposal, setGeneratedProposal] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // Check if current price would require verification
+  const currentPrice = parseFloat(price) || 0;
+  const isHighValueJob = requiresVerificationForJob(currentPrice);
+  const showVerificationWarning = isHighValueJob && !isVerified && currentPrice > 0;
 
   const submitProposalMutation = useMutation({
     mutationFn: async () => {
@@ -142,19 +162,12 @@ export function ProposalForm({ requestId, requestTitle, requestDescription = "",
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {/* Access Requirements Alert - Only shows subscription requirement now */}
         {!hasProviderAccess && (
           <Alert className="mb-4 border-primary/50 bg-primary/5">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription className="flex flex-col gap-2">
               <span className="font-semibold">Provider access required to submit proposals</span>
-              {missingRequirements.needsVerification && (
-                <span className="text-sm">
-                  ✗ Identity verification required. 
-                  <Button variant="link" className="h-auto p-0 ml-1" onClick={() => navigate('/identity-verification')}>
-                    Verify Now
-                  </Button>
-                </span>
-              )}
               {missingRequirements.needsSubscription && (
                 <span className="text-sm">
                   ✗ Active subscription required ($30/month). 
@@ -163,6 +176,36 @@ export function ProposalForm({ requestId, requestTitle, requestDescription = "",
                   </Button>
                 </span>
               )}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Verification Badge Suggestion - Informational only */}
+        {hasProviderAccess && !isVerified && (
+          <Alert className="mb-4 border-muted bg-muted/30">
+            <Info className="h-4 w-4" />
+            <AlertDescription className="flex flex-col gap-1">
+              <span className="text-sm flex items-center gap-1">
+                <BadgeCheck className="h-3 w-3" />
+                Get a "Verified" badge to stand out
+              </span>
+              <span className="text-xs text-muted-foreground">
+                Verified providers get more responses. 
+                <Button variant="link" className="h-auto p-0 ml-1 text-xs" onClick={() => navigate('/identity-verification')}>
+                  Verify Now (optional)
+                </Button>
+              </span>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* High-value job warning - Informational */}
+        {showVerificationWarning && (
+          <Alert className="mb-4 border-amber-500/50 bg-amber-50">
+            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-sm text-amber-800">
+              Jobs over ${HIGH_VALUE_JOB_THRESHOLD} require identity verification to accept. 
+              You can still submit this proposal, but you'll need to verify before the requester can hire you.
             </AlertDescription>
           </Alert>
         )}
@@ -279,20 +322,20 @@ export function ProposalForm({ requestId, requestTitle, requestDescription = "",
                     </p>
                   </div>
 
-              <Button 
-                type="submit" 
-                className="w-full"
-                disabled={submitProposalMutation.isPending || !message.trim() || !price || !hasProviderAccess}
-              >
-                {submitProposalMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  'Submit Proposal'
-                )}
-              </Button>
+                  <Button 
+                    type="submit" 
+                    className="w-full"
+                    disabled={submitProposalMutation.isPending || !message.trim() || !price || !hasProviderAccess}
+                  >
+                    {submitProposalMutation.isPending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Submitting...
+                      </>
+                    ) : (
+                      'Submit Proposal'
+                    )}
+                  </Button>
                 </>
               )}
             </>

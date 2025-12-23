@@ -2,11 +2,22 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Shield, CheckCircle, Upload, Camera, FileCheck } from "lucide-react";
+import { Shield, CheckCircle, Upload, Camera, FileCheck, BadgeCheck, DollarSign, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { WelcomeModal } from "@/components/WelcomeModal";
 import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+
+/**
+ * Identity Verification Page
+ * 
+ * APPLE APP STORE COMPLIANCE (Guideline 5.1.1):
+ * - Verification is OPTIONAL and users can skip it
+ * - Clearly explains WHY verification is beneficial (not required)
+ * - Only required for specific high-trust actions (payouts, high-value jobs, verified badge)
+ */
+
 export default function IdentityVerification() {
   const [uploading, setUploading] = useState(false);
   const [idDocumentFile, setIdDocumentFile] = useState<File | null>(null);
@@ -34,55 +45,57 @@ export default function IdentityVerification() {
     },
     enabled: !!user?.id,
   });
-const validateFile = (file: File, type: 'id' | 'selfie'): boolean => {
-  // Max 100MB
-  if (file.size > 100 * 1024 * 1024) {
-    toast({
-      title: "File too large",
-      description: "File must be less than 100MB",
-      variant: "destructive"
-    });
-    return false;
-  }
-  
-  // Only images
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/heic', 'image/jpg'];
-  if (!allowedTypes.includes(file.type.toLowerCase())) {
-    toast({
-      title: "Invalid file type",
-      description: "Only JPEG, PNG, and HEIC images are allowed",
-      variant: "destructive"
-    });
-    return false;
-  }
-  
-  return true;
-};
 
-const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'id' | 'selfie') => {
-  const file = e.target.files?.[0];
-  if (file) {
-    // Validate file before setting
-    if (!validateFile(file, type)) {
-      // Clear the input
-      e.target.value = '';
-      return;
+  const validateFile = (file: File, type: 'id' | 'selfie'): boolean => {
+    // Max 100MB
+    if (file.size > 100 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "File must be less than 100MB",
+        variant: "destructive"
+      });
+      return false;
     }
     
-    // Create preview
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      if (type === 'id') {
-        setIdPreview(reader.result as string);
-        setIdDocumentFile(file);
-      } else {
-        setSelfiePreview(reader.result as string);
-        setSelfieFile(file);
+    // Only images
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/heic', 'image/jpg'];
+    if (!allowedTypes.includes(file.type.toLowerCase())) {
+      toast({
+        title: "Invalid file type",
+        description: "Only JPEG, PNG, and HEIC images are allowed",
+        variant: "destructive"
+      });
+      return false;
+    }
+    
+    return true;
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'id' | 'selfie') => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file before setting
+      if (!validateFile(file, type)) {
+        // Clear the input
+        e.target.value = '';
+        return;
       }
-    };
-    reader.readAsDataURL(file);
-  }
-};
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (type === 'id') {
+          setIdPreview(reader.result as string);
+          setIdDocumentFile(file);
+        } else {
+          setSelfiePreview(reader.result as string);
+          setSelfieFile(file);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!user) {
       toast({
@@ -134,8 +147,8 @@ const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'id' | '
         .upsert({
           user_id: user.id,
           status: 'pending',
-          id_document_url: idPath,    // Store path, not URL
-          selfie_url: selfiePath,      // Store path, not URL
+          id_document_url: idPath,
+          selfie_url: selfiePath,
           submitted_at: new Date().toISOString()
         });
 
@@ -163,30 +176,57 @@ const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'id' | '
       setUploading(false);
     }
   };
+
   const handleSkip = async () => {
     setIsSkipped(true);
     setShowWelcomeModal(true);
   };
-  return <div className="min-h-screen bg-surface flex items-center justify-center p-6">
-      <div className="w-full max-w-sm space-y-8">
+
+  return (
+    <div className="min-h-screen bg-surface flex items-center justify-center p-6">
+      <div className="w-full max-w-md space-y-6">
         {/* Icon */}
         <div className="flex justify-center">
-          <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-verified to-primary flex items-center justify-center shadow-soft">
-            <Shield className="w-12 h-12 text-white" strokeWidth={2} />
+          <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-verified to-primary flex items-center justify-center shadow-soft">
+            <Shield className="w-10 h-10 text-white" strokeWidth={2} />
           </div>
         </div>
 
-        {/* Title & Description */}
+        {/* Title & Description - Updated messaging */}
         <div className="text-center space-y-3">
           <h1 className="text-2xl font-bold font-poppins text-foreground">
-            Identity Verification Required
+            Identity Verification (Optional)
           </h1>
           <p className="text-muted-foreground">
-            Verify your ID to access full features and build trust in the community.
+            Verify your ID to unlock additional features and build trust in the community.
           </p>
         </div>
 
-        {/* Steps */}
+        {/* Benefits Card - Explain why verification is valuable */}
+        <Card className="border-primary/20 bg-primary/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-primary" />
+              Why Verify?
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex items-start gap-3 text-sm">
+              <BadgeCheck className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+              <span className="text-muted-foreground">Get a "Verified Provider" badge on your profile</span>
+            </div>
+            <div className="flex items-start gap-3 text-sm">
+              <DollarSign className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+              <span className="text-muted-foreground">Required to receive payouts for completed jobs</span>
+            </div>
+            <div className="flex items-start gap-3 text-sm">
+              <Shield className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+              <span className="text-muted-foreground">Accept higher-value jobs ($200+)</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Upload Steps */}
         <div className="bg-white rounded-card p-6 shadow-soft space-y-4">
           <div className="flex items-start gap-4">
             <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center flex-shrink-0">
@@ -252,21 +292,31 @@ const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'id' | '
               )}
             </div>
           </div>
-
-          
         </div>
 
         {/* CTA */}
-        <Button size="lg" className="w-full h-14 rounded-2xl shadow-soft text-base font-semibold" onClick={handleSubmit} disabled={uploading || !idDocumentFile || !selfieFile}>
+        <Button 
+          size="lg" 
+          className="w-full h-14 rounded-2xl shadow-soft text-base font-semibold" 
+          onClick={handleSubmit} 
+          disabled={uploading || !idDocumentFile || !selfieFile}
+        >
           {uploading ? "Uploading..." : "Submit Verification"}
         </Button>
 
-        {/* Skip Link */}
-        <p className="text-center text-sm text-muted-foreground">
-          <button onClick={handleSkip} className="hover:text-primary transition-colors">
-            I'll do this later
-          </button>
-        </p>
+        {/* Skip Link - More prominent */}
+        <div className="text-center space-y-2">
+          <Button 
+            variant="ghost" 
+            onClick={handleSkip}
+            className="text-muted-foreground hover:text-primary"
+          >
+            Skip for now
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            You can verify later from your Settings when needed
+          </p>
+        </div>
       </div>
 
       <WelcomeModal
@@ -275,5 +325,6 @@ const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'id' | '
         role={userRole || 'requester'}
         isSkipped={isSkipped}
       />
-    </div>;
+    </div>
+  );
 }

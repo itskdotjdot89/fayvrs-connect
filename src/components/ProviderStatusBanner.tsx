@@ -2,10 +2,18 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useProviderAccess } from "@/hooks/useProviderAccess";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Shield, CreditCard, Clock, CheckCircle } from "lucide-react";
+import { Shield, CreditCard, Clock, CheckCircle, BadgeCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+
+/**
+ * ProviderStatusBanner Component
+ * 
+ * APPLE APP STORE COMPLIANCE (Guideline 5.1.1):
+ * - Only shows subscription requirement as blocking
+ * - Verification is shown as optional/recommended, not required
+ */
 
 export function ProviderStatusBanner() {
   const { user, activeRole } = useAuth();
@@ -26,56 +34,63 @@ export function ProviderStatusBanner() {
     enabled: !!user?.id && activeRole === 'provider',
   });
 
-  // Don't show banner if not a provider or has full access
-  if (activeRole !== 'provider' || hasProviderAccess) {
+  // Don't show banner if not a provider
+  if (activeRole !== 'provider') {
     return null;
   }
 
-  // Determine banner state and content
-  let icon = <Shield className="h-4 w-4" />;
-  let title = "";
-  let description = "";
-  let actionButton = null;
-
-  if (!isVerified) {
-    if (verificationStatus === 'pending') {
-      icon = <Clock className="h-4 w-4" />;
-      title = "Verification Pending";
-      description = "We're reviewing your verification documents (typically 24-48 hours). You can browse requests but can't respond yet.";
-    } else {
-      icon = <Shield className="h-4 w-4" />;
-      title = "Verification Required";
-      description = "Complete identity verification to start responding to requests and earning commissions.";
-      actionButton = (
-        <Link to="/identity-verification">
-          <Button size="sm" variant="default">
-            Verify Now
-          </Button>
-        </Link>
-      );
-    }
-  } else if (!isSubscribed) {
-    icon = <CreditCard className="h-4 w-4" />;
-    title = "Subscription Required";
-    description = "You're verified! Subscribe to start responding to requests and receiving leads.";
-    actionButton = (
-      <Link to="/provider-checkout">
-        <Button size="sm" variant="default">
-          Subscribe Now
-        </Button>
-      </Link>
+  // Show subscription requirement (blocking)
+  if (!isSubscribed) {
+    return (
+      <Alert className="mb-4 border-primary/50 bg-primary/5">
+        <div className="flex items-center gap-2">
+          <CreditCard className="h-4 w-4" />
+          <AlertDescription className="flex-1">
+            <span className="font-semibold">Subscription Required:</span> Subscribe to start responding to requests and receiving leads.
+          </AlertDescription>
+          <Link to="/provider-checkout">
+            <Button size="sm" variant="default">
+              Subscribe Now
+            </Button>
+          </Link>
+        </div>
+      </Alert>
     );
   }
 
-  return (
-    <Alert className="mb-4 border-primary/50 bg-primary/5">
-      <div className="flex items-center gap-2">
-        {icon}
-        <AlertDescription className="flex-1">
-          <span className="font-semibold">{title}:</span> {description}
-        </AlertDescription>
-        {actionButton}
-      </div>
-    </Alert>
-  );
+  // Show verification as optional/pending (not blocking)
+  if (!isVerified) {
+    if (verificationStatus === 'pending') {
+      return (
+        <Alert className="mb-4 border-amber-500/30 bg-amber-50">
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="flex-1 text-amber-800">
+              <span className="font-semibold">Verification Pending:</span> We're reviewing your documents (24-48 hours). You can submit proposals in the meantime!
+            </AlertDescription>
+          </div>
+        </Alert>
+      );
+    } else {
+      // Optional verification suggestion
+      return (
+        <Alert className="mb-4 border-muted bg-muted/30">
+          <div className="flex items-center gap-2">
+            <BadgeCheck className="h-4 w-4 text-muted-foreground" />
+            <AlertDescription className="flex-1">
+              <span className="font-semibold">Get Verified (Optional):</span> Stand out with a verified badge and accept high-value jobs.
+            </AlertDescription>
+            <Link to="/identity-verification">
+              <Button size="sm" variant="outline">
+                Verify Now
+              </Button>
+            </Link>
+          </div>
+        </Alert>
+      );
+    }
+  }
+
+  // Verified and subscribed - show success
+  return null;
 }
