@@ -42,6 +42,8 @@ const ReferralLanding = lazy(() => import("./pages/ReferralLanding"));
 const ReferralDashboard = lazy(() => import("./pages/ReferralDashboard"));
 const PublicProfile = lazy(() => import("./pages/PublicProfile"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
+const ProviderPaywall = lazy(() => import("./pages/ProviderPaywall"));
+const CustomerCenter = lazy(() => import("./pages/CustomerCenter"));
 
 // Admin pages - lazy loaded
 const KYCReview = lazy(() => import("./pages/admin/KYCReview"));
@@ -114,6 +116,8 @@ const AppContent = () => {
             <Route path="/r/:code" element={<ReferralLanding />} />
             <Route path="/referrals" element={<ProtectedRoute><ReferralDashboard /></ProtectedRoute>} />
             <Route path="/profile/:username" element={<PublicProfile />} />
+            <Route path="/provider-paywall" element={<ProviderPaywall />} />
+            <Route path="/customer-center" element={<ProtectedRoute><CustomerCenter /></ProtectedRoute>} />
             <Route path="/admin/kyc-review" element={
               <ProtectedRoute requiredRole="admin">
                 <KYCReview />

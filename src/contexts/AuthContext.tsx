@@ -2,12 +2,14 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { isNative } from '@/utils/platform';
 
 interface SubscriptionStatus {
   subscribed: boolean;
   product_id?: string;
   plan?: 'monthly' | 'yearly';
   subscription_end?: string;
+  source?: 'stripe' | 'apple' | 'google';
 }
 
 interface AuthContextType {
@@ -118,8 +120,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Check subscription whenever session changes
+  // On native platforms, RevenueCat handles subscription checking via useRevenueCat hook
+  // This effect handles web subscription checking via Stripe
   useEffect(() => {
     const checkSubscription = async () => {
+      // Skip Stripe check on native platforms - RevenueCat handles this
+      if (isNative()) {
+        return;
+      }
+
       // Always get a fresh session to avoid using expired tokens
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       
@@ -136,7 +145,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         });
 
         if (error) throw error;
-        setSubscriptionStatus(data);
+        setSubscriptionStatus({ ...data, source: 'stripe' });
       } catch (error) {
         console.error('Error checking subscription:', error);
         setSubscriptionStatus(null);
@@ -145,8 +154,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     checkSubscription();
 
-    // Periodic subscription check (every 60 seconds)
-    if (!session) return;
+    // Periodic subscription check (every 60 seconds) - only on web
+    if (!session || isNative()) return;
 
     const interval = setInterval(() => {
       checkSubscription();
