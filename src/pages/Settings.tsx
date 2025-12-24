@@ -8,20 +8,27 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
-import { Upload, Loader2, User, Bell, Mail, MessageSquare, AtSign, CheckCircle2 } from "lucide-react";
+import { Upload, Loader2, User, Bell, Mail, MessageSquare, AtSign, CheckCircle2, Crown, RotateCcw } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import VerificationStatus from "@/components/VerificationStatus";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { isNative, getSubscriptionManagementUrl } from "@/utils/platform";
+import { useRevenueCat } from "@/hooks/useRevenueCat";
 
 export default function Settings() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [uploading, setUploading] = useState(false);
   const [username, setUsername] = useState("");
   const [usernameError, setUsernameError] = useState("");
+  const [isRestoring, setIsRestoring] = useState(false);
+  
+  // RevenueCat for native subscription management
+  const { isProSubscriber, restorePurchases, isInitialized } = useRevenueCat();
 
   // Fetch notification preferences
   const { data: preferences } = useQuery({
@@ -540,6 +547,36 @@ export default function Settings() {
                 Subscription Details
               </Button>
             </Link>
+            {isNative() && (
+              <>
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start"
+                  onClick={() => navigate('/customer-center')}
+                >
+                  <Crown className="h-4 w-4 mr-2" />
+                  Manage Subscription
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start"
+                  onClick={async () => {
+                    setIsRestoring(true);
+                    const result = await restorePurchases();
+                    setIsRestoring(false);
+                    toast({
+                      title: result.success ? "Purchases restored" : "No purchases found",
+                      description: result.success ? "Your previous purchases have been restored." : "No previous purchases were found.",
+                      variant: result.success ? "default" : "destructive",
+                    });
+                  }}
+                  disabled={isRestoring}
+                >
+                  {isRestoring ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RotateCcw className="h-4 w-4 mr-2" />}
+                  Restore Purchases
+                </Button>
+              </>
+            )}
             <Link to="/data-deletion">
               <Button variant="ghost" className="w-full justify-start">
                 Data Deletion Information
