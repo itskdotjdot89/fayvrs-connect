@@ -16,6 +16,7 @@ import VerificationStatus from "@/components/VerificationStatus";
 import { Link, useNavigate } from "react-router-dom";
 import { isNative, getSubscriptionManagementUrl } from "@/utils/platform";
 import { useRevenueCat } from "@/hooks/useRevenueCat";
+import { SMSOptInDialog } from "@/components/SMSOptInDialog";
 
 export default function Settings() {
   const { user } = useAuth();
@@ -26,7 +27,8 @@ export default function Settings() {
   const [username, setUsername] = useState("");
   const [usernameError, setUsernameError] = useState("");
   const [isRestoring, setIsRestoring] = useState(false);
-  
+  const [showSMSDialog, setShowSMSDialog] = useState(false);
+  const [isSavingPhone, setIsSavingPhone] = useState(false);
   // RevenueCat for native subscription management
   const { isProSubscriber, restorePurchases, isInitialized } = useRevenueCat();
 
@@ -472,15 +474,70 @@ export default function Settings() {
                   <Label htmlFor="sms" className="text-sm font-medium cursor-pointer">
                     SMS Notifications
                   </Label>
-                  <p className="text-xs text-muted-foreground">Receive text messages for important updates</p>
+                  <p className="text-xs text-muted-foreground">
+                    {profile?.phone 
+                      ? `Receive texts at ${profile.phone}` 
+                      : "Add your phone to receive text messages"
+                    }
+                  </p>
                 </div>
               </div>
               <Switch
                 id="sms"
                 checked={preferences?.sms_enabled ?? false}
-                onCheckedChange={(checked) => updatePreferencesMutation.mutate({ sms_enabled: checked })}
+                onCheckedChange={(checked) => {
+                  // Apple App Store Guideline 5.1.1: Only request phone when enabling SMS
+                  if (checked && !profile?.phone) {
+                    // Show dialog to collect phone number
+                    setShowSMSDialog(true);
+                  } else {
+                    updatePreferencesMutation.mutate({ sms_enabled: checked });
+                  }
+                }}
               />
             </div>
+
+            {/* SMS Opt-In Dialog */}
+            <SMSOptInDialog
+              open={showSMSDialog}
+              onOpenChange={(open) => {
+                if (!open) setShowSMSDialog(false);
+              }}
+              isLoading={isSavingPhone}
+              onSubmit={async (phone) => {
+                setIsSavingPhone(true);
+                try {
+                  // Save phone number to profile
+                  const { error: phoneError } = await supabase
+                    .from('profiles')
+                    .update({ phone })
+                    .eq('id', user?.id);
+
+                  if (phoneError) throw phoneError;
+
+                  // Enable SMS notifications
+                  await updatePreferencesMutation.mutateAsync({ sms_enabled: true });
+                  
+                  // Refresh profile data
+                  queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
+                  
+                  toast({
+                    title: "SMS Enabled",
+                    description: "You'll now receive SMS notifications for important updates.",
+                  });
+                  
+                  setShowSMSDialog(false);
+                } catch (error) {
+                  toast({
+                    title: "Error",
+                    description: "Failed to save phone number. Please try again.",
+                    variant: "destructive",
+                  });
+                } finally {
+                  setIsSavingPhone(false);
+                }
+              }}
+            />
 
             <Separator />
 

@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { useProviderAccess } from "@/hooks/useProviderAccess";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useNavigate } from "react-router-dom";
+import { isNative } from "@/utils/platform";
 
 interface ProposalFormProps {
   requestId: string;
@@ -171,7 +172,7 @@ export function ProposalForm({ requestId, requestTitle, requestDescription = "",
               {missingRequirements.needsSubscription && (
                 <span className="text-sm">
                   ✗ Active subscription required ($30/month). 
-                  <Button variant="link" className="h-auto p-0 ml-1" onClick={() => navigate('/provider-checkout')}>
+                  <Button variant="link" className="h-auto p-0 ml-1" onClick={() => navigate(isNative() ? '/provider-paywall' : '/provider-checkout')}>
                     Subscribe Now
                   </Button>
                 </span>
