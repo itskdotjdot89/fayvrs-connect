@@ -1,9 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Link } from "react-router-dom";
-import { ArrowLeft, Check, CreditCard, Shield, ExternalLink } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, Check, CreditCard, Shield, ExternalLink, Apple } from "lucide-react";
+import { isNative } from "@/utils/platform";
 
 export default function SubscriptionDetails() {
+  const navigate = useNavigate();
+  const isNativeApp = isNative();
+
   return (
     <div className="min-h-screen bg-background pb-20">
       <div className="bg-card border-b border-border sticky top-0 z-10">
@@ -132,106 +136,148 @@ export default function SubscriptionDetails() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-primary" />
-              Payment Information
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 text-sm text-muted-foreground">
-            <div>
-              <p className="font-medium text-foreground mb-2">Secure Payment Processing</p>
-              <ul className="list-disc list-inside space-y-1 ml-2">
-                <li>All payments are processed securely by Stripe</li>
-                <li>Fayvrs does not store your credit card information</li>
-                <li>Your payment details are encrypted and secure</li>
-                <li>PCI DSS compliant payment processing</li>
-              </ul>
-            </div>
+        {/* Payment Information - Platform-specific */}
+        {isNativeApp ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Apple className="w-5 h-5 text-primary" />
+                Payment Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm text-muted-foreground">
+              <div>
+                <p className="font-medium text-foreground mb-2">Subscription via Apple</p>
+                <ul className="list-disc list-inside space-y-1 ml-2">
+                  <li>Payments are processed securely by Apple</li>
+                  <li>Subscriptions auto-renew unless cancelled</li>
+                  <li>Manage your subscription in iOS Settings</li>
+                </ul>
+              </div>
 
-            <div>
-              <p className="font-medium text-foreground mb-2">Billing Cycle</p>
-              <ul className="list-disc list-inside space-y-1 ml-2">
-                <li>Monthly plans: Billed on the same day each month</li>
-                <li>Annual plans: Billed once per year on subscription date</li>
-                <li>Automatic renewal unless cancelled</li>
-                <li>Receive email receipt for each payment</li>
-              </ul>
-            </div>
+              <div>
+                <p className="font-medium text-foreground mb-2">Managing Your Subscription</p>
+                <ul className="list-disc list-inside space-y-1 ml-2">
+                  <li>Cancel anytime through iOS Settings → Subscriptions</li>
+                  <li>Update payment method in your Apple ID settings</li>
+                  <li>View payment history in App Store</li>
+                </ul>
+              </div>
 
-            <div>
-              <p className="font-medium text-foreground mb-2">Managing Your Subscription</p>
-              <ul className="list-disc list-inside space-y-1 ml-2">
-                <li>Cancel anytime through your Stripe customer portal</li>
-                <li>Update payment method without losing service</li>
-                <li>Switch between monthly and annual plans</li>
-                <li>View payment history and download invoices</li>
-              </ul>
-            </div>
+              <Button 
+                variant="outline" 
+                className="w-full mt-4"
+                onClick={() => navigate('/customer-center')}
+              >
+                Manage Subscription
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CreditCard className="w-5 h-5 text-primary" />
+                Payment Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm text-muted-foreground">
+              <div>
+                <p className="font-medium text-foreground mb-2">Secure Payment Processing</p>
+                <ul className="list-disc list-inside space-y-1 ml-2">
+                  <li>All payments are processed securely by Stripe</li>
+                  <li>Fayvrs does not store your credit card information</li>
+                  <li>Your payment details are encrypted and secure</li>
+                  <li>PCI DSS compliant payment processing</li>
+                </ul>
+              </div>
 
-            <Button 
-              variant="outline" 
-              className="w-full mt-4"
-              onClick={() => window.open('https://billing.stripe.com/p/login/', '_blank')}
-            >
-              <ExternalLink className="w-4 h-4 mr-2" />
-              Manage Subscription in Stripe
-            </Button>
-          </CardContent>
-        </Card>
+              <div>
+                <p className="font-medium text-foreground mb-2">Billing Cycle</p>
+                <ul className="list-disc list-inside space-y-1 ml-2">
+                  <li>Monthly plans: Billed on the same day each month</li>
+                  <li>Annual plans: Billed once per year on subscription date</li>
+                  <li>Automatic renewal unless cancelled</li>
+                  <li>Receive email receipt for each payment</li>
+                </ul>
+              </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="w-5 h-5 text-primary" />
-              Important Information
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 text-sm text-muted-foreground">
-            <div className="bg-muted/50 rounded-lg p-4">
-              <p className="font-medium text-foreground mb-2">This is NOT an in-app purchase</p>
-              <p>
-                This subscription is for real-world business services and tools, not digital content. 
-                Payments are processed by Stripe, not Apple or Google, in compliance with their terms.
-              </p>
-            </div>
+              <div>
+                <p className="font-medium text-foreground mb-2">Managing Your Subscription</p>
+                <ul className="list-disc list-inside space-y-1 ml-2">
+                  <li>Cancel anytime through your Stripe customer portal</li>
+                  <li>Update payment method without losing service</li>
+                  <li>Switch between monthly and annual plans</li>
+                  <li>View payment history and download invoices</li>
+                </ul>
+              </div>
 
-            <div>
-              <p className="font-medium text-foreground mb-2">What This Subscription Is:</p>
-              <ul className="list-disc list-inside space-y-1 ml-2">
-                <li>Access to business tools and lead generation platform</li>
-                <li>Professional services marketplace membership</li>
-                <li>Real-world service provider tools and features</li>
-                <li>Business-to-business service subscription</li>
-              </ul>
-            </div>
+              <Button 
+                variant="outline" 
+                className="w-full mt-4"
+                onClick={() => window.open('https://billing.stripe.com/p/login/', '_blank')}
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Manage Subscription in Stripe
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
-            <div>
-              <p className="font-medium text-foreground mb-2">Cancellation Policy:</p>
-              <ul className="list-disc list-inside space-y-1 ml-2">
-                <li>Cancel anytime - no cancellation fees</li>
-                <li>Access continues until end of paid period</li>
-                <li>No partial refunds for monthly subscriptions</li>
-                <li>Annual plans: 30-day refund window (see Refund Policy)</li>
-              </ul>
-            </div>
+        {/* Important Information - Platform-specific */}
+        {!isNativeApp && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="w-5 h-5 text-primary" />
+                Important Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm text-muted-foreground">
+              <div className="bg-muted/50 rounded-lg p-4">
+                <p className="font-medium text-foreground mb-2">Web Subscription</p>
+                <p>
+                  This subscription is for real-world business services and tools. 
+                  Payments are processed by Stripe.
+                </p>
+              </div>
 
-            <div className="flex gap-2 flex-wrap mt-4">
-              <Link to="/refund-policy">
-                <Button variant="link" className="p-0 h-auto">
-                  View Refund Policy
-                </Button>
-              </Link>
-              <span className="text-muted-foreground">•</span>
-              <Link to="/terms-of-service">
-                <Button variant="link" className="p-0 h-auto">
-                  Terms of Service
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+              <div>
+                <p className="font-medium text-foreground mb-2">What This Subscription Is:</p>
+                <ul className="list-disc list-inside space-y-1 ml-2">
+                  <li>Access to business tools and lead generation platform</li>
+                  <li>Professional services marketplace membership</li>
+                  <li>Real-world service provider tools and features</li>
+                  <li>Business-to-business service subscription</li>
+                </ul>
+              </div>
+
+              <div>
+                <p className="font-medium text-foreground mb-2">Cancellation Policy:</p>
+                <ul className="list-disc list-inside space-y-1 ml-2">
+                  <li>Cancel anytime - no cancellation fees</li>
+                  <li>Access continues until end of paid period</li>
+                  <li>No partial refunds for monthly subscriptions</li>
+                  <li>Annual plans: 30-day refund window (see Refund Policy)</li>
+                </ul>
+              </div>
+
+              <div className="flex gap-2 flex-wrap mt-4">
+                <Link to="/refund-policy">
+                  <Button variant="link" className="p-0 h-auto">
+                    View Refund Policy
+                  </Button>
+                </Link>
+                <span className="text-muted-foreground">•</span>
+                <Link to="/terms-of-service">
+                  <Button variant="link" className="p-0 h-auto">
+                    Terms of Service
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card className="bg-muted/30">
           <CardHeader>

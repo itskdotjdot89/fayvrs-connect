@@ -165,7 +165,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [session]);
 
   const signUp = async (email: string, password: string, fullName: string, role: 'requester' | 'provider', phone?: string, referralCode?: string) => {
-    const redirectUrl = `${window.location.origin}/identity-verification`;
+    // Apple App Store Guideline 5.1.1: Don't force verification after signup
+    const redirectUrl = `${window.location.origin}/feed`;
     
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -189,7 +190,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } else {
       toast({
         title: "Success!",
-        description: "Account created! Please complete identity verification."
+        description: "Welcome to Fayvrs! Your account has been created."
       });
 
       // Apply referral code if provided
@@ -209,10 +210,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signInWithGoogle = async () => {
+    // Apple App Store Guideline 5.1.1: Don't force verification after OAuth
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/identity-verification`
+        redirectTo: `${window.location.origin}/feed`
       }
     });
 
@@ -228,10 +230,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signInWithApple = async () => {
+    // Apple App Store Guideline 5.1.1: Don't force verification after OAuth
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'apple',
       options: {
-        redirectTo: `${window.location.origin}/identity-verification`
+        redirectTo: `${window.location.origin}/feed`
       }
     });
 

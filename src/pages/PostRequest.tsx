@@ -88,17 +88,12 @@ export default function PostRequest() {
   }, [user]);
 
   useEffect(() => {
+    // Only require authentication, not verification
+    // Apple App Store Guideline 5.1.1: Identity verification is optional
     if (!loading && !user) {
       navigate("/auth");
-    } else if (!checkingVerification && user && isVerified === false) {
-      toast({
-        title: "Verification Required",
-        description: "Please complete identity verification to post requests",
-        variant: "destructive"
-      });
-      navigate("/identity-verification");
     }
-  }, [user, loading, isVerified, checkingVerification, navigate, toast]);
+  }, [user, loading, navigate]);
 
   // Get user's geolocation on mount
   useEffect(() => {

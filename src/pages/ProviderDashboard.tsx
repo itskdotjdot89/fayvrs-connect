@@ -10,6 +10,7 @@ import { useProviderAccess } from "@/hooks/useProviderAccess";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ReferralEarningsCard } from "@/components/ReferralEarningsCard";
 import { Skeleton } from "@/components/ui/skeleton";
+import { isNative } from "@/utils/platform";
 
 export default function ProviderDashboard() {
   const navigate = useNavigate();
@@ -82,34 +83,8 @@ export default function ProviderDashboard() {
     enabled: !!user?.id,
   });
 
-  // Redirect to verification if needed (only block if access check is done)
-  if (!accessLoading && missingRequirements.needsVerification) {
-    return (
-      <div className="min-h-screen bg-surface flex items-center justify-center p-4">
-        <Card className="max-w-md w-full">
-          <CardHeader>
-            <CardTitle>Verification Required</CardTitle>
-            <CardDescription>
-              Complete identity verification to access provider features
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              You can browse requests without verification, but you'll need to verify your identity to:
-            </p>
-            <ul className="text-sm space-y-2 ml-4 list-disc text-muted-foreground">
-              <li>Submit proposals to requests</li>
-              <li>Access the provider dashboard</li>
-              <li>Message requesters</li>
-            </ul>
-            <Button onClick={() => navigate('/identity-verification')} className="w-full">
-              Complete Verification
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  // Apple App Store Guideline 5.1.1: Don't block dashboard access for verification
+  // Verification is only required for payouts and high-value jobs
 
   const stats = [
     { label: "Proposals", value: proposalsCount?.toString() || "0", icon: MessageCircle, color: "text-purple-500", isLoading: loadingProposals },
@@ -165,7 +140,7 @@ export default function ProviderDashboard() {
                 size="sm" 
                 variant="secondary" 
                 className="rounded-xl"
-                onClick={() => navigate('/provider-checkout')}
+                onClick={() => navigate(isNative() ? '/customer-center' : '/provider-checkout')}
               >
                 Manage
               </Button>
@@ -179,7 +154,7 @@ export default function ProviderDashboard() {
             </p>
             <Button 
               className="w-full rounded-xl"
-              onClick={() => navigate('/provider-checkout')}
+              onClick={() => navigate(isNative() ? '/provider-paywall' : '/provider-checkout')}
             >
               Subscribe Now
             </Button>
@@ -291,7 +266,7 @@ export default function ProviderDashboard() {
             </div>
             <Button 
               className="w-full rounded-xl"
-              onClick={() => navigate('/provider-checkout')}
+              onClick={() => navigate(isNative() ? '/provider-paywall' : '/provider-checkout')}
             >
               Upgrade to Annual - $240/year
             </Button>
