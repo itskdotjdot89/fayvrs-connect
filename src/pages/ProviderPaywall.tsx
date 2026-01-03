@@ -207,13 +207,37 @@ export default function ProviderPaywall() {
   // Get available packages based on platform
   const getAvailablePackages = () => {
     if (!offerings?.current) return [];
-    
+
     if (isNative()) {
       return (offerings as PurchasesOfferings).current?.availablePackages || [];
-    } else {
-      return (offerings as WebOfferings).current?.availablePackages || [];
     }
+
+    return (offerings as WebOfferings).current?.availablePackages || [];
   };
+
+  // Auth guard (prevents infinite loading when user is not signed in)
+  if (!user?.id) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="max-w-md w-full">
+          <CardHeader>
+            <CardTitle>Sign in required</CardTitle>
+            <CardDescription>
+              To view and purchase a subscription, please sign in (or create an account).
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button className="w-full" onClick={() => navigate('/auth')}>
+              Continue to Sign In
+            </Button>
+            <Button variant="outline" className="w-full" onClick={() => navigate(-1)}>
+              Go Back
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // Loading state
   if (!isInitialized || isLoading) {
