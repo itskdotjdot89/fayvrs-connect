@@ -10,7 +10,7 @@ import { useProviderAccess } from "@/hooks/useProviderAccess";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ReferralEarningsCard } from "@/components/ReferralEarningsCard";
 import { Skeleton } from "@/components/ui/skeleton";
-import { isNative } from "@/utils/platform";
+
 
 export default function ProviderDashboard() {
   const navigate = useNavigate();
@@ -140,7 +140,7 @@ export default function ProviderDashboard() {
                 size="sm" 
                 variant="secondary" 
                 className="rounded-xl"
-                onClick={() => navigate(isNative() ? '/customer-center' : '/provider-checkout')}
+                onClick={() => navigate('/customer-center')}
               >
                 Manage
               </Button>
@@ -154,7 +154,7 @@ export default function ProviderDashboard() {
             </p>
             <Button 
               className="w-full rounded-xl"
-              onClick={() => navigate(isNative() ? '/provider-paywall' : '/provider-checkout')}
+              onClick={() => navigate('/provider-paywall')}
             >
               Subscribe Now
             </Button>
@@ -266,7 +266,7 @@ export default function ProviderDashboard() {
             </div>
             <Button 
               className="w-full rounded-xl"
-              onClick={() => navigate(isNative() ? '/provider-paywall' : '/provider-checkout')}
+              onClick={() => navigate('/provider-paywall')}
             >
               Upgrade to Annual - $240/year
             </Button>

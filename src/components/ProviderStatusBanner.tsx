@@ -6,7 +6,7 @@ import { Shield, CreditCard, Clock, CheckCircle, BadgeCheck } from "lucide-react
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { isNative } from "@/utils/platform";
+
 
 /**
  * ProviderStatusBanner Component
@@ -49,7 +49,7 @@ export function ProviderStatusBanner() {
           <AlertDescription className="flex-1">
             <span className="font-semibold">Subscription Required:</span> Subscribe to start responding to requests and receiving leads.
           </AlertDescription>
-          <Link to={isNative() ? "/provider-paywall" : "/provider-checkout"}>
+          <Link to="/provider-paywall">
             <Button size="sm" variant="default">
               Subscribe Now
             </Button>
