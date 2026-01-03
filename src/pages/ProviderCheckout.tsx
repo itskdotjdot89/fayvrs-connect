@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { isNative } from "@/utils/platform";
+
 
 const SUBSCRIPTION_PLANS = {
   monthly: {
@@ -33,21 +33,17 @@ export default function ProviderCheckout() {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Redirect native users to RevenueCat paywall
+  // Redirect ALL users to RevenueCat paywall (unified payment flow)
   useEffect(() => {
-    if (isNative()) {
-      navigate('/provider-paywall', { replace: true });
-    }
+    navigate('/provider-paywall', { replace: true });
   }, [navigate]);
 
-  // Show loading for native platforms while redirect happens
-  if (isNative()) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  // Show loading while redirect happens
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
+  );
 
   const handleCheckout = async () => {
     if (!session) {

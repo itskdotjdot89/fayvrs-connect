@@ -8,7 +8,7 @@ import { Loader2, Check, Crown, ArrowLeft, RotateCcw } from 'lucide-react';
 import { useRevenueCat, PRODUCT_IDS } from '@/hooks/useRevenueCat';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { isNative, isWeb } from '@/utils/platform';
+import { isNative } from '@/utils/platform';
 
 export default function ProviderPaywall() {
   const navigate = useNavigate();
@@ -54,12 +54,8 @@ export default function ProviderPaywall() {
     }
   }, [isProSubscriber, navigate, toast]);
 
-  // If on web, redirect to Stripe checkout
-  useEffect(() => {
-    if (isWeb()) {
-      navigate('/provider-checkout');
-    }
-  }, [navigate]);
+  // Web users can now use this page - no redirect needed
+  // RevenueCat Web SDK will handle web payments
 
   const handlePresentPaywall = async () => {
     try {
