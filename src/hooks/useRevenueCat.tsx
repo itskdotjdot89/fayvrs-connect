@@ -2,15 +2,37 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Purchases, LOG_LEVEL, PurchasesOfferings, CustomerInfo, PurchasesPackage } from '@revenuecat/purchases-capacitor';
 import { Purchases as PurchasesWebClass } from '@revenuecat/purchases-js';
 import { isNative } from '@/utils/platform';
+import { supabase } from '@/integrations/supabase/client';
 
 // RevenueCat configuration
 const REVENUECAT_NATIVE_API_KEY = 'test_gCfXtDhlnIpvuRkUHaiDhCwdhwc';
-const REVENUECAT_WEB_API_KEY: string = 'YOUR_WEB_API_KEY'; // TODO: Replace with your RevenueCat Web API Key
 const ENTITLEMENT_ID = 'Fayvrs Pro';
 
+// Cached web API key
+let cachedWebApiKey: string | null = null;
+
+// Fetch web API key from edge function
+const fetchWebApiKey = async (): Promise<string | null> => {
+  if (cachedWebApiKey) return cachedWebApiKey;
+  
+  try {
+    const { data, error } = await supabase.functions.invoke('get-revenuecat-web-key');
+    if (error) {
+      console.error('[RevenueCat] Failed to fetch web API key:', error);
+      return null;
+    }
+    cachedWebApiKey = data?.apiKey || null;
+    return cachedWebApiKey;
+  } catch (err) {
+    console.error('[RevenueCat] Error fetching web API key:', err);
+    return null;
+  }
+};
+
 // Check if web API key is configured
-export const isWebApiKeyConfigured = (): boolean => {
-  return REVENUECAT_WEB_API_KEY !== 'YOUR_WEB_API_KEY' && REVENUECAT_WEB_API_KEY !== '';
+export const isWebApiKeyConfigured = async (): Promise<boolean> => {
+  const apiKey = await fetchWebApiKey();
+  return !!apiKey;
 };
 
 // Product identifiers
@@ -148,7 +170,10 @@ export const useRevenueCat = (): UseRevenueCatReturn => {
         });
       } else {
         // Web initialization
-        if (!isWebApiKeyConfigured()) {
+        console.log('[RevenueCat Web] Fetching API key...');
+        const webApiKey = await fetchWebApiKey();
+        
+        if (!webApiKey) {
           console.warn('[RevenueCat Web] API key not configured - subscriptions will not work');
           setState({
             isInitialized: true,
@@ -164,7 +189,7 @@ export const useRevenueCat = (): UseRevenueCatReturn => {
         console.log('[RevenueCat Web] Initializing...');
         
         webPurchasesInstance = PurchasesWebClass.configure(
-          REVENUECAT_WEB_API_KEY,
+          webApiKey,
           userId || 'anonymous'
         );
 
