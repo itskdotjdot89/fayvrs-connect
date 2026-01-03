@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { isNative } from "@/utils/platform";
 
 const SUBSCRIPTION_PLANS = {
   monthly: {
@@ -31,6 +32,22 @@ export default function ProviderCheckout() {
   const { session, subscriptionStatus } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Redirect native users to RevenueCat paywall
+  useEffect(() => {
+    if (isNative()) {
+      navigate('/provider-paywall', { replace: true });
+    }
+  }, [navigate]);
+
+  // Show loading for native platforms while redirect happens
+  if (isNative()) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const handleCheckout = async () => {
     if (!session) {
