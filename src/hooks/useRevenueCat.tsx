@@ -5,8 +5,13 @@ import { isNative } from '@/utils/platform';
 
 // RevenueCat configuration
 const REVENUECAT_NATIVE_API_KEY = 'test_gCfXtDhlnIpvuRkUHaiDhCwdhwc';
-const REVENUECAT_WEB_API_KEY = 'YOUR_WEB_API_KEY'; // TODO: Replace with your RevenueCat Web API Key
+const REVENUECAT_WEB_API_KEY: string = 'YOUR_WEB_API_KEY'; // TODO: Replace with your RevenueCat Web API Key
 const ENTITLEMENT_ID = 'Fayvrs Pro';
+
+// Check if web API key is configured
+export const isWebApiKeyConfigured = (): boolean => {
+  return REVENUECAT_WEB_API_KEY !== 'YOUR_WEB_API_KEY' && REVENUECAT_WEB_API_KEY !== '';
+};
 
 // Product identifiers
 export const PRODUCT_IDS = {
@@ -143,6 +148,19 @@ export const useRevenueCat = (): UseRevenueCatReturn => {
         });
       } else {
         // Web initialization
+        if (!isWebApiKeyConfigured()) {
+          console.warn('[RevenueCat Web] API key not configured - subscriptions will not work');
+          setState({
+            isInitialized: true,
+            isLoading: false,
+            error: 'RevenueCat Web API key not configured. Please set up your RevenueCat Web Billing API key.',
+            customerInfo: null,
+            offerings: null,
+            isProSubscriber: false,
+          });
+          return;
+        }
+
         console.log('[RevenueCat Web] Initializing...');
         
         webPurchasesInstance = PurchasesWebClass.configure(
