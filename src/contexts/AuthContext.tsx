@@ -120,15 +120,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Check subscription whenever session changes
-  // On native platforms, RevenueCat handles subscription checking via useRevenueCat hook
-  // This effect handles web subscription checking via Stripe
+  // This is a fallback/sync mechanism - RevenueCat now handles both native and web subscriptions
+  // This edge function syncs the subscription status to the database for server-side checks
   useEffect(() => {
-    const checkSubscription = async () => {
-      // Skip Stripe check on native platforms - RevenueCat handles this
-      if (isNative()) {
-        return;
-      }
-
+    const syncSubscriptionStatus = async () => {
       // Always get a fresh session to avoid using expired tokens
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       
@@ -138,6 +133,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       try {
+        // Call check-subscription to sync database records
+        // RevenueCat webhook will also update this, but this provides immediate feedback
         const { data, error } = await supabase.functions.invoke('check-subscription', {
           headers: {
             Authorization: `Bearer ${currentSession.access_token}`
@@ -145,20 +142,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         });
 
         if (error) throw error;
-        setSubscriptionStatus({ ...data, source: 'stripe' });
+        
+        // Determine source based on platform
+        const source = isNative() 
+          ? (data.source || 'apple') 
+          : (data.source || 'stripe');
+        
+        setSubscriptionStatus({ ...data, source });
       } catch (error) {
-        console.error('Error checking subscription:', error);
-        setSubscriptionStatus(null);
+        console.error('Error syncing subscription status:', error);
+        // Don't clear subscription status on error - RevenueCat is the source of truth
       }
     };
 
-    checkSubscription();
+    syncSubscriptionStatus();
 
-    // Periodic subscription check (every 60 seconds) - only on web
-    if (!session || isNative()) return;
+    // Periodic subscription sync (every 60 seconds)
+    if (!session) return;
 
     const interval = setInterval(() => {
-      checkSubscription();
+      syncSubscriptionStatus();
     }, 60000);
 
     return () => clearInterval(interval);

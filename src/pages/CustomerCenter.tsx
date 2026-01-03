@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RevenueCatUI } from '@revenuecat/purchases-capacitor-ui';
+import { CustomerInfo } from '@revenuecat/purchases-capacitor';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, ArrowLeft, CreditCard, RefreshCw, HelpCircle } from 'lucide-react';
-import { useRevenueCat } from '@/hooks/useRevenueCat';
+import { useRevenueCat, WebCustomerInfo } from '@/hooks/useRevenueCat';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { isNative, isWeb, getSubscriptionManagementUrl } from '@/utils/platform';
@@ -27,9 +28,9 @@ export default function CustomerCenter() {
   const [isRestoring, setIsRestoring] = useState(false);
   const [showingCustomerCenter, setShowingCustomerCenter] = useState(false);
 
-  // Initialize RevenueCat when component mounts
+  // Initialize RevenueCat when component mounts (both native and web now)
   useEffect(() => {
-    if (isNative() && user?.id) {
+    if (user?.id) {
       initialize(user.id);
     }
   }, [user?.id, initialize]);
@@ -41,14 +42,13 @@ export default function CustomerCenter() {
     }
   }, [isInitialized, user?.id, identifyUser]);
 
-  // If on web, redirect to settings
-  useEffect(() => {
-    if (isWeb()) {
-      navigate('/settings');
-    }
-  }, [navigate]);
-
   const handlePresentCustomerCenter = async () => {
+    if (!isNative()) {
+      // On web, navigate to settings or open management URL
+      navigate('/settings');
+      return;
+    }
+    
     try {
       setShowingCustomerCenter(true);
       
@@ -106,8 +106,32 @@ export default function CustomerCenter() {
     );
   }
 
-  // Get subscription details
-  const activeSubscriptions = customerInfo?.activeSubscriptions || [];
+  // Helper functions to safely access properties that may differ between native and web
+  const getActiveSubscriptions = (): string[] => {
+    if (!customerInfo) return [];
+    if (isNative()) {
+      return (customerInfo as CustomerInfo).activeSubscriptions || [];
+    }
+    // For web, derive from active entitlements
+    const webInfo = customerInfo as WebCustomerInfo;
+    return Object.keys(webInfo.entitlements.active).map(key => 
+      webInfo.entitlements.active[key].productIdentifier
+    );
+  };
+
+  const getExpirationDate = (): string | null => {
+    if (!customerInfo) return null;
+    if (isNative()) {
+      return (customerInfo as CustomerInfo).latestExpirationDate || null;
+    }
+    // For web, get from first active entitlement
+    const webInfo = customerInfo as WebCustomerInfo;
+    const firstEntitlement = Object.values(webInfo.entitlements.active)[0];
+    return firstEntitlement?.expirationDate || null;
+  };
+
+  const activeSubscriptions = getActiveSubscriptions();
+  const expirationDate = getExpirationDate();
   const managementUrl = customerInfo?.managementURL;
 
   return (
@@ -157,11 +181,11 @@ export default function CustomerCenter() {
                     </span>
                   </div>
                 )}
-                {customerInfo?.latestExpirationDate && (
+                {expirationDate && (
                   <div className="flex items-center justify-between">
                     <span className="text-foreground">Renews</span>
                     <span className="text-muted-foreground">
-                      {new Date(customerInfo.latestExpirationDate).toLocaleDateString()}
+                      {new Date(expirationDate).toLocaleDateString()}
                     </span>
                   </div>
                 )}

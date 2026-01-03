@@ -5,10 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Check, Crown, ArrowLeft, RotateCcw } from 'lucide-react';
-import { useRevenueCat, PRODUCT_IDS } from '@/hooks/useRevenueCat';
+import { useRevenueCat, PRODUCT_IDS, WebPackage, WebOfferings } from '@/hooks/useRevenueCat';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { isNative } from '@/utils/platform';
+import { isNative, isIOS, isAndroid } from '@/utils/platform';
+import { PurchasesOfferings, PurchasesPackage } from '@revenuecat/purchases-capacitor';
 
 export default function ProviderPaywall() {
   const navigate = useNavigate();
@@ -28,10 +29,11 @@ export default function ProviderPaywall() {
   
   const [isRestoring, setIsRestoring] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [isPurchasing, setIsPurchasing] = useState(false);
 
-  // Initialize RevenueCat when component mounts
+  // Initialize RevenueCat when component mounts (both native and web)
   useEffect(() => {
-    if (isNative() && user?.id) {
+    if (user?.id) {
       initialize(user.id);
     }
   }, [user?.id, initialize]);
@@ -54,31 +56,32 @@ export default function ProviderPaywall() {
     }
   }, [isProSubscriber, navigate, toast]);
 
-  // Web users can now use this page - no redirect needed
-  // RevenueCat Web SDK will handle web payments
-
   const handlePresentPaywall = async () => {
-    try {
-      setShowPaywall(true);
-      
-      // Present the RevenueCat paywall
-      const paywallResult = await RevenueCatUI.presentPaywall();
-      
-      console.log('[ProviderPaywall] Paywall result:', paywallResult);
-      
-      // Check if purchase was made
-      if (paywallResult.result === PAYWALL_RESULT.PURCHASED || paywallResult.result === PAYWALL_RESULT.RESTORED) {
-        toast({
-          title: "Welcome to Fayvrs Pro!",
-          description: "Your subscription is now active.",
-        });
-        navigate('/feed');
+    if (isNative()) {
+      // Native: use RevenueCat UI paywall
+      try {
+        setShowPaywall(true);
+        
+        const paywallResult = await RevenueCatUI.presentPaywall();
+        
+        console.log('[ProviderPaywall] Paywall result:', paywallResult);
+        
+        if (paywallResult.result === PAYWALL_RESULT.PURCHASED || paywallResult.result === PAYWALL_RESULT.RESTORED) {
+          toast({
+            title: "Welcome to Fayvrs Pro!",
+            description: "Your subscription is now active.",
+          });
+          navigate('/feed');
+        }
+      } catch (error: any) {
+        console.error('[ProviderPaywall] Error presenting paywall:', error);
+      } finally {
+        setShowPaywall(false);
       }
-    } catch (error: any) {
-      console.error('[ProviderPaywall] Error presenting paywall:', error);
-      // User may have cancelled, which is fine
-    } finally {
-      setShowPaywall(false);
+    } else {
+      // Web: scroll to subscription options
+      const subscriptionSection = document.getElementById('subscription-options');
+      subscriptionSection?.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
@@ -111,34 +114,104 @@ export default function ProviderPaywall() {
       return;
     }
 
-    // Find the package by product ID
-    const pkg = offerings.current.availablePackages.find(
-      p => p.product.identifier === productId
-    );
+    setIsPurchasing(true);
 
-    if (!pkg) {
-      toast({
-        title: "Error",
-        description: "Subscription package not found.",
-        variant: "destructive",
-      });
-      return;
+    try {
+      if (isNative()) {
+        // Native purchase
+        const nativeOfferings = offerings as PurchasesOfferings;
+        const pkg = nativeOfferings.current?.availablePackages.find(
+          (p: PurchasesPackage) => p.product.identifier === productId
+        );
+
+        if (!pkg) {
+          toast({
+            title: "Error",
+            description: "Subscription package not found.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const result = await purchasePackage(pkg);
+
+        if (result.success) {
+          toast({
+            title: "Welcome to Fayvrs Pro!",
+            description: "Your subscription is now active.",
+          });
+          navigate('/feed');
+        } else if (result.error !== 'Purchase was cancelled') {
+          toast({
+            title: "Purchase failed",
+            description: result.error,
+            variant: "destructive",
+          });
+        }
+      } else {
+        // Web purchase
+        const webOfferings = offerings as WebOfferings;
+        const pkg = webOfferings.current?.availablePackages.find(
+          (p: WebPackage) => p.rcBillingProduct.identifier === productId
+        );
+
+        if (!pkg) {
+          toast({
+            title: "Error",
+            description: "Subscription package not found.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const result = await purchasePackage(pkg);
+
+        if (result.success) {
+          toast({
+            title: "Welcome to Fayvrs Pro!",
+            description: "Your subscription is now active.",
+          });
+          navigate('/feed');
+        } else if (result.error !== 'Purchase was cancelled') {
+          toast({
+            title: "Purchase failed",
+            description: result.error,
+            variant: "destructive",
+          });
+        }
+      }
+    } finally {
+      setIsPurchasing(false);
     }
+  };
 
-    const result = await purchasePackage(pkg);
+  // Helper to get package display info (works for both native and web)
+  const getPackageInfo = (pkg: PurchasesPackage | WebPackage) => {
+    if ('product' in pkg) {
+      // Native package
+      return {
+        identifier: pkg.product.identifier,
+        priceString: pkg.product.priceString,
+        isYearly: pkg.product.identifier === PRODUCT_IDS.yearly,
+      };
+    } else {
+      // Web package
+      return {
+        identifier: pkg.rcBillingProduct.identifier,
+        priceString: pkg.rcBillingProduct.currentPrice.formattedPrice,
+        isYearly: pkg.rcBillingProduct.identifier === PRODUCT_IDS.yearly,
+      };
+    }
+  };
 
-    if (result.success) {
-      toast({
-        title: "Welcome to Fayvrs Pro!",
-        description: "Your subscription is now active.",
-      });
-      navigate('/feed');
-    } else if (result.error !== 'Purchase was cancelled') {
-      toast({
-        title: "Purchase failed",
-        description: result.error,
-        variant: "destructive",
-      });
+  // Get available packages based on platform
+  const getAvailablePackages = () => {
+    if (!offerings?.current) return [];
+    
+    if (isNative()) {
+      return (offerings as PurchasesOfferings).current?.availablePackages || [];
+    } else {
+      return (offerings as WebOfferings).current?.availablePackages || [];
     }
   };
 
@@ -185,6 +258,19 @@ export default function ProviderPaywall() {
     'Access to premium requests',
   ];
 
+  const availablePackages = getAvailablePackages();
+
+  // Get payment method text based on platform
+  const getPaymentMethodText = () => {
+    if (isIOS()) {
+      return "Subscriptions will be charged to your Apple ID account at confirmation of purchase.";
+    } else if (isAndroid()) {
+      return "Subscriptions will be charged to your Google Play account at confirmation of purchase.";
+    } else {
+      return "Subscriptions will be charged to your payment method via Stripe at confirmation of purchase.";
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/50 p-4">
       <div className="max-w-lg mx-auto pt-8">
@@ -229,56 +315,72 @@ export default function ProviderPaywall() {
           </CardContent>
         </Card>
 
-        {/* CTA - Present Paywall */}
-        <Button 
-          onClick={handlePresentPaywall}
-          className="w-full h-14 text-lg mb-4"
-          disabled={showPaywall}
-        >
-          {showPaywall ? (
-            <>
-              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-              Loading...
-            </>
-          ) : (
-            'View Subscription Options'
-          )}
-        </Button>
+        {/* CTA - Present Paywall (native) or scroll to options (web) */}
+        {isNative() && (
+          <Button 
+            onClick={handlePresentPaywall}
+            className="w-full h-14 text-lg mb-4"
+            disabled={showPaywall}
+          >
+            {showPaywall ? (
+              <>
+                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              'View Subscription Options'
+            )}
+          </Button>
+        )}
 
-        {/* Manual subscription options (fallback) */}
-        {offerings?.current && (
-          <div className="space-y-3 mb-6">
+        {/* Subscription options */}
+        <div id="subscription-options" className="space-y-3 mb-6">
+          {!isNative() && (
+            <h3 className="text-lg font-semibold text-center text-foreground mb-4">
+              Choose Your Plan
+            </h3>
+          )}
+          {isNative() && availablePackages.length > 0 && (
             <p className="text-sm text-center text-muted-foreground">
               Or select a plan directly:
             </p>
-            <div className="grid grid-cols-2 gap-3">
-              {offerings.current.availablePackages.map((pkg) => (
+          )}
+          <div className="grid grid-cols-2 gap-3">
+            {availablePackages.map((pkg) => {
+              const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
+              return (
                 <Card 
-                  key={pkg.identifier}
+                  key={info.identifier}
                   className="cursor-pointer hover:border-primary transition-colors"
-                  onClick={() => handleManualPurchase(pkg.product.identifier)}
+                  onClick={() => handleManualPurchase(info.identifier)}
                 >
                   <CardContent className="p-4 text-center">
-                    <p className="font-semibold text-foreground capitalize">
-                      {pkg.product.identifier === PRODUCT_IDS.yearly ? 'Yearly' : 'Monthly'}
-                    </p>
-                    <p className="text-lg font-bold text-primary">
-                      {pkg.product.priceString}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {pkg.product.identifier === PRODUCT_IDS.yearly ? 'per year' : 'per month'}
-                    </p>
-                    {pkg.product.identifier === PRODUCT_IDS.yearly && (
-                      <Badge variant="secondary" className="mt-2 text-xs">
-                        Save 33%
-                      </Badge>
+                    {isPurchasing ? (
+                      <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                    ) : (
+                      <>
+                        <p className="font-semibold text-foreground capitalize">
+                          {info.isYearly ? 'Yearly' : 'Monthly'}
+                        </p>
+                        <p className="text-lg font-bold text-primary">
+                          {info.priceString}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {info.isYearly ? 'per year' : 'per month'}
+                        </p>
+                        {info.isYearly && (
+                          <Badge variant="secondary" className="mt-2 text-xs">
+                            Save 33%
+                          </Badge>
+                        )}
+                      </>
                     )}
                   </CardContent>
                 </Card>
-              ))}
-            </div>
+              );
+            })}
           </div>
-        )}
+        </div>
 
         {/* Restore purchases */}
         <Button
@@ -302,9 +404,7 @@ export default function ProviderPaywall() {
 
         {/* Terms */}
         <div className="mt-8 text-center text-xs text-muted-foreground space-y-2">
-          <p>
-            Subscriptions will be charged to your Apple ID account at confirmation of purchase.
-          </p>
+          <p>{getPaymentMethodText()}</p>
           <p>
             Subscription automatically renews unless canceled at least 24 hours before the end of the current period.
           </p>
