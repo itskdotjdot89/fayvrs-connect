@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Purchases, LOG_LEVEL, PurchasesOfferings, CustomerInfo, PurchasesPackage } from '@revenuecat/purchases-capacitor';
+import { Purchases as PurchasesWebClass } from '@revenuecat/purchases-js';
 import { isNative } from '@/utils/platform';
 
 // RevenueCat configuration
-const REVENUECAT_API_KEY = 'test_gCfXtDhlnIpvuRkUHaiDhCwdhwc';
+const REVENUECAT_NATIVE_API_KEY = 'test_gCfXtDhlnIpvuRkUHaiDhCwdhwc';
+const REVENUECAT_WEB_API_KEY = 'YOUR_WEB_API_KEY'; // TODO: Replace with your RevenueCat Web API Key
 const ENTITLEMENT_ID = 'Fayvrs Pro';
 
 // Product identifiers
@@ -12,24 +14,78 @@ export const PRODUCT_IDS = {
   yearly: 'yearly',
 } as const;
 
+// Web-compatible types that match the shape of native types
+export interface WebCustomerInfo {
+  entitlements: {
+    active: Record<string, {
+      identifier: string;
+      isActive: boolean;
+      willRenew: boolean;
+      periodType: string;
+      latestPurchaseDate: string;
+      originalPurchaseDate: string;
+      expirationDate: string | null;
+      productIdentifier: string;
+      isSandbox: boolean;
+      unsubscribeDetectedAt: string | null;
+      billingIssueDetectedAt: string | null;
+    }>;
+    all: Record<string, any>;
+  };
+  activeSubscriptions?: string[];
+  originalAppUserId: string;
+  managementURL: string | null;
+  latestExpirationDate?: string | null;
+  firstSeen: string;
+}
+
+export interface WebPackage {
+  identifier: string;
+  packageType: string;
+  rcBillingProduct: {
+    identifier: string;
+    displayName: string;
+    currentPrice: {
+      amountMicros: number;
+      currency: string;
+      formattedPrice: string;
+    };
+    normalPeriodDuration: string | null;
+  };
+}
+
+export interface WebOfferings {
+  current: {
+    identifier: string;
+    availablePackages: WebPackage[];
+  } | null;
+  all: Record<string, any>;
+}
+
 export interface RevenueCatState {
   isInitialized: boolean;
   isLoading: boolean;
   error: string | null;
-  customerInfo: CustomerInfo | null;
-  offerings: PurchasesOfferings | null;
+  customerInfo: CustomerInfo | WebCustomerInfo | null;
+  offerings: PurchasesOfferings | WebOfferings | null;
   isProSubscriber: boolean;
 }
 
 export interface UseRevenueCatReturn extends RevenueCatState {
   initialize: (userId?: string) => Promise<void>;
   identifyUser: (userId: string) => Promise<void>;
-  purchasePackage: (pkg: PurchasesPackage) => Promise<{ success: boolean; error?: string }>;
+  purchasePackage: (pkg: PurchasesPackage | WebPackage) => Promise<{ success: boolean; error?: string }>;
   restorePurchases: () => Promise<{ success: boolean; error?: string }>;
   checkEntitlements: () => Promise<boolean>;
-  getOfferings: () => Promise<PurchasesOfferings | null>;
+  getOfferings: () => Promise<PurchasesOfferings | WebOfferings | null>;
   logout: () => Promise<void>;
 }
+
+// Type for the web purchases instance
+type WebPurchasesInstance = ReturnType<typeof PurchasesWebClass.configure>;
+
+// Store web purchases instance
+let webPurchasesInstance: WebPurchasesInstance | null = null;
 
 export const useRevenueCat = (): UseRevenueCatReturn => {
   const [state, setState] = useState<RevenueCatState>({
@@ -42,48 +98,78 @@ export const useRevenueCat = (): UseRevenueCatReturn => {
   });
 
   /**
-   * Initialize RevenueCat SDK
+   * Helper to check if user has pro entitlement
+   */
+  const hasProEntitlement = (customerInfo: CustomerInfo | WebCustomerInfo | null): boolean => {
+    if (!customerInfo) return false;
+    return !!customerInfo.entitlements.active[ENTITLEMENT_ID];
+  };
+
+  /**
+   * Initialize RevenueCat SDK (works on both native and web)
    */
   const initialize = useCallback(async (userId?: string) => {
-    // Only run on native platforms
-    if (!isNative()) {
-      console.log('[RevenueCat] Not a native platform, skipping initialization');
-      return;
-    }
-
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      // Configure the SDK
-      await Purchases.configure({
-        apiKey: REVENUECAT_API_KEY,
-        appUserID: userId,
-      });
+      if (isNative()) {
+        // Native initialization
+        await Purchases.configure({
+          apiKey: REVENUECAT_NATIVE_API_KEY,
+          appUserID: userId,
+        });
 
-      // Set log level for debugging
-      await Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG });
+        await Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG });
 
-      // Get initial customer info
-      const { customerInfo } = await Purchases.getCustomerInfo();
-      const isProSubscriber = !!customerInfo.entitlements.active[ENTITLEMENT_ID];
+        const { customerInfo } = await Purchases.getCustomerInfo();
+        const isProSubscriber = hasProEntitlement(customerInfo);
 
-      // Get offerings
-      const offeringsResult = await Purchases.getOfferings();
-      const offerings = offeringsResult as PurchasesOfferings;
-      setState({
-        isInitialized: true,
-        isLoading: false,
-        error: null,
-        customerInfo,
-        offerings,
-        isProSubscriber,
-      });
+        const offeringsResult = await Purchases.getOfferings();
+        const offerings = offeringsResult as PurchasesOfferings;
+        
+        setState({
+          isInitialized: true,
+          isLoading: false,
+          error: null,
+          customerInfo,
+          offerings,
+          isProSubscriber,
+        });
 
-      console.log('[RevenueCat] Initialized successfully', {
-        userId: customerInfo.originalAppUserId,
-        isProSubscriber,
-        hasOfferings: !!offerings?.current,
-      });
+        console.log('[RevenueCat Native] Initialized successfully', {
+          userId: customerInfo.originalAppUserId,
+          isProSubscriber,
+          hasOfferings: !!offerings?.current,
+        });
+      } else {
+        // Web initialization
+        console.log('[RevenueCat Web] Initializing...');
+        
+        webPurchasesInstance = PurchasesWebClass.configure(
+          REVENUECAT_WEB_API_KEY,
+          userId || 'anonymous'
+        );
+
+        const customerInfo = await webPurchasesInstance.getCustomerInfo();
+        const isProSubscriber = hasProEntitlement(customerInfo as unknown as WebCustomerInfo);
+
+        const offerings = await webPurchasesInstance.getOfferings();
+        
+        setState({
+          isInitialized: true,
+          isLoading: false,
+          error: null,
+          customerInfo: customerInfo as unknown as WebCustomerInfo,
+          offerings: offerings as unknown as WebOfferings,
+          isProSubscriber,
+        });
+
+        console.log('[RevenueCat Web] Initialized successfully', {
+          userId: customerInfo.originalAppUserId,
+          isProSubscriber,
+          hasOfferings: !!offerings?.current,
+        });
+      }
     } catch (error: any) {
       console.error('[RevenueCat] Initialization error:', error);
       setState(prev => ({
@@ -98,19 +184,30 @@ export const useRevenueCat = (): UseRevenueCatReturn => {
    * Identify user with RevenueCat (link to Supabase user ID)
    */
   const identifyUser = useCallback(async (userId: string) => {
-    if (!isNative()) return;
-
     try {
-      const { customerInfo } = await Purchases.logIn({ appUserID: userId });
-      const isProSubscriber = !!customerInfo.entitlements.active[ENTITLEMENT_ID];
+      if (isNative()) {
+        const { customerInfo } = await Purchases.logIn({ appUserID: userId });
+        const isProSubscriber = hasProEntitlement(customerInfo);
 
-      setState(prev => ({
-        ...prev,
-        customerInfo,
-        isProSubscriber,
-      }));
+        setState(prev => ({
+          ...prev,
+          customerInfo,
+          isProSubscriber,
+        }));
 
-      console.log('[RevenueCat] User identified:', userId);
+        console.log('[RevenueCat Native] User identified:', userId);
+      } else if (webPurchasesInstance) {
+        const customerInfo = await webPurchasesInstance.changeUser(userId);
+        const isProSubscriber = hasProEntitlement(customerInfo as unknown as WebCustomerInfo);
+
+        setState(prev => ({
+          ...prev,
+          customerInfo: customerInfo as unknown as WebCustomerInfo,
+          isProSubscriber,
+        }));
+
+        console.log('[RevenueCat Web] User identified:', userId);
+      }
     } catch (error: any) {
       console.error('[RevenueCat] Login error:', error);
       setState(prev => ({
@@ -123,31 +220,45 @@ export const useRevenueCat = (): UseRevenueCatReturn => {
   /**
    * Purchase a package
    */
-  const purchasePackage = useCallback(async (pkg: PurchasesPackage): Promise<{ success: boolean; error?: string }> => {
-    if (!isNative()) {
-      return { success: false, error: 'Purchases only available on native platforms' };
-    }
-
+  const purchasePackage = useCallback(async (pkg: PurchasesPackage | WebPackage): Promise<{ success: boolean; error?: string }> => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      const { customerInfo } = await Purchases.purchasePackage({ aPackage: pkg });
-      const isProSubscriber = !!customerInfo.entitlements.active[ENTITLEMENT_ID];
+      if (isNative()) {
+        const { customerInfo } = await Purchases.purchasePackage({ aPackage: pkg as PurchasesPackage });
+        const isProSubscriber = hasProEntitlement(customerInfo);
 
-      setState(prev => ({
-        ...prev,
-        isLoading: false,
-        customerInfo,
-        isProSubscriber,
-      }));
+        setState(prev => ({
+          ...prev,
+          isLoading: false,
+          customerInfo,
+          isProSubscriber,
+        }));
 
-      console.log('[RevenueCat] Purchase successful');
-      return { success: true };
+        console.log('[RevenueCat Native] Purchase successful');
+        return { success: true };
+      } else if (webPurchasesInstance) {
+        const webPkg = pkg as WebPackage;
+        const { customerInfo } = await webPurchasesInstance.purchase({ rcPackage: webPkg as any });
+        const isProSubscriber = hasProEntitlement(customerInfo as unknown as WebCustomerInfo);
+
+        setState(prev => ({
+          ...prev,
+          isLoading: false,
+          customerInfo: customerInfo as unknown as WebCustomerInfo,
+          isProSubscriber,
+        }));
+
+        console.log('[RevenueCat Web] Purchase successful');
+        return { success: true };
+      }
+      
+      return { success: false, error: 'RevenueCat not initialized' };
     } catch (error: any) {
       console.error('[RevenueCat] Purchase error:', error);
       
       // Handle user cancellation
-      if (error.code === 'PURCHASE_CANCELLED') {
+      if (error.code === 'PURCHASE_CANCELLED' || error.message?.includes('cancelled')) {
         setState(prev => ({ ...prev, isLoading: false }));
         return { success: false, error: 'Purchase was cancelled' };
       }
@@ -166,25 +277,39 @@ export const useRevenueCat = (): UseRevenueCatReturn => {
    * Restore previous purchases
    */
   const restorePurchases = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
-    if (!isNative()) {
-      return { success: false, error: 'Restore only available on native platforms' };
-    }
-
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      const { customerInfo } = await Purchases.restorePurchases();
-      const isProSubscriber = !!customerInfo.entitlements.active[ENTITLEMENT_ID];
+      if (isNative()) {
+        const { customerInfo } = await Purchases.restorePurchases();
+        const isProSubscriber = hasProEntitlement(customerInfo);
 
-      setState(prev => ({
-        ...prev,
-        isLoading: false,
-        customerInfo,
-        isProSubscriber,
-      }));
+        setState(prev => ({
+          ...prev,
+          isLoading: false,
+          customerInfo,
+          isProSubscriber,
+        }));
 
-      console.log('[RevenueCat] Restore successful, isProSubscriber:', isProSubscriber);
-      return { success: true };
+        console.log('[RevenueCat Native] Restore successful, isProSubscriber:', isProSubscriber);
+        return { success: true };
+      } else if (webPurchasesInstance) {
+        // Web SDK doesn't have restorePurchases - get current customer info instead
+        const customerInfo = await webPurchasesInstance.getCustomerInfo();
+        const isProSubscriber = hasProEntitlement(customerInfo as unknown as WebCustomerInfo);
+
+        setState(prev => ({
+          ...prev,
+          isLoading: false,
+          customerInfo: customerInfo as unknown as WebCustomerInfo,
+          isProSubscriber,
+        }));
+
+        console.log('[RevenueCat Web] Restore successful, isProSubscriber:', isProSubscriber);
+        return { success: true };
+      }
+      
+      return { success: false, error: 'RevenueCat not initialized' };
     } catch (error: any) {
       console.error('[RevenueCat] Restore error:', error);
       setState(prev => ({
@@ -200,21 +325,32 @@ export const useRevenueCat = (): UseRevenueCatReturn => {
    * Check if user has active entitlements
    */
   const checkEntitlements = useCallback(async (): Promise<boolean> => {
-    if (!isNative()) {
-      return false;
-    }
-
     try {
-      const { customerInfo } = await Purchases.getCustomerInfo();
-      const isProSubscriber = !!customerInfo.entitlements.active[ENTITLEMENT_ID];
+      if (isNative()) {
+        const { customerInfo } = await Purchases.getCustomerInfo();
+        const isProSubscriber = hasProEntitlement(customerInfo);
 
-      setState(prev => ({
-        ...prev,
-        customerInfo,
-        isProSubscriber,
-      }));
+        setState(prev => ({
+          ...prev,
+          customerInfo,
+          isProSubscriber,
+        }));
 
-      return isProSubscriber;
+        return isProSubscriber;
+      } else if (webPurchasesInstance) {
+        const customerInfo = await webPurchasesInstance.getCustomerInfo();
+        const isProSubscriber = hasProEntitlement(customerInfo as unknown as WebCustomerInfo);
+
+        setState(prev => ({
+          ...prev,
+          customerInfo: customerInfo as unknown as WebCustomerInfo,
+          isProSubscriber,
+        }));
+
+        return isProSubscriber;
+      }
+      
+      return false;
     } catch (error: any) {
       console.error('[RevenueCat] Check entitlements error:', error);
       return false;
@@ -224,16 +360,20 @@ export const useRevenueCat = (): UseRevenueCatReturn => {
   /**
    * Get available offerings
    */
-  const getOfferings = useCallback(async (): Promise<PurchasesOfferings | null> => {
-    if (!isNative()) {
-      return null;
-    }
-
+  const getOfferings = useCallback(async (): Promise<PurchasesOfferings | WebOfferings | null> => {
     try {
-      const offeringsResult = await Purchases.getOfferings();
-      const offerings = offeringsResult as PurchasesOfferings;
-      setState(prev => ({ ...prev, offerings }));
-      return offerings;
+      if (isNative()) {
+        const offeringsResult = await Purchases.getOfferings();
+        const offerings = offeringsResult as PurchasesOfferings;
+        setState(prev => ({ ...prev, offerings }));
+        return offerings;
+      } else if (webPurchasesInstance) {
+        const offerings = await webPurchasesInstance.getOfferings();
+        setState(prev => ({ ...prev, offerings: offerings as unknown as WebOfferings }));
+        return offerings as unknown as WebOfferings;
+      }
+      
+      return null;
     } catch (error: any) {
       console.error('[RevenueCat] Get offerings error:', error);
       return null;
@@ -244,23 +384,33 @@ export const useRevenueCat = (): UseRevenueCatReturn => {
    * Logout from RevenueCat
    */
   const logout = useCallback(async () => {
-    if (!isNative()) return;
-
     try {
-      const { customerInfo } = await Purchases.logOut();
-      setState(prev => ({
-        ...prev,
-        customerInfo,
-        isProSubscriber: false,
-      }));
-      console.log('[RevenueCat] Logged out');
+      if (isNative()) {
+        const { customerInfo } = await Purchases.logOut();
+        setState(prev => ({
+          ...prev,
+          customerInfo,
+          isProSubscriber: false,
+        }));
+        console.log('[RevenueCat Native] Logged out');
+      } else if (webPurchasesInstance) {
+        // Web SDK doesn't have logOut - reset state manually
+        webPurchasesInstance = null;
+        setState(prev => ({
+          ...prev,
+          customerInfo: null,
+          isProSubscriber: false,
+          isInitialized: false,
+        }));
+        console.log('[RevenueCat Web] Logged out');
+      }
     } catch (error: any) {
       console.error('[RevenueCat] Logout error:', error);
     }
   }, []);
 
   /**
-   * Set up customer info listener
+   * Set up customer info listener (native only - web uses polling or re-fetch)
    */
   const listenerIdRef = useRef<string | null>(null);
 
@@ -269,15 +419,14 @@ export const useRevenueCat = (): UseRevenueCatReturn => {
 
     const setupListener = async () => {
       try {
-        // Listen for customer info updates
         const listenerId = await Purchases.addCustomerInfoUpdateListener((customerInfo) => {
-          const isProSubscriber = !!customerInfo.entitlements.active[ENTITLEMENT_ID];
+          const isProSubscriber = hasProEntitlement(customerInfo);
           setState(prev => ({
             ...prev,
             customerInfo,
             isProSubscriber,
           }));
-          console.log('[RevenueCat] Customer info updated, isProSubscriber:', isProSubscriber);
+          console.log('[RevenueCat Native] Customer info updated, isProSubscriber:', isProSubscriber);
         });
         listenerIdRef.current = listenerId;
       } catch (error) {
@@ -288,7 +437,6 @@ export const useRevenueCat = (): UseRevenueCatReturn => {
     setupListener();
 
     return () => {
-      // Cleanup listener on unmount
       if (listenerIdRef.current) {
         Purchases.removeCustomerInfoUpdateListener({ listenerToRemove: listenerIdRef.current });
       }
