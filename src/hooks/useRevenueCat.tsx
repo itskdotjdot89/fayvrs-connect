@@ -5,11 +5,11 @@ import { isNative } from '@/utils/platform';
 import { supabase } from '@/integrations/supabase/client';
 
 // RevenueCat configuration
-const REVENUECAT_NATIVE_API_KEY = 'test_gCfXtDhlnIpvuRkUHaiDhCwdhwc';
 const ENTITLEMENT_ID = 'Fayvrs Pro';
 
-// Cached web API key
+// Cached API keys
 let cachedWebApiKey: string | null = null;
+let cachedNativeApiKey: string | null = null;
 
 // Fetch web API key from edge function
 const fetchWebApiKey = async (): Promise<string | null> => {
@@ -25,6 +25,24 @@ const fetchWebApiKey = async (): Promise<string | null> => {
     return cachedWebApiKey;
   } catch (err) {
     console.error('[RevenueCat] Error fetching web API key:', err);
+    return null;
+  }
+};
+
+// Fetch native API key from edge function
+const fetchNativeApiKey = async (): Promise<string | null> => {
+  if (cachedNativeApiKey) return cachedNativeApiKey;
+  
+  try {
+    const { data, error } = await supabase.functions.invoke('get-revenuecat-native-key');
+    if (error) {
+      console.error('[RevenueCat] Failed to fetch native API key:', error);
+      return null;
+    }
+    cachedNativeApiKey = data?.apiKey || null;
+    return cachedNativeApiKey;
+  } catch (err) {
+    console.error('[RevenueCat] Error fetching native API key:', err);
     return null;
   }
 };
@@ -141,8 +159,24 @@ export const useRevenueCat = (): UseRevenueCatReturn => {
     try {
       if (isNative()) {
         // Native initialization
+        console.log('[RevenueCat Native] Fetching API key...');
+        const nativeApiKey = await fetchNativeApiKey();
+        
+        if (!nativeApiKey) {
+          console.warn('[RevenueCat Native] API key not configured - subscriptions will not work');
+          setState({
+            isInitialized: true,
+            isLoading: false,
+            error: 'RevenueCat Native API key not configured. Please set up your RevenueCat API key.',
+            customerInfo: null,
+            offerings: null,
+            isProSubscriber: false,
+          });
+          return;
+        }
+
         await Purchases.configure({
-          apiKey: REVENUECAT_NATIVE_API_KEY,
+          apiKey: nativeApiKey,
           appUserID: userId,
         });
 
