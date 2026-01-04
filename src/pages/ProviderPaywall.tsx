@@ -369,41 +369,56 @@ export default function ProviderPaywall() {
               Or select a plan directly:
             </p>
           )}
-          <div className="grid grid-cols-2 gap-3">
-            {availablePackages.map((pkg) => {
-              const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
-              return (
-                <Card 
-                  key={info.identifier}
-                  className="cursor-pointer hover:border-primary transition-colors"
-                  onClick={() => handleManualPurchase(info.identifier)}
-                >
-                  <CardContent className="p-4 text-center">
-                    {isPurchasing ? (
-                      <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                    ) : (
-                      <>
-                        <p className="font-semibold text-foreground capitalize">
-                          {info.isYearly ? 'Yearly' : 'Monthly'}
-                        </p>
-                        <p className="text-lg font-bold text-primary">
-                          {info.priceString}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {info.isYearly ? 'per year' : 'per month'}
-                        </p>
-                        {info.isYearly && (
-                          <Badge variant="secondary" className="mt-2 text-xs">
-                            Save 33%
-                          </Badge>
-                        )}
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+          {availablePackages.length === 0 ? (
+            <Card>
+              <CardContent className="p-4 text-center space-y-3">
+                <p className="font-medium text-foreground">No subscription plans available yet</p>
+                <p className="text-sm text-muted-foreground">
+                  RevenueCat initialized, but your current offering has no packages. Add your Monthly/Yearly packages to the
+                  active offering (and ensure web billing products are configured) to display plans here.
+                </p>
+                <Button variant="outline" onClick={() => initialize(user.id)} className="w-full">
+                  Reload Subscription Options
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {availablePackages.map((pkg) => {
+                const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
+                return (
+                  <Card 
+                    key={info.identifier}
+                    className="cursor-pointer hover:border-primary transition-colors"
+                    onClick={() => handleManualPurchase(info.identifier)}
+                  >
+                    <CardContent className="p-4 text-center">
+                      {isPurchasing ? (
+                        <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                      ) : (
+                        <>
+                          <p className="font-semibold text-foreground capitalize">
+                            {info.isYearly ? 'Yearly' : 'Monthly'}
+                          </p>
+                          <p className="text-lg font-bold text-primary">
+                            {info.priceString}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {info.isYearly ? 'per year' : 'per month'}
+                          </p>
+                          {info.isYearly && (
+                            <Badge variant="secondary" className="mt-2 text-xs">
+                              Save 33%
+                            </Badge>
+                          )}
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Restore purchases */}
