@@ -12,16 +12,16 @@ import { useNavigate } from "react-router-dom";
 const SUBSCRIPTION_PLANS = {
   monthly: {
     name: "Monthly",
-    price: "$30",
+    price: "$29.99",
     interval: "month",
-    priceId: "price_1SEgGzLisf4T9XH8qRL8S2lw",
+    priceId: "price_1STYVLLisf4T9XH8Y3xVbLzx",
     savings: null
   },
   yearly: {
     name: "Yearly",
-    price: "$240",
+    price: "$239.99",
     interval: "year",
-    priceId: "price_1SEgHrLisf4T9XH8xpq5cfGO",
+    priceId: "price_1SmMlkLisf4T9XH8ciEnrQYn",
     savings: "Save $120"
   }
 };

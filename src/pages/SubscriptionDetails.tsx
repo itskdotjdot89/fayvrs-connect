@@ -39,7 +39,7 @@ export default function SubscriptionDetails() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-foreground mb-4">
-                $30<span className="text-lg text-muted-foreground font-normal">/month</span>
+                $29.99<span className="text-lg text-muted-foreground font-normal">/month</span>
               </div>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
@@ -68,7 +68,7 @@ export default function SubscriptionDetails() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-foreground mb-1">
-                $240<span className="text-lg text-muted-foreground font-normal">/year</span>
+                $239.99<span className="text-lg text-muted-foreground font-normal">/year</span>
               </div>
               <p className="text-sm text-muted-foreground mb-4">Only $20/month when billed annually</p>
               <ul className="space-y-2 text-sm text-muted-foreground">
