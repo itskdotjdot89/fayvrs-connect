@@ -41,7 +41,7 @@ const DataDeletion = lazy(() => import("./pages/DataDeletion"));
 const ReferralLanding = lazy(() => import("./pages/ReferralLanding"));
 const ReferralDashboard = lazy(() => import("./pages/ReferralDashboard"));
 const PublicProfile = lazy(() => import("./pages/PublicProfile"));
-const Onboarding = lazy(() => import("./pages/Onboarding"));
+import Onboarding from "./pages/Onboarding";
 const ProviderPaywall = lazy(() => import("./pages/ProviderPaywall"));
 const CustomerCenter = lazy(() => import("./pages/CustomerCenter"));
 
