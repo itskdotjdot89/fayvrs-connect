@@ -369,56 +369,98 @@ export default function ProviderPaywall() {
               Or select a plan directly:
             </p>
           )}
-          {availablePackages.length === 0 ? (
-            <Card>
-              <CardContent className="p-4 text-center space-y-3">
-                <p className="font-medium text-foreground">No subscription plans available yet</p>
-                <p className="text-sm text-muted-foreground">
-                  RevenueCat initialized, but your current offering has no packages. Add your Monthly/Yearly packages to the
-                  active offering (and ensure web billing products are configured) to display plans here.
-                </p>
-                <Button variant="outline" onClick={() => initialize(user.id)} className="w-full">
-                  Reload Subscription Options
-                </Button>
+          
+          {/* Always show pricing cards - use RevenueCat data if available, fallback to hardcoded */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* Monthly Plan */}
+            <Card 
+              className="cursor-pointer hover:border-primary transition-colors"
+              onClick={() => {
+                const monthlyPkg = availablePackages.find(pkg => {
+                  const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
+                  return !info.isYearly;
+                });
+                if (monthlyPkg) {
+                  const info = getPackageInfo(monthlyPkg as PurchasesPackage | WebPackage);
+                  handleManualPurchase(info.identifier);
+                } else {
+                  toast({
+                    title: "Loading...",
+                    description: "Please wait while subscription options load.",
+                  });
+                }
+              }}
+            >
+              <CardContent className="p-4 text-center">
+                {isPurchasing ? (
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                ) : (
+                  <>
+                    <p className="font-semibold text-foreground">Monthly</p>
+                    <p className="text-lg font-bold text-primary">
+                      {(() => {
+                        const monthlyPkg = availablePackages.find(pkg => {
+                          const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
+                          return !info.isYearly;
+                        });
+                        if (monthlyPkg) {
+                          return getPackageInfo(monthlyPkg as PurchasesPackage | WebPackage).priceString;
+                        }
+                        return '$29.99';
+                      })()}
+                    </p>
+                    <p className="text-xs text-muted-foreground">per month</p>
+                  </>
+                )}
               </CardContent>
             </Card>
-          ) : (
-            <div className="grid grid-cols-2 gap-3">
-              {availablePackages.map((pkg) => {
-                const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
-                return (
-                  <Card 
-                    key={info.identifier}
-                    className="cursor-pointer hover:border-primary transition-colors"
-                    onClick={() => handleManualPurchase(info.identifier)}
-                  >
-                    <CardContent className="p-4 text-center">
-                      {isPurchasing ? (
-                        <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                      ) : (
-                        <>
-                          <p className="font-semibold text-foreground capitalize">
-                            {info.isYearly ? 'Yearly' : 'Monthly'}
-                          </p>
-                          <p className="text-lg font-bold text-primary">
-                            {info.priceString}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {info.isYearly ? 'per year' : 'per month'}
-                          </p>
-                          {info.isYearly && (
-                            <Badge variant="secondary" className="mt-2 text-xs">
-                              Save 33%
-                            </Badge>
-                          )}
-                        </>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
+
+            {/* Yearly Plan */}
+            <Card 
+              className="cursor-pointer hover:border-primary transition-colors border-primary/50"
+              onClick={() => {
+                const yearlyPkg = availablePackages.find(pkg => {
+                  const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
+                  return info.isYearly;
+                });
+                if (yearlyPkg) {
+                  const info = getPackageInfo(yearlyPkg as PurchasesPackage | WebPackage);
+                  handleManualPurchase(info.identifier);
+                } else {
+                  toast({
+                    title: "Loading...",
+                    description: "Please wait while subscription options load.",
+                  });
+                }
+              }}
+            >
+              <CardContent className="p-4 text-center">
+                {isPurchasing ? (
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                ) : (
+                  <>
+                    <p className="font-semibold text-foreground">Annual</p>
+                    <p className="text-lg font-bold text-primary">
+                      {(() => {
+                        const yearlyPkg = availablePackages.find(pkg => {
+                          const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
+                          return info.isYearly;
+                        });
+                        if (yearlyPkg) {
+                          return getPackageInfo(yearlyPkg as PurchasesPackage | WebPackage).priceString;
+                        }
+                        return '$239.99';
+                      })()}
+                    </p>
+                    <p className="text-xs text-muted-foreground">per year</p>
+                    <Badge variant="secondary" className="mt-2 text-xs">
+                      Save 33%
+                    </Badge>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {/* Restore purchases */}
