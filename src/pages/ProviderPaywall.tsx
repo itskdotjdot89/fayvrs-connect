@@ -1,22 +1,15 @@
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RevenueCatUI, PAYWALL_RESULT } from '@revenuecat/purchases-capacitor-ui';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Check, Crown, ArrowLeft, RotateCcw, X, AlertTriangle } from 'lucide-react';
+import { Loader2, Check, Crown, ArrowLeft, RotateCcw, X } from 'lucide-react';
 import { useRevenueCat, PRODUCT_IDS, WebPackage, WebOfferings, isYearlyProduct } from '@/hooks/useRevenueCat';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { isNative, isIOS, isAndroid } from '@/utils/platform';
 import { PurchasesOfferings, PurchasesPackage } from '@revenuecat/purchases-capacitor';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-
-// Debug mode - set to true in development or via URL param
-const DEBUG_MODE = import.meta.env.DEV || new URLSearchParams(window.location.search).has('debug');
-
-// Timeout for loading state (prevents infinite spinner)
-const LOADING_TIMEOUT_MS = 15000;
 
 export default function ProviderPaywall() {
   const navigate = useNavigate();
@@ -38,37 +31,14 @@ export default function ProviderPaywall() {
   const [showPaywall, setShowPaywall] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
-  const [loadingTimedOut, setLoadingTimedOut] = useState(false);
-  const [purchaseError, setPurchaseError] = useState<string | null>(null);
   const checkoutContainerRef = useRef<HTMLDivElement>(null);
-  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Initialize RevenueCat when component mounts (both native and web)
   useEffect(() => {
     if (user?.id) {
-      setLoadingTimedOut(false);
       initialize(user.id);
-      
-      // Set loading timeout
-      loadingTimeoutRef.current = setTimeout(() => {
-        setLoadingTimedOut(true);
-        console.warn('[ProviderPaywall] Loading timed out after', LOADING_TIMEOUT_MS, 'ms');
-      }, LOADING_TIMEOUT_MS);
     }
-    
-    return () => {
-      if (loadingTimeoutRef.current) {
-        clearTimeout(loadingTimeoutRef.current);
-      }
-    };
   }, [user?.id, initialize]);
-
-  // Clear timeout when initialized
-  useEffect(() => {
-    if (isInitialized && loadingTimeoutRef.current) {
-      clearTimeout(loadingTimeoutRef.current);
-    }
-  }, [isInitialized]);
 
   // Identify user when they're logged in
   useEffect(() => {
@@ -87,36 +57,6 @@ export default function ProviderPaywall() {
       navigate('/feed');
     }
   }, [isProSubscriber, navigate, toast]);
-
-  // Debug: Log offerings structure when it changes
-  useEffect(() => {
-    if (offerings && DEBUG_MODE) {
-      console.group('[ProviderPaywall] 📦 Offerings Debug');
-      console.log('Raw offerings:', offerings);
-      console.log('Current offering:', offerings.current);
-      
-      const packages = getAvailablePackages();
-      console.log('Available packages count:', packages.length);
-      
-      packages.forEach((pkg, index) => {
-        const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
-        console.log(`Package ${index}:`, {
-          identifier: info.identifier,
-          priceString: info.priceString,
-          isYearly: info.isYearly,
-          raw: pkg,
-        });
-      });
-      
-      const monthlyPkg = findMonthlyPackage();
-      const yearlyPkg = findYearlyPackage();
-      
-      console.log('Monthly package found:', monthlyPkg ? getPackageInfo(monthlyPkg as PurchasesPackage | WebPackage) : 'NOT FOUND');
-      console.log('Yearly package found:', yearlyPkg ? getPackageInfo(yearlyPkg as PurchasesPackage | WebPackage) : 'NOT FOUND');
-      console.log('Expected product IDs:', PRODUCT_IDS);
-      console.groupEnd();
-    }
-  }, [offerings]);
 
   const handlePresentPaywall = async () => {
     if (isNative()) {
@@ -166,47 +106,9 @@ export default function ProviderPaywall() {
     }
   };
 
-  const handlePurchaseWithPackage = async (pkg: PurchasesPackage | WebPackage | null, planType: 'monthly' | 'yearly') => {
-    setPurchaseError(null);
-    
-    // If no package found, show detailed error
-    if (!pkg) {
-      const errorMsg = `${planType === 'yearly' ? 'Annual' : 'Monthly'} subscription package not found. Please try again or contact support.`;
-      console.error('[ProviderPaywall] Package not found:', {
-        planType,
-        expectedProductId: planType === 'yearly' ? PRODUCT_IDS.yearly : PRODUCT_IDS.monthly,
-        availablePackages: getAvailablePackages().map(p => getPackageInfo(p as PurchasesPackage | WebPackage)),
-      });
-      
-      setPurchaseError(errorMsg);
-      toast({
-        title: "Subscription Error",
-        description: errorMsg,
-        variant: "destructive",
-      });
-      return;
-    }
-    
+  const handlePurchaseWithPackage = async (pkg: PurchasesPackage | WebPackage) => {
     const info = getPackageInfo(pkg);
     console.log('[ProviderPaywall] Starting purchase for package:', info);
-    
-    // Validate the package matches the expected plan type
-    if ((planType === 'yearly' && !info.isYearly) || (planType === 'monthly' && info.isYearly)) {
-      console.error('[ProviderPaywall] Package mismatch:', {
-        expectedPlanType: planType,
-        packageIsYearly: info.isYearly,
-        packageIdentifier: info.identifier,
-      });
-      
-      const errorMsg = `Package configuration error: Expected ${planType} but got ${info.isYearly ? 'yearly' : 'monthly'}. Please contact support.`;
-      setPurchaseError(errorMsg);
-      toast({
-        title: "Configuration Error",
-        description: errorMsg,
-        variant: "destructive",
-      });
-      return;
-    }
     
     setIsPurchasing(true);
 
@@ -222,7 +124,6 @@ export default function ProviderPaywall() {
           });
           navigate('/feed');
         } else if (result.error !== 'Purchase was cancelled') {
-          setPurchaseError(result.error || 'Purchase failed');
           toast({
             title: "Purchase failed",
             description: result.error,
@@ -249,7 +150,6 @@ export default function ProviderPaywall() {
           });
           navigate('/feed');
         } else if (result.error && result.error !== 'Purchase was cancelled') {
-          setPurchaseError(result.error);
           toast({
             title: "Purchase failed",
             description: result.error,
@@ -260,16 +160,50 @@ export default function ProviderPaywall() {
     } catch (error: any) {
       console.error('[ProviderPaywall] Purchase error:', error);
       setShowCheckoutModal(false);
-      const errorMsg = error.message || "An unexpected error occurred. Please try again.";
-      setPurchaseError(errorMsg);
       toast({
         title: "Error",
-        description: errorMsg,
+        description: error.message || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
       setIsPurchasing(false);
     }
+  };
+
+  // Find monthly package - try by duration first, then by product ID
+  const findMonthlyPackage = () => {
+    const packages = getAvailablePackages();
+    // First try to find by checking it's NOT yearly
+    let pkg = packages.find(p => {
+      const info = getPackageInfo(p as PurchasesPackage | WebPackage);
+      return !info.isYearly;
+    });
+    // Fallback: find by PRODUCT_IDS.monthly
+    if (!pkg) {
+      pkg = packages.find(p => {
+        const info = getPackageInfo(p as PurchasesPackage | WebPackage);
+        return info.identifier === PRODUCT_IDS.monthly;
+      });
+    }
+    return pkg;
+  };
+
+  // Find yearly package - try by duration first, then by product ID
+  const findYearlyPackage = () => {
+    const packages = getAvailablePackages();
+    // First try to find by checking isYearly
+    let pkg = packages.find(p => {
+      const info = getPackageInfo(p as PurchasesPackage | WebPackage);
+      return info.isYearly;
+    });
+    // Fallback: find by PRODUCT_IDS.yearly
+    if (!pkg) {
+      pkg = packages.find(p => {
+        const info = getPackageInfo(p as PurchasesPackage | WebPackage);
+        return info.identifier === PRODUCT_IDS.yearly;
+      });
+    }
+    return pkg;
   };
 
   // Helper to get package display info (works for both native and web)
@@ -305,101 +239,6 @@ export default function ProviderPaywall() {
     return (offerings as WebOfferings).current?.availablePackages || [];
   };
 
-  // Find monthly package - try by duration first, then by product ID
-  const findMonthlyPackage = () => {
-    const packages = getAvailablePackages();
-    
-    // First try to find by checking it's NOT yearly AND matches monthly product ID
-    let pkg = packages.find(p => {
-      const info = getPackageInfo(p as PurchasesPackage | WebPackage);
-      return info.identifier === PRODUCT_IDS.monthly && !info.isYearly;
-    });
-    
-    // Fallback: find any package that is NOT yearly
-    if (!pkg) {
-      pkg = packages.find(p => {
-        const info = getPackageInfo(p as PurchasesPackage | WebPackage);
-        return !info.isYearly;
-      });
-    }
-    
-    if (DEBUG_MODE && pkg) {
-      const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
-      console.log('[ProviderPaywall] Found monthly package:', info);
-    }
-    
-    return pkg;
-  };
-
-  // Find yearly package - try by duration first, then by product ID
-  const findYearlyPackage = () => {
-    const packages = getAvailablePackages();
-    
-    // First try to find by checking isYearly AND matches yearly product ID
-    let pkg = packages.find(p => {
-      const info = getPackageInfo(p as PurchasesPackage | WebPackage);
-      return info.identifier === PRODUCT_IDS.yearly && info.isYearly;
-    });
-    
-    // Fallback: find any package that IS yearly
-    if (!pkg) {
-      pkg = packages.find(p => {
-        const info = getPackageInfo(p as PurchasesPackage | WebPackage);
-        return info.isYearly;
-      });
-    }
-    
-    if (DEBUG_MODE && pkg) {
-      const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
-      console.log('[ProviderPaywall] Found yearly package:', info);
-    }
-    
-    return pkg;
-  };
-
-  // Memoized package info to detect misconfigurations
-  const packagesStatus = useMemo(() => {
-    const monthlyPkg = findMonthlyPackage();
-    const yearlyPkg = findYearlyPackage();
-    const allPackages = getAvailablePackages();
-    
-    const monthlyInfo = monthlyPkg ? getPackageInfo(monthlyPkg as PurchasesPackage | WebPackage) : null;
-    const yearlyInfo = yearlyPkg ? getPackageInfo(yearlyPkg as PurchasesPackage | WebPackage) : null;
-    
-    // Detect misconfigurations
-    const issues: string[] = [];
-    
-    if (allPackages.length === 0 && isInitialized && !isLoading) {
-      issues.push('No packages found in offerings');
-    }
-    
-    if (!monthlyPkg && allPackages.length > 0) {
-      issues.push('Monthly package not found');
-    }
-    
-    if (!yearlyPkg && allPackages.length > 0) {
-      issues.push('Yearly package not found');
-    }
-    
-    if (monthlyInfo && monthlyInfo.identifier !== PRODUCT_IDS.monthly) {
-      issues.push(`Monthly package ID mismatch: expected ${PRODUCT_IDS.monthly}, got ${monthlyInfo.identifier}`);
-    }
-    
-    if (yearlyInfo && yearlyInfo.identifier !== PRODUCT_IDS.yearly) {
-      issues.push(`Yearly package ID mismatch: expected ${PRODUCT_IDS.yearly}, got ${yearlyInfo.identifier}`);
-    }
-    
-    return {
-      monthlyPkg,
-      yearlyPkg,
-      monthlyInfo,
-      yearlyInfo,
-      allPackages,
-      issues,
-      hasMisconfiguration: issues.length > 0,
-    };
-  }, [offerings, isInitialized, isLoading]);
-
   // Auth guard (prevents infinite loading when user is not signed in)
   if (!user?.id) {
     return (
@@ -424,51 +263,14 @@ export default function ProviderPaywall() {
     );
   }
 
-  // Loading state (with timeout handling)
-  if ((!isInitialized || isLoading) && !loadingTimedOut) {
+  // Loading state
+  if (!isInitialized || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
           <p className="text-muted-foreground">Loading subscription options...</p>
         </div>
-      </div>
-    );
-  }
-
-  // Loading timed out - show fallback UI
-  if (loadingTimedOut && !isInitialized) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="max-w-md w-full">
-          <CardHeader>
-            <AlertTriangle className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
-            <CardTitle className="text-center">Loading Took Too Long</CardTitle>
-            <CardDescription className="text-center">
-              We're having trouble loading subscription options. This might be a network issue.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Button 
-              onClick={() => {
-                setLoadingTimedOut(false);
-                initialize(user?.id);
-              }} 
-              className="w-full"
-            >
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Try Again
-            </Button>
-            <Button variant="outline" onClick={() => navigate(-1)} className="w-full">
-              Go Back
-            </Button>
-            {DEBUG_MODE && (
-              <p className="text-xs text-muted-foreground text-center">
-                Debug: Timeout after {LOADING_TIMEOUT_MS}ms. Check console for errors.
-              </p>
-            )}
-          </CardContent>
-        </Card>
       </div>
     );
   }
@@ -489,11 +291,6 @@ export default function ProviderPaywall() {
             <Button variant="outline" onClick={() => navigate(-1)} className="w-full">
               Go Back
             </Button>
-            {DEBUG_MODE && (
-              <p className="text-xs text-muted-foreground text-center mt-2">
-                Debug: Check console for detailed error logs.
-              </p>
-            )}
           </CardContent>
         </Card>
       </div>
@@ -602,7 +399,17 @@ export default function ProviderPaywall() {
             {/* Monthly Plan */}
             <Card 
               className="cursor-pointer hover:border-primary transition-colors"
-              onClick={() => handlePurchaseWithPackage(packagesStatus.monthlyPkg as PurchasesPackage | WebPackage | null, 'monthly')}
+              onClick={() => {
+                const monthlyPkg = findMonthlyPackage();
+                if (monthlyPkg) {
+                  handlePurchaseWithPackage(monthlyPkg as PurchasesPackage | WebPackage);
+                } else {
+                  toast({
+                    title: "Loading...",
+                    description: "Please wait while subscription options load.",
+                  });
+                }
+              }}
             >
               <CardContent className="p-4 text-center">
                 {isPurchasing ? (
@@ -611,7 +418,13 @@ export default function ProviderPaywall() {
                   <>
                     <p className="font-semibold text-foreground">Monthly</p>
                     <p className="text-lg font-bold text-primary">
-                      {packagesStatus.monthlyInfo?.priceString || '$29.99'}
+                      {(() => {
+                        const monthlyPkg = findMonthlyPackage();
+                        if (monthlyPkg) {
+                          return getPackageInfo(monthlyPkg as PurchasesPackage | WebPackage).priceString;
+                        }
+                        return '$29.99';
+                      })()}
                     </p>
                     <p className="text-xs text-muted-foreground">per month</p>
                   </>
@@ -622,7 +435,17 @@ export default function ProviderPaywall() {
             {/* Yearly Plan */}
             <Card 
               className="cursor-pointer hover:border-primary transition-colors border-primary/50"
-              onClick={() => handlePurchaseWithPackage(packagesStatus.yearlyPkg as PurchasesPackage | WebPackage | null, 'yearly')}
+              onClick={() => {
+                const yearlyPkg = findYearlyPackage();
+                if (yearlyPkg) {
+                  handlePurchaseWithPackage(yearlyPkg as PurchasesPackage | WebPackage);
+                } else {
+                  toast({
+                    title: "Loading...",
+                    description: "Please wait while subscription options load.",
+                  });
+                }
+              }}
             >
               <CardContent className="p-4 text-center">
                 {isPurchasing ? (
@@ -631,7 +454,13 @@ export default function ProviderPaywall() {
                   <>
                     <p className="font-semibold text-foreground">Annual</p>
                     <p className="text-lg font-bold text-primary">
-                      {packagesStatus.yearlyInfo?.priceString || '$239.99'}
+                      {(() => {
+                        const yearlyPkg = findYearlyPackage();
+                        if (yearlyPkg) {
+                          return getPackageInfo(yearlyPkg as PurchasesPackage | WebPackage).priceString;
+                        }
+                        return '$239.99';
+                      })()}
                     </p>
                     <p className="text-xs text-muted-foreground">per year</p>
                     <Badge variant="secondary" className="mt-2 text-xs">
@@ -642,61 +471,6 @@ export default function ProviderPaywall() {
               </CardContent>
             </Card>
           </div>
-
-          {/* Purchase Error Display */}
-          {purchaseError && (
-            <Alert variant="destructive" className="mt-4">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Purchase Error</AlertTitle>
-              <AlertDescription>{purchaseError}</AlertDescription>
-            </Alert>
-          )}
-
-          {/* Debug: Package Status (only in dev or with ?debug) */}
-          {DEBUG_MODE && packagesStatus.hasMisconfiguration && (
-            <Alert className="mt-4 border-yellow-500/50 bg-yellow-500/10">
-              <AlertTriangle className="h-4 w-4 text-yellow-600" />
-              <AlertTitle className="text-yellow-600">Configuration Issues Detected</AlertTitle>
-              <AlertDescription className="text-yellow-600">
-                <ul className="list-disc list-inside mt-2 space-y-1">
-                  {packagesStatus.issues.map((issue, i) => (
-                    <li key={i}>{issue}</li>
-                  ))}
-                </ul>
-                <p className="mt-2 text-xs">
-                  Check RevenueCat dashboard: Offerings → Packages → Ensure correct product IDs
-                </p>
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Debug Panel */}
-          {DEBUG_MODE && (
-            <details className="mt-4 text-xs border rounded-lg p-3 bg-muted/50">
-              <summary className="cursor-pointer font-medium">Debug Info</summary>
-              <div className="mt-2 space-y-2 overflow-auto max-h-48">
-                <div><strong>Platform:</strong> {isNative() ? 'Native' : 'Web'}</div>
-                <div><strong>Initialized:</strong> {isInitialized ? 'Yes' : 'No'}</div>
-                <div><strong>Loading:</strong> {isLoading ? 'Yes' : 'No'}</div>
-                <div><strong>Error:</strong> {error || 'None'}</div>
-                <div><strong>Packages count:</strong> {packagesStatus.allPackages.length}</div>
-                <div>
-                  <strong>Monthly:</strong>{' '}
-                  {packagesStatus.monthlyInfo 
-                    ? `${packagesStatus.monthlyInfo.identifier} (${packagesStatus.monthlyInfo.priceString})`
-                    : 'Not found'}
-                </div>
-                <div>
-                  <strong>Yearly:</strong>{' '}
-                  {packagesStatus.yearlyInfo 
-                    ? `${packagesStatus.yearlyInfo.identifier} (${packagesStatus.yearlyInfo.priceString})`
-                    : 'Not found'}
-                </div>
-                <div><strong>Expected Monthly ID:</strong> {PRODUCT_IDS.monthly}</div>
-                <div><strong>Expected Yearly ID:</strong> {PRODUCT_IDS.yearly}</div>
-              </div>
-            </details>
-          )}
         </div>
 
         {/* Restore purchases */}
