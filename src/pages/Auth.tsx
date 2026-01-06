@@ -439,7 +439,7 @@ export default function Auth() {
                   <button type="button" onClick={() => setRole("provider")} className={`p-4 border-2 rounded-lg transition-all ${role === "provider" ? "border-primary bg-accent" : "border-border hover:border-primary/50"}`}>
                     <Briefcase className="h-8 w-8 mx-auto mb-2 text-primary" />
                     <p className="font-semibold text-sm">Provider</p>
-                    <p className="text-xs text-muted-foreground mt-1">Get leads • $30/mo + verification</p>
+                    <p className="text-xs text-muted-foreground mt-1">Get leads • $29.99/mo</p>
                   </button>
                 </div>
                 <p className="text-xs text-muted-foreground text-center mt-3">
