@@ -105,7 +105,12 @@ export default function ProviderPaywall() {
   };
 
   const handleManualPurchase = async (productId: string) => {
+    console.log('[ProviderPaywall] Starting purchase for:', productId);
+    console.log('[ProviderPaywall] offerings?.current:', offerings?.current);
+    console.log('[ProviderPaywall] availablePackages:', getAvailablePackages());
+    
     if (!offerings?.current) {
+      console.error('[ProviderPaywall] No offerings available');
       toast({
         title: "Error",
         description: "Unable to load subscription options. Please try again.",
@@ -124,16 +129,20 @@ export default function ProviderPaywall() {
           (p: PurchasesPackage) => p.product.identifier === productId
         );
 
+        console.log('[ProviderPaywall] Native package found:', pkg);
+
         if (!pkg) {
           toast({
             title: "Error",
             description: "Subscription package not found.",
             variant: "destructive",
           });
+          setIsPurchasing(false);
           return;
         }
 
         const result = await purchasePackage(pkg);
+        console.log('[ProviderPaywall] Native purchase result:', result);
 
         if (result.success) {
           toast({
@@ -151,20 +160,34 @@ export default function ProviderPaywall() {
       } else {
         // Web purchase
         const webOfferings = offerings as WebOfferings;
+        console.log('[ProviderPaywall] Web offerings:', webOfferings);
+        
         const pkg = webOfferings.current?.availablePackages.find(
           (p: WebPackage) => p.rcBillingProduct.identifier === productId
         );
 
+        console.log('[ProviderPaywall] Web package found:', pkg);
+
         if (!pkg) {
+          console.error('[ProviderPaywall] Package not found for productId:', productId);
+          console.error('[ProviderPaywall] Available packages:', webOfferings.current?.availablePackages);
           toast({
             title: "Error",
-            description: "Subscription package not found.",
+            description: "Subscription package not found. Please refresh and try again.",
             variant: "destructive",
           });
+          setIsPurchasing(false);
           return;
         }
 
+        // Show toast to indicate checkout is opening
+        toast({
+          title: "Opening checkout...",
+          description: "You'll be redirected to complete your purchase.",
+        });
+
         const result = await purchasePackage(pkg);
+        console.log('[ProviderPaywall] Web purchase result:', result);
 
         if (result.success) {
           toast({
@@ -172,7 +195,7 @@ export default function ProviderPaywall() {
             description: "Your subscription is now active.",
           });
           navigate('/feed');
-        } else if (result.error !== 'Purchase was cancelled') {
+        } else if (result.error && result.error !== 'Purchase was cancelled') {
           toast({
             title: "Purchase failed",
             description: result.error,
@@ -180,6 +203,13 @@ export default function ProviderPaywall() {
           });
         }
       }
+    } catch (error: any) {
+      console.error('[ProviderPaywall] Purchase error:', error);
+      toast({
+        title: "Error",
+        description: error.message || "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsPurchasing(false);
     }
