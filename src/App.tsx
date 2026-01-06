@@ -9,6 +9,7 @@ import { MobileLayout } from "./components/MobileLayout";
 import { useIsMobile } from "./hooks/use-mobile";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { OnboardingWrapper } from "./components/OnboardingWrapper";
+import { LocationTracker } from "./components/LocationTracker";
 import { Loader2 } from "lucide-react";
 
 // Critical pages - loaded immediately
@@ -85,8 +86,10 @@ const AppContent = () => {
   const LayoutComponent = isMobile ? MobileLayout : Layout;
 
   return (
-    <OnboardingWrapper>
-      <LayoutComponent>
+    <>
+      <LocationTracker />
+      <OnboardingWrapper>
+        <LayoutComponent>
         <Suspense fallback={<LoadingFallback />}>
           <Routes>
             <Route path="/" element={<Home />} />
@@ -148,8 +151,9 @@ const AppContent = () => {
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
-      </LayoutComponent>
-    </OnboardingWrapper>
+        </LayoutComponent>
+      </OnboardingWrapper>
+    </>
   );
 };
 
