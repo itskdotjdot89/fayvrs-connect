@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { hasSeenOnboarding } from '@/utils/onboardingHelper';
@@ -11,7 +11,6 @@ export const OnboardingWrapper = ({ children }: OnboardingWrapperProps) => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [checked, setChecked] = useState(false);
 
   useEffect(() => {
     // Wait for auth to finish loading
@@ -19,7 +18,6 @@ export const OnboardingWrapper = ({ children }: OnboardingWrapperProps) => {
 
     // Skip onboarding check for onboarding route, mockup routes, and auth route
     if (location.pathname === '/onboarding' || location.pathname.startsWith('/mockup') || location.pathname === '/auth') {
-      setChecked(true);
       return;
     }
 
@@ -32,13 +30,15 @@ export const OnboardingWrapper = ({ children }: OnboardingWrapperProps) => {
       }
       navigate('/onboarding', { replace: true });
     }
-
-    setChecked(true);
   }, [user, loading, location.pathname, navigate]);
 
-  // Don't render children until we've checked onboarding status
-  if (!checked) {
-    return null;
+  // Show loading spinner only during initial auth check
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
   }
 
   return <>{children}</>;
