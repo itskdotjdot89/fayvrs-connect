@@ -122,22 +122,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Check subscription whenever session changes
   // This is a fallback/sync mechanism - RevenueCat now handles both native and web subscriptions
   // This edge function syncs the subscription status to the database for server-side checks
+  // IMPORTANT: This runs in the background and does NOT block initial app render
   useEffect(() => {
-    const syncSubscriptionStatus = async () => {
-      // Always get a fresh session to avoid using expired tokens
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-      
-      if (!currentSession) {
-        setSubscriptionStatus(null);
-        return;
-      }
+    if (!session) {
+      setSubscriptionStatus(null);
+      return;
+    }
 
+    // Run subscription check in background - don't block UI
+    const syncSubscriptionStatus = async () => {
       try {
-        // Call check-subscription to sync database records
-        // RevenueCat webhook will also update this, but this provides immediate feedback
         const { data, error } = await supabase.functions.invoke('check-subscription', {
           headers: {
-            Authorization: `Bearer ${currentSession.access_token}`
+            Authorization: `Bearer ${session.access_token}`
           }
         });
 
@@ -155,16 +152,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     };
 
-    syncSubscriptionStatus();
+    // Small delay to prioritize UI render first
+    const timeout = setTimeout(syncSubscriptionStatus, 100);
 
     // Periodic subscription sync (every 60 seconds)
-    if (!session) return;
+    const interval = setInterval(syncSubscriptionStatus, 60000);
 
-    const interval = setInterval(() => {
-      syncSubscriptionStatus();
-    }, 60000);
-
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(timeout);
+      clearInterval(interval);
+    };
   }, [session]);
 
   const signUp = async (email: string, password: string, fullName: string, role: 'requester' | 'provider', phone?: string, referralCode?: string) => {
