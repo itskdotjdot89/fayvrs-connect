@@ -9,12 +9,19 @@ import { useRevenueCat, PRODUCT_IDS, WebPackage, WebOfferings, isYearlyProduct }
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { isNative, isIOS, isAndroid } from '@/utils/platform';
+import { supabase } from '@/integrations/supabase/client';
 import { PurchasesOfferings, PurchasesPackage } from '@revenuecat/purchases-capacitor';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 // Debug mode - set to true in development or via URL param
 const DEBUG_MODE = import.meta.env.DEV || new URLSearchParams(window.location.search).has('debug');
+
+// Stripe price IDs (fallback for ad-blocked RevenueCat)
+const STRIPE_PRICE_IDS = {
+  monthly: 'price_1STYVLLisf4T9XH8Y3xVbLzx',
+  yearly: 'price_1SmMlkLisf4T9XH8ciEnrQYn',
+};
 
 // Timeout for loading state (prevents infinite spinner)
 const LOADING_TIMEOUT_MS = 15000;
@@ -278,47 +285,106 @@ export default function ProviderPaywall() {
           });
         }
       } else {
-        // Web purchase - show checkout modal and pass the container ref.
-        // IMPORTANT: RevenueCat's web purchase flow can stay pending while the user completes checkout,
-        // so we must NOT keep the pricing cards in a "spinning" state the whole time.
-        setShowCheckoutModal(true);
-        setIsCheckoutLoading(true);
-
-        // Wait for the modal + checkout container to mount
-        const waitForCheckoutTarget = async () => {
-          const start = performance.now();
-          while (performance.now() - start < 2000) {
-            const el = checkoutContainerRef.current;
-            if (el) return el;
-            await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+        // Web purchase - try RevenueCat first, fallback to direct Stripe if blocked
+        const isYearly = isYearlyProduct(pkg.identifier);
+        
+        // Helper: Fallback to direct Stripe checkout
+        const fallbackToStripe = async () => {
+          console.log('[ProviderPaywall] Falling back to direct Stripe checkout');
+          const priceId = isYearly ? STRIPE_PRICE_IDS.yearly : STRIPE_PRICE_IDS.monthly;
+          
+          const { data: sessionData } = await supabase.auth.getSession();
+          if (!sessionData.session) {
+            throw new Error('Please sign in to subscribe');
           }
-          throw new Error('Checkout UI failed to mount. Please disable blockers and try again.');
+          
+          const { data, error } = await supabase.functions.invoke('create-checkout', {
+            body: { priceId },
+          });
+          
+          if (error || !data?.url) {
+            throw new Error(error?.message || 'Failed to create checkout session');
+          }
+          
+          // Open Stripe checkout in same tab
+          window.location.href = data.url;
         };
-        const htmlTarget = await waitForCheckoutTarget();
 
-        // Clear any previous injected checkout UI
-        htmlTarget.innerHTML = '';
+        // Try RevenueCat web checkout first
+        try {
+          setShowCheckoutModal(true);
+          setIsCheckoutLoading(true);
 
-        // Start the purchase, but stop the "card spinner" immediately (checkout is interactive now)
-        const purchasePromise = purchasePackage(pkg as WebPackage, htmlTarget);
-        setIsPurchasing(false);
-        const result = await purchasePromise;
-        console.log('[ProviderPaywall] Web purchase result:', result);
-        setShowCheckoutModal(false);
-        setIsCheckoutLoading(false);
-        if (result.success) {
-          toast({
-            title: "Welcome to Fayvrs Pro!",
-            description: "Your subscription is now active."
-          });
-          navigate('/feed');
-        } else if (result.error && result.error !== 'Purchase was cancelled') {
-          setPurchaseError(result.error);
-          toast({
-            title: "Purchase failed",
-            description: result.error,
-            variant: "destructive"
-          });
+          // Wait for the modal + checkout container to mount
+          const waitForCheckoutTarget = async () => {
+            const start = performance.now();
+            while (performance.now() - start < 2000) {
+              const el = checkoutContainerRef.current;
+              if (el) return el;
+              await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+            }
+            return null; // Return null instead of throwing
+          };
+          const htmlTarget = await waitForCheckoutTarget();
+
+          if (!htmlTarget) {
+            console.log('[ProviderPaywall] Checkout container failed to mount, using Stripe fallback');
+            setShowCheckoutModal(false);
+            setIsCheckoutLoading(false);
+            await fallbackToStripe();
+            return;
+          }
+
+          // Clear any previous injected checkout UI
+          htmlTarget.innerHTML = '';
+
+          // Start the purchase with a timeout to detect ad-blocker interference
+          const purchasePromise = purchasePackage(pkg as WebPackage, htmlTarget);
+          setIsPurchasing(false);
+          
+          // Check if RevenueCat actually rendered anything after 3 seconds
+          const contentCheckTimeout = setTimeout(async () => {
+            if (htmlTarget && htmlTarget.childElementCount === 0 && !htmlTarget.querySelector('iframe')) {
+              console.log('[ProviderPaywall] RevenueCat checkout appears blocked, using Stripe fallback');
+              setShowCheckoutModal(false);
+              setIsCheckoutLoading(false);
+              await fallbackToStripe();
+            }
+          }, 3000);
+
+          const result = await purchasePromise;
+          clearTimeout(contentCheckTimeout);
+          
+          console.log('[ProviderPaywall] Web purchase result:', result);
+          setShowCheckoutModal(false);
+          setIsCheckoutLoading(false);
+          
+          if (result.success) {
+            toast({
+              title: "Welcome to Fayvrs Pro!",
+              description: "Your subscription is now active."
+            });
+            navigate('/feed');
+          } else if (result.error && result.error !== 'Purchase was cancelled') {
+            // If RevenueCat fails, try Stripe as fallback
+            console.log('[ProviderPaywall] RevenueCat failed, trying Stripe fallback:', result.error);
+            await fallbackToStripe();
+          }
+        } catch (rcError: any) {
+          console.error('[ProviderPaywall] RevenueCat error, falling back to Stripe:', rcError);
+          setShowCheckoutModal(false);
+          setIsCheckoutLoading(false);
+          
+          try {
+            await fallbackToStripe();
+          } catch (stripeError: any) {
+            setPurchaseError(stripeError.message);
+            toast({
+              title: "Checkout failed",
+              description: stripeError.message,
+              variant: "destructive"
+            });
+          }
         }
       }
     } catch (error: any) {
