@@ -53,11 +53,24 @@ export const isWebApiKeyConfigured = async (): Promise<boolean> => {
   return !!apiKey;
 };
 
-// Product identifiers
+// Product identifiers - these should match RevenueCat product IDs
 export const PRODUCT_IDS = {
-  monthly: 'monthly',
-  yearly: 'yearly',
+  monthly: 'fayvrs_23999_1m',
+  yearly: 'fayvrs_23999_1y',
 } as const;
+
+// Helper to check if a product/package is yearly based on identifier or duration
+export const isYearlyProduct = (identifier: string, duration?: string | null): boolean => {
+  // Check identifier patterns
+  if (identifier.includes('_1y') || identifier.includes('yearly') || identifier.includes('annual')) {
+    return true;
+  }
+  // Check duration (P1Y = 1 year)
+  if (duration && (duration === 'P1Y' || duration.includes('Y'))) {
+    return true;
+  }
+  return false;
+};
 
 // Web-compatible types that match the shape of native types
 export interface WebCustomerInfo {
