@@ -230,13 +230,50 @@ export default function ProviderPaywall() {
 
   // Get available packages based on platform
   const getAvailablePackages = () => {
-    if (!offerings?.current) return [];
-
-    if (isNative()) {
-      return (offerings as PurchasesOfferings).current?.availablePackages || [];
+    if (!offerings?.current) {
+      console.log('[ProviderPaywall] No offerings available');
+      return [];
     }
 
-    return (offerings as WebOfferings).current?.availablePackages || [];
+    let packages: any[] = [];
+    if (isNative()) {
+      packages = (offerings as PurchasesOfferings).current?.availablePackages || [];
+    } else {
+      packages = (offerings as WebOfferings).current?.availablePackages || [];
+    }
+
+    // Detailed logging of all packages and their product IDs
+    console.log('[ProviderPaywall] ========== PACKAGE MAPPING DEBUG ==========');
+    console.log('[ProviderPaywall] Expected PRODUCT_IDS:', PRODUCT_IDS);
+    console.log('[ProviderPaywall] Total packages found:', packages.length);
+    
+    packages.forEach((pkg, index) => {
+      const info = getPackageInfo(pkg);
+      console.log(`[ProviderPaywall] Package ${index + 1}:`, {
+        packageIdentifier: 'identifier' in pkg ? pkg.identifier : 'N/A',
+        productIdentifier: info.identifier,
+        priceString: info.priceString,
+        isYearly: info.isYearly,
+        matchesMonthlyId: info.identifier === PRODUCT_IDS.monthly,
+        matchesYearlyId: info.identifier === PRODUCT_IDS.yearly,
+        rawPackage: pkg,
+      });
+    });
+
+    const monthlyPkg = packages.find(p => {
+      const pInfo = getPackageInfo(p);
+      return pInfo.identifier === PRODUCT_IDS.monthly || (!pInfo.isYearly && pInfo.identifier);
+    });
+    const yearlyPkg = packages.find(p => {
+      const pInfo = getPackageInfo(p);
+      return pInfo.identifier === PRODUCT_IDS.yearly || pInfo.isYearly;
+    });
+
+    console.log('[ProviderPaywall] Monthly package found:', monthlyPkg ? getPackageInfo(monthlyPkg) : 'NOT FOUND');
+    console.log('[ProviderPaywall] Yearly package found:', yearlyPkg ? getPackageInfo(yearlyPkg) : 'NOT FOUND');
+    console.log('[ProviderPaywall] ==========================================');
+
+    return packages;
   };
 
   // Auth guard (prevents infinite loading when user is not signed in)
