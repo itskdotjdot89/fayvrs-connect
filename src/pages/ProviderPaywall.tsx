@@ -120,24 +120,58 @@ export default function ProviderPaywall() {
   useEffect(() => {
     if (!showCheckoutModal) return;
     setIsCheckoutLoading(true);
+    
+    const checkForContent = () => {
+      const el = checkoutContainerRef.current;
+      if (!el) return false;
+      
+      // Check for any child elements, iframes, or meaningful content
+      const hasChildren = el.childElementCount > 0;
+      const hasIframe = el.querySelector('iframe') !== null;
+      const hasForm = el.querySelector('form') !== null;
+      const hasText = (el.textContent ?? '').trim().length > 0;
+      
+      if (hasChildren || hasIframe || hasForm || hasText) {
+        console.log('[ProviderPaywall] Checkout content detected:', { hasChildren, hasIframe, hasForm, hasText });
+        setIsCheckoutLoading(false);
+        return true;
+      }
+      return false;
+    };
+    
+    // Initial check
+    if (checkForContent()) return;
+    
     const el = checkoutContainerRef.current;
     if (!el) return;
-    const update = () => {
-      const hasContent = el.childElementCount > 0 || (el.textContent ?? '').trim().length > 0;
-      if (hasContent) setIsCheckoutLoading(false);
-    };
-    update();
-    const observer = new MutationObserver(update);
+    
+    const observer = new MutationObserver(() => {
+      checkForContent();
+    });
+    
     observer.observe(el, {
       childList: true,
-      subtree: true
+      subtree: true,
+      attributes: true
     });
+    
+    // Also poll as fallback (some iframe injections don't trigger MutationObserver)
+    const pollInterval = window.setInterval(() => {
+      if (checkForContent()) {
+        window.clearInterval(pollInterval);
+      }
+    }, 200);
+    
+    // Timeout fallback - hide loader after 3 seconds regardless
     const timeout = window.setTimeout(() => {
-      // Don't block the UI forever if the SDK is slow; the container may still render shortly after.
+      console.log('[ProviderPaywall] Checkout loading timeout - hiding loader');
       setIsCheckoutLoading(false);
-    }, 4000);
+      window.clearInterval(pollInterval);
+    }, 3000);
+    
     return () => {
       observer.disconnect();
+      window.clearInterval(pollInterval);
       window.clearTimeout(timeout);
     };
   }, [showCheckoutModal]);
