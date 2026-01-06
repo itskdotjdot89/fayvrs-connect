@@ -4,13 +4,14 @@ import { RevenueCatUI, PAYWALL_RESULT } from '@revenuecat/purchases-capacitor-ui
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Check, Crown, ArrowLeft, RotateCcw, X, AlertTriangle } from 'lucide-react';
+import { Loader2, Check, Crown, ArrowLeft, RotateCcw, AlertTriangle } from 'lucide-react';
 import { useRevenueCat, PRODUCT_IDS, WebPackage, WebOfferings, isYearlyProduct } from '@/hooks/useRevenueCat';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { isNative, isIOS, isAndroid } from '@/utils/platform';
 import { PurchasesOfferings, PurchasesPackage } from '@revenuecat/purchases-capacitor';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 // Debug mode - set to true in development or via URL param
 const DEBUG_MODE = import.meta.env.DEV || new URLSearchParams(window.location.search).has('debug');
@@ -688,29 +689,40 @@ export default function ProviderPaywall() {
         </div>
       </div>
 
-      {/* RevenueCat Checkout Modal for Web */}
-      {showCheckoutModal && <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <div className="bg-background rounded-lg w-full max-w-lg max-h-[90vh] overflow-auto relative">
-            <div className="sticky top-0 bg-background border-b p-4 flex items-center justify-between">
-              <h2 className="font-semibold text-lg">Complete Your Purchase</h2>
-              <Button variant="ghost" size="icon" onClick={() => {
+      {/* RevenueCat Checkout Modal for Web (Dialog portal to avoid stacking/overflow issues) */}
+      <Dialog
+        open={showCheckoutModal}
+        onOpenChange={(open) => {
+          if (!open) {
             setShowCheckoutModal(false);
             setIsCheckoutLoading(false);
             setIsPurchasing(false);
-          }}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="p-4 min-h-[400px] relative">
-              <div ref={checkoutContainerRef} className="min-h-[400px]" id="revenuecat-checkout-container" />
-              {isCheckoutLoading && <div className="absolute inset-0 flex items-center justify-center bg-background/80">
-                  <div className="text-center space-y-4">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-                    <p className="text-muted-foreground">Loading checkout...</p>
-                  </div>
-                </div>}
-            </div>
+            if (checkoutContainerRef.current) checkoutContainerRef.current.innerHTML = '';
+          }
+        }}
+      >
+        <DialogContent className="max-w-lg p-0">
+          <DialogHeader className="border-b p-4">
+            <DialogTitle>Complete Your Purchase</DialogTitle>
+          </DialogHeader>
+
+          <div className="p-4 min-h-[400px] relative">
+            <div
+              ref={checkoutContainerRef}
+              className="min-h-[400px]"
+              id="revenuecat-checkout-container"
+            />
+
+            {isCheckoutLoading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-background/80">
+                <div className="text-center space-y-4">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+                  <p className="text-muted-foreground">Loading checkout...</p>
+                </div>
+              </div>
+            )}
           </div>
-        </div>}
+        </DialogContent>
+      </Dialog>
     </div>;
 }
