@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RevenueCatUI, PAYWALL_RESULT } from '@revenuecat/purchases-capacitor-ui';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Check, Crown, ArrowLeft, RotateCcw } from 'lucide-react';
+import { Loader2, Check, Crown, ArrowLeft, RotateCcw, X } from 'lucide-react';
 import { useRevenueCat, PRODUCT_IDS, WebPackage, WebOfferings } from '@/hooks/useRevenueCat';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -30,6 +30,8 @@ export default function ProviderPaywall() {
   const [isRestoring, setIsRestoring] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const checkoutContainerRef = useRef<HTMLDivElement>(null);
 
   // Initialize RevenueCat when component mounts (both native and web)
   useEffect(() => {
@@ -158,7 +160,7 @@ export default function ProviderPaywall() {
           });
         }
       } else {
-        // Web purchase
+        // Web purchase - show checkout modal and pass the container ref
         const webOfferings = offerings as WebOfferings;
         console.log('[ProviderPaywall] Web offerings:', webOfferings);
         
@@ -180,14 +182,17 @@ export default function ProviderPaywall() {
           return;
         }
 
-        // Show toast to indicate checkout is opening
-        toast({
-          title: "Opening checkout...",
-          description: "You'll be redirected to complete your purchase.",
-        });
+        // Show the checkout modal first
+        setShowCheckoutModal(true);
+        
+        // Wait for the modal to render
+        await new Promise(resolve => setTimeout(resolve, 100));
 
-        const result = await purchasePackage(pkg);
+        // Pass the checkout container to RevenueCat
+        const result = await purchasePackage(pkg, checkoutContainerRef.current);
         console.log('[ProviderPaywall] Web purchase result:', result);
+
+        setShowCheckoutModal(false);
 
         if (result.success) {
           toast({
@@ -205,6 +210,7 @@ export default function ProviderPaywall() {
       }
     } catch (error: any) {
       console.error('[ProviderPaywall] Purchase error:', error);
+      setShowCheckoutModal(false);
       toast({
         title: "Error",
         description: error.message || "An unexpected error occurred. Please try again.",
@@ -529,6 +535,41 @@ export default function ProviderPaywall() {
           </div>
         </div>
       </div>
+
+      {/* RevenueCat Checkout Modal for Web */}
+      {showCheckoutModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+          <div className="bg-background rounded-lg w-full max-w-lg max-h-[90vh] overflow-auto relative">
+            <div className="sticky top-0 bg-background border-b p-4 flex items-center justify-between">
+              <h2 className="font-semibold text-lg">Complete Your Purchase</h2>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setShowCheckoutModal(false);
+                  setIsPurchasing(false);
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div 
+              ref={checkoutContainerRef} 
+              className="p-4 min-h-[400px]"
+              id="revenuecat-checkout-container"
+            >
+              {isPurchasing && (
+                <div className="flex items-center justify-center h-[300px]">
+                  <div className="text-center space-y-4">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+                    <p className="text-muted-foreground">Loading checkout...</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
