@@ -38,6 +38,7 @@ export default function ProviderPaywall() {
   const [showPaywall, setShowPaywall] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
   const checkoutContainerRef = useRef<HTMLDivElement>(null);
@@ -117,6 +118,36 @@ export default function ProviderPaywall() {
       console.groupEnd();
     }
   }, [offerings]);
+
+  // Web checkout: stop showing "Loading checkout..." once RevenueCat renders into the container
+  useEffect(() => {
+    if (!showCheckoutModal) return;
+
+    setIsCheckoutLoading(true);
+
+    const el = checkoutContainerRef.current;
+    if (!el) return;
+
+    const update = () => {
+      const hasContent = el.childElementCount > 0 || ((el.textContent ?? '').trim().length > 0);
+      if (hasContent) setIsCheckoutLoading(false);
+    };
+
+    update();
+
+    const observer = new MutationObserver(update);
+    observer.observe(el, { childList: true, subtree: true });
+
+    const timeout = window.setTimeout(() => {
+      // Don't block the UI forever if the SDK is slow; the container may still render shortly after.
+      setIsCheckoutLoading(false);
+    }, 4000);
+
+    return () => {
+      observer.disconnect();
+      window.clearTimeout(timeout);
+    };
+  }, [showCheckoutModal]);
 
   const handlePresentPaywall = async () => {
     if (isNative()) {
@@ -230,17 +261,37 @@ export default function ProviderPaywall() {
           });
         }
       } else {
-        // Web purchase - show checkout modal and pass the container ref
+        // Web purchase - show checkout modal and pass the container ref.
+        // IMPORTANT: RevenueCat's web purchase flow can stay pending while the user completes checkout,
+        // so we must NOT keep the pricing cards in a "spinning" state the whole time.
         setShowCheckoutModal(true);
-        
-        // Wait for the modal to render
-        await new Promise(resolve => setTimeout(resolve, 100));
+        setIsCheckoutLoading(true);
 
-        // Pass the checkout container to RevenueCat
-        const result = await purchasePackage(pkg as WebPackage, checkoutContainerRef.current);
+        // Wait for the modal + checkout container to mount
+        const waitForCheckoutTarget = async () => {
+          const start = performance.now();
+          while (performance.now() - start < 2000) {
+            const el = checkoutContainerRef.current;
+            if (el) return el;
+            await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+          }
+          throw new Error('Checkout UI failed to mount. Please disable blockers and try again.');
+        };
+
+        const htmlTarget = await waitForCheckoutTarget();
+
+        // Clear any previous injected checkout UI
+        htmlTarget.innerHTML = '';
+
+        // Start the purchase, but stop the "card spinner" immediately (checkout is interactive now)
+        const purchasePromise = purchasePackage(pkg as WebPackage, htmlTarget);
+        setIsPurchasing(false);
+
+        const result = await purchasePromise;
         console.log('[ProviderPaywall] Web purchase result:', result);
 
         setShowCheckoutModal(false);
+        setIsCheckoutLoading(false);
 
         if (result.success) {
           toast({
@@ -260,6 +311,7 @@ export default function ProviderPaywall() {
     } catch (error: any) {
       console.error('[ProviderPaywall] Purchase error:', error);
       setShowCheckoutModal(false);
+      setIsCheckoutLoading(false);
       const errorMsg = error.message || "An unexpected error occurred. Please try again.";
       setPurchaseError(errorMsg);
       toast({
@@ -749,19 +801,21 @@ export default function ProviderPaywall() {
                 size="icon"
                 onClick={() => {
                   setShowCheckoutModal(false);
+                  setIsCheckoutLoading(false);
                   setIsPurchasing(false);
                 }}
               >
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            <div 
-              ref={checkoutContainerRef} 
-              className="p-4 min-h-[400px]"
-              id="revenuecat-checkout-container"
-            >
-              {isPurchasing && (
-                <div className="flex items-center justify-center h-[300px]">
+            <div className="p-4 min-h-[400px] relative">
+              <div
+                ref={checkoutContainerRef}
+                className="min-h-[400px]"
+                id="revenuecat-checkout-container"
+              />
+              {isCheckoutLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-background/80">
                   <div className="text-center space-y-4">
                     <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
                     <p className="text-muted-foreground">Loading checkout...</p>
