@@ -424,8 +424,10 @@ export default function ProviderPaywall() {
     );
   }
 
-  // Loading state (with timeout handling)
-  if ((!isInitialized || isLoading) && !loadingTimedOut) {
+  // Loading state (initialization only)
+  // IMPORTANT: do NOT gate the whole page on `isLoading` after init, because purchases/restores set
+  // `isLoading=true` inside the hook and would otherwise unmount the checkout modal target.
+  if (!isInitialized && !loadingTimedOut) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
