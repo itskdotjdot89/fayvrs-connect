@@ -4,35 +4,24 @@ import { RevenueCatUI, PAYWALL_RESULT } from '@revenuecat/purchases-capacitor-ui
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Check, Crown, ArrowLeft, RotateCcw, AlertTriangle } from 'lucide-react';
+import { Loader2, Check, Crown, ArrowLeft, RotateCcw, X, AlertTriangle } from 'lucide-react';
 import { useRevenueCat, PRODUCT_IDS, WebPackage, WebOfferings, isYearlyProduct } from '@/hooks/useRevenueCat';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { isNative, isIOS, isAndroid } from '@/utils/platform';
-import { supabase } from '@/integrations/supabase/client';
 import { PurchasesOfferings, PurchasesPackage } from '@revenuecat/purchases-capacitor';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 // Debug mode - set to true in development or via URL param
 const DEBUG_MODE = import.meta.env.DEV || new URLSearchParams(window.location.search).has('debug');
 
-// Stripe price IDs (fallback for ad-blocked RevenueCat)
-const STRIPE_PRICE_IDS = {
-  monthly: 'price_1STYVLLisf4T9XH8Y3xVbLzx',
-  yearly: 'price_1SmMlkLisf4T9XH8ciEnrQYn',
-};
-
 // Timeout for loading state (prevents infinite spinner)
 const LOADING_TIMEOUT_MS = 15000;
+
 export default function ProviderPaywall() {
   const navigate = useNavigate();
-  const {
-    user
-  } = useAuth();
-  const {
-    toast
-  } = useToast();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const {
     isInitialized,
     isLoading,
@@ -42,13 +31,13 @@ export default function ProviderPaywall() {
     initialize,
     identifyUser,
     purchasePackage,
-    restorePurchases
+    restorePurchases,
   } = useRevenueCat();
+  
   const [isRestoring, setIsRestoring] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
-  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
   const checkoutContainerRef = useRef<HTMLDivElement>(null);
@@ -59,13 +48,14 @@ export default function ProviderPaywall() {
     if (user?.id) {
       setLoadingTimedOut(false);
       initialize(user.id);
-
+      
       // Set loading timeout
       loadingTimeoutRef.current = setTimeout(() => {
         setLoadingTimedOut(true);
         console.warn('[ProviderPaywall] Loading timed out after', LOADING_TIMEOUT_MS, 'ms');
       }, LOADING_TIMEOUT_MS);
     }
+    
     return () => {
       if (loadingTimeoutRef.current) {
         clearTimeout(loadingTimeoutRef.current);
@@ -92,7 +82,7 @@ export default function ProviderPaywall() {
     if (isProSubscriber) {
       toast({
         title: "You're already subscribed!",
-        description: "Redirecting to the feed..."
+        description: "Redirecting to the feed...",
       });
       navigate('/feed');
     }
@@ -104,19 +94,23 @@ export default function ProviderPaywall() {
       console.group('[ProviderPaywall] 📦 Offerings Debug');
       console.log('Raw offerings:', offerings);
       console.log('Current offering:', offerings.current);
+      
       const packages = getAvailablePackages();
       console.log('Available packages count:', packages.length);
+      
       packages.forEach((pkg, index) => {
         const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
         console.log(`Package ${index}:`, {
           identifier: info.identifier,
           priceString: info.priceString,
           isYearly: info.isYearly,
-          raw: pkg
+          raw: pkg,
         });
       });
+      
       const monthlyPkg = findMonthlyPackage();
       const yearlyPkg = findYearlyPackage();
+      
       console.log('Monthly package found:', monthlyPkg ? getPackageInfo(monthlyPkg as PurchasesPackage | WebPackage) : 'NOT FOUND');
       console.log('Yearly package found:', yearlyPkg ? getPackageInfo(yearlyPkg as PurchasesPackage | WebPackage) : 'NOT FOUND');
       console.log('Expected product IDs:', PRODUCT_IDS);
@@ -124,76 +118,20 @@ export default function ProviderPaywall() {
     }
   }, [offerings]);
 
-  // Web checkout: stop showing "Loading checkout..." once RevenueCat renders into the container
-  useEffect(() => {
-    if (!showCheckoutModal) return;
-    setIsCheckoutLoading(true);
-    
-    const checkForContent = () => {
-      const el = checkoutContainerRef.current;
-      if (!el) return false;
-      
-      // Check for any child elements, iframes, or meaningful content
-      const hasChildren = el.childElementCount > 0;
-      const hasIframe = el.querySelector('iframe') !== null;
-      const hasForm = el.querySelector('form') !== null;
-      const hasText = (el.textContent ?? '').trim().length > 0;
-      
-      if (hasChildren || hasIframe || hasForm || hasText) {
-        console.log('[ProviderPaywall] Checkout content detected:', { hasChildren, hasIframe, hasForm, hasText });
-        setIsCheckoutLoading(false);
-        return true;
-      }
-      return false;
-    };
-    
-    // Initial check
-    if (checkForContent()) return;
-    
-    const el = checkoutContainerRef.current;
-    if (!el) return;
-    
-    const observer = new MutationObserver(() => {
-      checkForContent();
-    });
-    
-    observer.observe(el, {
-      childList: true,
-      subtree: true,
-      attributes: true
-    });
-    
-    // Also poll as fallback (some iframe injections don't trigger MutationObserver)
-    const pollInterval = window.setInterval(() => {
-      if (checkForContent()) {
-        window.clearInterval(pollInterval);
-      }
-    }, 200);
-    
-    // Timeout fallback - hide loader after 3 seconds regardless
-    const timeout = window.setTimeout(() => {
-      console.log('[ProviderPaywall] Checkout loading timeout - hiding loader');
-      setIsCheckoutLoading(false);
-      window.clearInterval(pollInterval);
-    }, 3000);
-    
-    return () => {
-      observer.disconnect();
-      window.clearInterval(pollInterval);
-      window.clearTimeout(timeout);
-    };
-  }, [showCheckoutModal]);
   const handlePresentPaywall = async () => {
     if (isNative()) {
       // Native: use RevenueCat UI paywall
       try {
         setShowPaywall(true);
+        
         const paywallResult = await RevenueCatUI.presentPaywall();
+        
         console.log('[ProviderPaywall] Paywall result:', paywallResult);
+        
         if (paywallResult.result === PAYWALL_RESULT.PURCHASED || paywallResult.result === PAYWALL_RESULT.RESTORED) {
           toast({
             title: "Welcome to Fayvrs Pro!",
-            description: "Your subscription is now active."
+            description: "Your subscription is now active.",
           });
           navigate('/feed');
         }
@@ -205,75 +143,82 @@ export default function ProviderPaywall() {
     } else {
       // Web: scroll to subscription options
       const subscriptionSection = document.getElementById('subscription-options');
-      subscriptionSection?.scrollIntoView({
-        behavior: 'smooth'
-      });
+      subscriptionSection?.scrollIntoView({ behavior: 'smooth' });
     }
   };
+
   const handleRestorePurchases = async () => {
     setIsRestoring(true);
     const result = await restorePurchases();
     setIsRestoring(false);
+
     if (result.success) {
       toast({
         title: "Purchases restored",
-        description: "Your previous purchases have been restored."
+        description: "Your previous purchases have been restored.",
       });
     } else {
       toast({
         title: "No purchases found",
         description: result.error || "No previous purchases were found for this account.",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
+
   const handlePurchaseWithPackage = async (pkg: PurchasesPackage | WebPackage | null, planType: 'monthly' | 'yearly') => {
     setPurchaseError(null);
-
+    
     // If no package found, show detailed error
     if (!pkg) {
       const errorMsg = `${planType === 'yearly' ? 'Annual' : 'Monthly'} subscription package not found. Please try again or contact support.`;
       console.error('[ProviderPaywall] Package not found:', {
         planType,
         expectedProductId: planType === 'yearly' ? PRODUCT_IDS.yearly : PRODUCT_IDS.monthly,
-        availablePackages: getAvailablePackages().map(p => getPackageInfo(p as PurchasesPackage | WebPackage))
+        availablePackages: getAvailablePackages().map(p => getPackageInfo(p as PurchasesPackage | WebPackage)),
       });
+      
       setPurchaseError(errorMsg);
       toast({
         title: "Subscription Error",
         description: errorMsg,
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
+    
     const info = getPackageInfo(pkg);
     console.log('[ProviderPaywall] Starting purchase for package:', info);
-
+    
     // Validate the package matches the expected plan type
-    if (planType === 'yearly' && !info.isYearly || planType === 'monthly' && info.isYearly) {
+    if ((planType === 'yearly' && !info.isYearly) || (planType === 'monthly' && info.isYearly)) {
       console.error('[ProviderPaywall] Package mismatch:', {
         expectedPlanType: planType,
         packageIsYearly: info.isYearly,
-        packageIdentifier: info.identifier
+        packageIdentifier: info.identifier,
       });
+      
       const errorMsg = `Package configuration error: Expected ${planType} but got ${info.isYearly ? 'yearly' : 'monthly'}. Please contact support.`;
       setPurchaseError(errorMsg);
       toast({
         title: "Configuration Error",
         description: errorMsg,
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
+    
     setIsPurchasing(true);
+
     try {
       if (isNative()) {
         const result = await purchasePackage(pkg as PurchasesPackage);
         console.log('[ProviderPaywall] Native purchase result:', result);
+
         if (result.success) {
           toast({
             title: "Welcome to Fayvrs Pro!",
-            description: "Your subscription is now active."
+            description: "Your subscription is now active.",
           });
           navigate('/feed');
         } else if (result.error !== 'Purchase was cancelled') {
@@ -281,122 +226,46 @@ export default function ProviderPaywall() {
           toast({
             title: "Purchase failed",
             description: result.error,
-            variant: "destructive"
+            variant: "destructive",
           });
         }
       } else {
-        // Web purchase - try RevenueCat first, fallback to direct Stripe if blocked
-        const isYearly = isYearlyProduct(pkg.identifier);
+        // Web purchase - show checkout modal and pass the container ref
+        setShowCheckoutModal(true);
         
-        // Helper: Fallback to direct Stripe checkout
-        const fallbackToStripe = async () => {
-          console.log('[ProviderPaywall] Falling back to direct Stripe checkout');
-          const priceId = isYearly ? STRIPE_PRICE_IDS.yearly : STRIPE_PRICE_IDS.monthly;
-          
-          const { data: sessionData } = await supabase.auth.getSession();
-          if (!sessionData.session) {
-            throw new Error('Please sign in to subscribe');
-          }
-          
-          const { data, error } = await supabase.functions.invoke('create-checkout', {
-            body: { priceId },
+        // Wait for the modal to render
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Pass the checkout container to RevenueCat
+        const result = await purchasePackage(pkg as WebPackage, checkoutContainerRef.current);
+        console.log('[ProviderPaywall] Web purchase result:', result);
+
+        setShowCheckoutModal(false);
+
+        if (result.success) {
+          toast({
+            title: "Welcome to Fayvrs Pro!",
+            description: "Your subscription is now active.",
           });
-          
-          if (error || !data?.url) {
-            throw new Error(error?.message || 'Failed to create checkout session');
-          }
-          
-          // Open Stripe checkout in same tab
-          window.location.href = data.url;
-        };
-
-        // Try RevenueCat web checkout first
-        try {
-          setShowCheckoutModal(true);
-          setIsCheckoutLoading(true);
-
-          // Wait for the modal + checkout container to mount
-          const waitForCheckoutTarget = async () => {
-            const start = performance.now();
-            while (performance.now() - start < 2000) {
-              const el = checkoutContainerRef.current;
-              if (el) return el;
-              await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-            }
-            return null; // Return null instead of throwing
-          };
-          const htmlTarget = await waitForCheckoutTarget();
-
-          if (!htmlTarget) {
-            console.log('[ProviderPaywall] Checkout container failed to mount, using Stripe fallback');
-            setShowCheckoutModal(false);
-            setIsCheckoutLoading(false);
-            await fallbackToStripe();
-            return;
-          }
-
-          // Clear any previous injected checkout UI
-          htmlTarget.innerHTML = '';
-
-          // Start the purchase with a timeout to detect ad-blocker interference
-          const purchasePromise = purchasePackage(pkg as WebPackage, htmlTarget);
-          setIsPurchasing(false);
-          
-          // Check if RevenueCat actually rendered anything after 3 seconds
-          const contentCheckTimeout = setTimeout(async () => {
-            if (htmlTarget && htmlTarget.childElementCount === 0 && !htmlTarget.querySelector('iframe')) {
-              console.log('[ProviderPaywall] RevenueCat checkout appears blocked, using Stripe fallback');
-              setShowCheckoutModal(false);
-              setIsCheckoutLoading(false);
-              await fallbackToStripe();
-            }
-          }, 3000);
-
-          const result = await purchasePromise;
-          clearTimeout(contentCheckTimeout);
-          
-          console.log('[ProviderPaywall] Web purchase result:', result);
-          setShowCheckoutModal(false);
-          setIsCheckoutLoading(false);
-          
-          if (result.success) {
-            toast({
-              title: "Welcome to Fayvrs Pro!",
-              description: "Your subscription is now active."
-            });
-            navigate('/feed');
-          } else if (result.error && result.error !== 'Purchase was cancelled') {
-            // If RevenueCat fails, try Stripe as fallback
-            console.log('[ProviderPaywall] RevenueCat failed, trying Stripe fallback:', result.error);
-            await fallbackToStripe();
-          }
-        } catch (rcError: any) {
-          console.error('[ProviderPaywall] RevenueCat error, falling back to Stripe:', rcError);
-          setShowCheckoutModal(false);
-          setIsCheckoutLoading(false);
-          
-          try {
-            await fallbackToStripe();
-          } catch (stripeError: any) {
-            setPurchaseError(stripeError.message);
-            toast({
-              title: "Checkout failed",
-              description: stripeError.message,
-              variant: "destructive"
-            });
-          }
+          navigate('/feed');
+        } else if (result.error && result.error !== 'Purchase was cancelled') {
+          setPurchaseError(result.error);
+          toast({
+            title: "Purchase failed",
+            description: result.error,
+            variant: "destructive",
+          });
         }
       }
     } catch (error: any) {
       console.error('[ProviderPaywall] Purchase error:', error);
       setShowCheckoutModal(false);
-      setIsCheckoutLoading(false);
       const errorMsg = error.message || "An unexpected error occurred. Please try again.";
       setPurchaseError(errorMsg);
       toast({
         title: "Error",
         description: errorMsg,
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setIsPurchasing(false);
@@ -411,7 +280,7 @@ export default function ProviderPaywall() {
       return {
         identifier,
         priceString: pkg.product.priceString,
-        isYearly: isYearlyProduct(identifier)
+        isYearly: isYearlyProduct(identifier),
       };
     } else {
       // Web package
@@ -420,7 +289,7 @@ export default function ProviderPaywall() {
       return {
         identifier,
         priceString: pkg.rcBillingProduct.currentPrice.formattedPrice,
-        isYearly: isYearlyProduct(identifier, duration)
+        isYearly: isYearlyProduct(identifier, duration),
       };
     }
   };
@@ -428,22 +297,24 @@ export default function ProviderPaywall() {
   // Get available packages based on platform
   const getAvailablePackages = () => {
     if (!offerings?.current) return [];
+
     if (isNative()) {
       return (offerings as PurchasesOfferings).current?.availablePackages || [];
     }
+
     return (offerings as WebOfferings).current?.availablePackages || [];
   };
 
   // Find monthly package - try by duration first, then by product ID
   const findMonthlyPackage = () => {
     const packages = getAvailablePackages();
-
+    
     // First try to find by checking it's NOT yearly AND matches monthly product ID
     let pkg = packages.find(p => {
       const info = getPackageInfo(p as PurchasesPackage | WebPackage);
       return info.identifier === PRODUCT_IDS.monthly && !info.isYearly;
     });
-
+    
     // Fallback: find any package that is NOT yearly
     if (!pkg) {
       pkg = packages.find(p => {
@@ -451,23 +322,25 @@ export default function ProviderPaywall() {
         return !info.isYearly;
       });
     }
+    
     if (DEBUG_MODE && pkg) {
       const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
       console.log('[ProviderPaywall] Found monthly package:', info);
     }
+    
     return pkg;
   };
 
   // Find yearly package - try by duration first, then by product ID
   const findYearlyPackage = () => {
     const packages = getAvailablePackages();
-
+    
     // First try to find by checking isYearly AND matches yearly product ID
     let pkg = packages.find(p => {
       const info = getPackageInfo(p as PurchasesPackage | WebPackage);
       return info.identifier === PRODUCT_IDS.yearly && info.isYearly;
     });
-
+    
     // Fallback: find any package that IS yearly
     if (!pkg) {
       pkg = packages.find(p => {
@@ -475,10 +348,12 @@ export default function ProviderPaywall() {
         return info.isYearly;
       });
     }
+    
     if (DEBUG_MODE && pkg) {
       const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
       console.log('[ProviderPaywall] Found yearly package:', info);
     }
+    
     return pkg;
   };
 
@@ -487,26 +362,33 @@ export default function ProviderPaywall() {
     const monthlyPkg = findMonthlyPackage();
     const yearlyPkg = findYearlyPackage();
     const allPackages = getAvailablePackages();
+    
     const monthlyInfo = monthlyPkg ? getPackageInfo(monthlyPkg as PurchasesPackage | WebPackage) : null;
     const yearlyInfo = yearlyPkg ? getPackageInfo(yearlyPkg as PurchasesPackage | WebPackage) : null;
-
+    
     // Detect misconfigurations
     const issues: string[] = [];
+    
     if (allPackages.length === 0 && isInitialized && !isLoading) {
       issues.push('No packages found in offerings');
     }
+    
     if (!monthlyPkg && allPackages.length > 0) {
       issues.push('Monthly package not found');
     }
+    
     if (!yearlyPkg && allPackages.length > 0) {
       issues.push('Yearly package not found');
     }
+    
     if (monthlyInfo && monthlyInfo.identifier !== PRODUCT_IDS.monthly) {
       issues.push(`Monthly package ID mismatch: expected ${PRODUCT_IDS.monthly}, got ${monthlyInfo.identifier}`);
     }
+    
     if (yearlyInfo && yearlyInfo.identifier !== PRODUCT_IDS.yearly) {
       issues.push(`Yearly package ID mismatch: expected ${PRODUCT_IDS.yearly}, got ${yearlyInfo.identifier}`);
     }
+    
     return {
       monthlyPkg,
       yearlyPkg,
@@ -514,13 +396,14 @@ export default function ProviderPaywall() {
       yearlyInfo,
       allPackages,
       issues,
-      hasMisconfiguration: issues.length > 0
+      hasMisconfiguration: issues.length > 0,
     };
   }, [offerings, isInitialized, isLoading]);
 
   // Auth guard (prevents infinite loading when user is not signed in)
   if (!user?.id) {
-    return <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="max-w-md w-full">
           <CardHeader>
             <CardTitle>Sign in required</CardTitle>
@@ -537,24 +420,26 @@ export default function ProviderPaywall() {
             </Button>
           </CardContent>
         </Card>
-      </div>;
+      </div>
+    );
   }
 
-  // Loading state (initialization only)
-  // IMPORTANT: do NOT gate the whole page on `isLoading` after init, because purchases/restores set
-  // `isLoading=true` inside the hook and would otherwise unmount the checkout modal target.
-  if (!isInitialized && !loadingTimedOut) {
-    return <div className="min-h-screen flex items-center justify-center bg-background">
+  // Loading state (with timeout handling)
+  if ((!isInitialized || isLoading) && !loadingTimedOut) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
           <p className="text-muted-foreground">Loading subscription options...</p>
         </div>
-      </div>;
+      </div>
+    );
   }
 
   // Loading timed out - show fallback UI
   if (loadingTimedOut && !isInitialized) {
-    return <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="max-w-md w-full">
           <CardHeader>
             <AlertTriangle className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
@@ -564,27 +449,34 @@ export default function ProviderPaywall() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Button onClick={() => {
-            setLoadingTimedOut(false);
-            initialize(user?.id);
-          }} className="w-full">
+            <Button 
+              onClick={() => {
+                setLoadingTimedOut(false);
+                initialize(user?.id);
+              }} 
+              className="w-full"
+            >
               <RotateCcw className="h-4 w-4 mr-2" />
               Try Again
             </Button>
             <Button variant="outline" onClick={() => navigate(-1)} className="w-full">
               Go Back
             </Button>
-            {DEBUG_MODE && <p className="text-xs text-muted-foreground text-center">
+            {DEBUG_MODE && (
+              <p className="text-xs text-muted-foreground text-center">
                 Debug: Timeout after {LOADING_TIMEOUT_MS}ms. Check console for errors.
-              </p>}
+              </p>
+            )}
           </CardContent>
         </Card>
-      </div>;
+      </div>
+    );
   }
 
   // Error state
   if (error) {
-    return <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="max-w-md w-full">
           <CardHeader>
             <CardTitle className="text-destructive">Error</CardTitle>
@@ -597,14 +489,26 @@ export default function ProviderPaywall() {
             <Button variant="outline" onClick={() => navigate(-1)} className="w-full">
               Go Back
             </Button>
-            {DEBUG_MODE && <p className="text-xs text-muted-foreground text-center mt-2">
+            {DEBUG_MODE && (
+              <p className="text-xs text-muted-foreground text-center mt-2">
                 Debug: Check console for detailed error logs.
-              </p>}
+              </p>
+            )}
           </CardContent>
         </Card>
-      </div>;
+      </div>
+    );
   }
-  const features = ['Unlimited proposal submissions', 'Priority visibility to requesters', 'Direct messaging with clients', 'Portfolio showcase', 'Verified provider badge eligibility', 'Access to premium requests'];
+
+  const features = [
+    'Unlimited proposal submissions',
+    'Priority visibility to requesters',
+    'Direct messaging with clients',
+    'Portfolio showcase',
+    'Verified provider badge eligibility',
+    'Access to premium requests',
+  ];
+
   const availablePackages = getAvailablePackages();
 
   // Get payment method text based on platform
@@ -617,10 +521,17 @@ export default function ProviderPaywall() {
       return "Subscriptions will be charged to your payment method via Stripe at confirmation of purchase.";
     }
   };
-  return <div className="min-h-screen bg-gradient-to-b from-background to-muted/50 p-4">
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/50 p-4">
       <div className="max-w-lg mx-auto pt-8">
         {/* Back button */}
-        <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="mb-6">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => navigate(-1)}
+          className="mb-6"
+        >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>
@@ -645,50 +556,79 @@ export default function ProviderPaywall() {
           </CardHeader>
           <CardContent>
             <ul className="space-y-3">
-              {features.map((feature, index) => <li key={index} className="flex items-start gap-3">
+              {features.map((feature, index) => (
+                <li key={index} className="flex items-start gap-3">
                   <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                   <span className="text-foreground">{feature}</span>
-                </li>)}
+                </li>
+              ))}
             </ul>
           </CardContent>
         </Card>
 
         {/* CTA - Present Paywall (native) or scroll to options (web) */}
-        {isNative() && <Button onClick={handlePresentPaywall} className="w-full h-14 text-lg mb-4" disabled={showPaywall}>
-            {showPaywall ? <>
+        {isNative() && (
+          <Button 
+            onClick={handlePresentPaywall}
+            className="w-full h-14 text-lg mb-4"
+            disabled={showPaywall}
+          >
+            {showPaywall ? (
+              <>
                 <Loader2 className="h-5 w-5 mr-2 animate-spin" />
                 Loading...
-              </> : 'View Subscription Options'}
-          </Button>}
+              </>
+            ) : (
+              'View Subscription Options'
+            )}
+          </Button>
+        )}
 
         {/* Subscription options */}
         <div id="subscription-options" className="space-y-3 mb-6">
-          {!isNative() && <h3 className="text-lg font-semibold text-center text-foreground mb-4">
+          {!isNative() && (
+            <h3 className="text-lg font-semibold text-center text-foreground mb-4">
               Choose Your Plan
-            </h3>}
-          {isNative() && availablePackages.length > 0 && <p className="text-sm text-center text-muted-foreground">
+            </h3>
+          )}
+          {isNative() && availablePackages.length > 0 && (
+            <p className="text-sm text-center text-muted-foreground">
               Or select a plan directly:
-            </p>}
+            </p>
+          )}
           
           {/* Always show pricing cards - use RevenueCat data if available, fallback to hardcoded */}
           <div className="grid grid-cols-2 gap-3">
             {/* Monthly Plan */}
-            <Card className="cursor-pointer hover:border-primary transition-colors" onClick={() => handlePurchaseWithPackage(packagesStatus.monthlyPkg as PurchasesPackage | WebPackage | null, 'monthly')}>
+            <Card 
+              className="cursor-pointer hover:border-primary transition-colors"
+              onClick={() => handlePurchaseWithPackage(packagesStatus.monthlyPkg as PurchasesPackage | WebPackage | null, 'monthly')}
+            >
               <CardContent className="p-4 text-center">
-                {isPurchasing ? <Loader2 className="h-6 w-6 animate-spin mx-auto" /> : <>
+                {isPurchasing ? (
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                ) : (
+                  <>
                     <p className="font-semibold text-foreground">Monthly</p>
                     <p className="text-lg font-bold text-primary">
                       {packagesStatus.monthlyInfo?.priceString || '$29.99'}
                     </p>
                     <p className="text-xs text-muted-foreground">per month</p>
-                  </>}
+                  </>
+                )}
               </CardContent>
             </Card>
 
             {/* Yearly Plan */}
-            <Card className="cursor-pointer hover:border-primary transition-colors border-primary/50" onClick={() => handlePurchaseWithPackage(packagesStatus.yearlyPkg as PurchasesPackage | WebPackage | null, 'yearly')}>
+            <Card 
+              className="cursor-pointer hover:border-primary transition-colors border-primary/50"
+              onClick={() => handlePurchaseWithPackage(packagesStatus.yearlyPkg as PurchasesPackage | WebPackage | null, 'yearly')}
+            >
               <CardContent className="p-4 text-center">
-                {isPurchasing ? <Loader2 className="h-6 w-6 animate-spin mx-auto" /> : <>
+                {isPurchasing ? (
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                ) : (
+                  <>
                     <p className="font-semibold text-foreground">Annual</p>
                     <p className="text-lg font-bold text-primary">
                       {packagesStatus.yearlyInfo?.priceString || '$239.99'}
@@ -697,45 +637,86 @@ export default function ProviderPaywall() {
                     <Badge variant="secondary" className="mt-2 text-xs">
                       Save 33%
                     </Badge>
-                  </>}
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>
 
           {/* Purchase Error Display */}
-          {purchaseError && <Alert variant="destructive" className="mt-4">
+          {purchaseError && (
+            <Alert variant="destructive" className="mt-4">
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Purchase Error</AlertTitle>
               <AlertDescription>{purchaseError}</AlertDescription>
-            </Alert>}
+            </Alert>
+          )}
 
           {/* Debug: Package Status (only in dev or with ?debug) */}
-          {DEBUG_MODE && packagesStatus.hasMisconfiguration && <Alert className="mt-4 border-yellow-500/50 bg-yellow-500/10">
+          {DEBUG_MODE && packagesStatus.hasMisconfiguration && (
+            <Alert className="mt-4 border-yellow-500/50 bg-yellow-500/10">
               <AlertTriangle className="h-4 w-4 text-yellow-600" />
               <AlertTitle className="text-yellow-600">Configuration Issues Detected</AlertTitle>
               <AlertDescription className="text-yellow-600">
                 <ul className="list-disc list-inside mt-2 space-y-1">
-                  {packagesStatus.issues.map((issue, i) => <li key={i}>{issue}</li>)}
+                  {packagesStatus.issues.map((issue, i) => (
+                    <li key={i}>{issue}</li>
+                  ))}
                 </ul>
                 <p className="mt-2 text-xs">
                   Check RevenueCat dashboard: Offerings → Packages → Ensure correct product IDs
                 </p>
               </AlertDescription>
-            </Alert>}
+            </Alert>
+          )}
 
           {/* Debug Panel */}
-          {DEBUG_MODE}
+          {DEBUG_MODE && (
+            <details className="mt-4 text-xs border rounded-lg p-3 bg-muted/50">
+              <summary className="cursor-pointer font-medium">Debug Info</summary>
+              <div className="mt-2 space-y-2 overflow-auto max-h-48">
+                <div><strong>Platform:</strong> {isNative() ? 'Native' : 'Web'}</div>
+                <div><strong>Initialized:</strong> {isInitialized ? 'Yes' : 'No'}</div>
+                <div><strong>Loading:</strong> {isLoading ? 'Yes' : 'No'}</div>
+                <div><strong>Error:</strong> {error || 'None'}</div>
+                <div><strong>Packages count:</strong> {packagesStatus.allPackages.length}</div>
+                <div>
+                  <strong>Monthly:</strong>{' '}
+                  {packagesStatus.monthlyInfo 
+                    ? `${packagesStatus.monthlyInfo.identifier} (${packagesStatus.monthlyInfo.priceString})`
+                    : 'Not found'}
+                </div>
+                <div>
+                  <strong>Yearly:</strong>{' '}
+                  {packagesStatus.yearlyInfo 
+                    ? `${packagesStatus.yearlyInfo.identifier} (${packagesStatus.yearlyInfo.priceString})`
+                    : 'Not found'}
+                </div>
+                <div><strong>Expected Monthly ID:</strong> {PRODUCT_IDS.monthly}</div>
+                <div><strong>Expected Yearly ID:</strong> {PRODUCT_IDS.yearly}</div>
+              </div>
+            </details>
+          )}
         </div>
 
         {/* Restore purchases */}
-        <Button variant="ghost" onClick={handleRestorePurchases} disabled={isRestoring} className="w-full">
-          {isRestoring ? <>
+        <Button
+          variant="ghost"
+          onClick={handleRestorePurchases}
+          disabled={isRestoring}
+          className="w-full"
+        >
+          {isRestoring ? (
+            <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               Restoring...
-            </> : <>
+            </>
+          ) : (
+            <>
               <RotateCcw className="h-4 w-4 mr-2" />
               Restore Purchases
-            </>}
+            </>
+          )}
         </Button>
 
         {/* Terms */}
@@ -755,40 +736,40 @@ export default function ProviderPaywall() {
         </div>
       </div>
 
-      {/* RevenueCat Checkout Modal for Web (Dialog portal to avoid stacking/overflow issues) */}
-      <Dialog
-        open={showCheckoutModal}
-        onOpenChange={(open) => {
-          if (!open) {
-            setShowCheckoutModal(false);
-            setIsCheckoutLoading(false);
-            setIsPurchasing(false);
-            if (checkoutContainerRef.current) checkoutContainerRef.current.innerHTML = '';
-          }
-        }}
-      >
-        <DialogContent className="max-w-lg p-0">
-          <DialogHeader className="border-b p-4">
-            <DialogTitle>Complete Your Purchase</DialogTitle>
-          </DialogHeader>
-
-          <div className="p-4 min-h-[400px] relative">
-            <div
-              ref={checkoutContainerRef}
-              className="min-h-[400px]"
+      {/* RevenueCat Checkout Modal for Web */}
+      {showCheckoutModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+          <div className="bg-background rounded-lg w-full max-w-lg max-h-[90vh] overflow-auto relative">
+            <div className="sticky top-0 bg-background border-b p-4 flex items-center justify-between">
+              <h2 className="font-semibold text-lg">Complete Your Purchase</h2>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setShowCheckoutModal(false);
+                  setIsPurchasing(false);
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div 
+              ref={checkoutContainerRef} 
+              className="p-4 min-h-[400px]"
               id="revenuecat-checkout-container"
-            />
-
-            {isCheckoutLoading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-background/80">
-                <div className="text-center space-y-4">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-                  <p className="text-muted-foreground">Loading checkout...</p>
+            >
+              {isPurchasing && (
+                <div className="flex items-center justify-center h-[300px]">
+                  <div className="text-center space-y-4">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+                    <p className="text-muted-foreground">Loading checkout...</p>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </DialogContent>
-      </Dialog>
-    </div>;
+        </div>
+      )}
+    </div>
+  );
 }
