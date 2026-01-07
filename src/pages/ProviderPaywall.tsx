@@ -31,6 +31,7 @@ export default function ProviderPaywall() {
   const [showPaywall, setShowPaywall] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const checkoutContainerRef = useRef<HTMLDivElement>(null);
 
   // Initialize RevenueCat when component mounts (both native and web)
@@ -57,6 +58,32 @@ export default function ProviderPaywall() {
       identifyUser(user.id);
     }
   }, [isInitialized, user?.id, identifyUser]);
+
+  // Web checkout: show a loader until RevenueCat injects the checkout UI into our container
+  useEffect(() => {
+    if (!showCheckoutModal) return;
+
+    const el = checkoutContainerRef.current;
+    if (!el) return;
+
+    setIsCheckoutLoading(true);
+
+    const observer = new MutationObserver(() => {
+      if (el.childElementCount > 0) {
+        setIsCheckoutLoading(false);
+      }
+    });
+
+    observer.observe(el, { childList: true, subtree: true });
+
+    // Safety fallback: don't keep the overlay forever if the SDK injects late
+    const fallback = window.setTimeout(() => setIsCheckoutLoading(false), 2500);
+
+    return () => {
+      observer.disconnect();
+      window.clearTimeout(fallback);
+    };
+  }, [showCheckoutModal]);
 
   // Redirect to feed if already subscribed
   useEffect(() => {
@@ -287,7 +314,9 @@ export default function ProviderPaywall() {
   }
 
   // Loading state
-  if (!isInitialized || isLoading) {
+  // NOTE: RevenueCat sets isLoading=true during purchases/restores too.
+  // We should only block the whole screen while initializing (i.e., before offerings are available).
+  if (!isInitialized || (isLoading && !offerings)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
@@ -544,19 +573,24 @@ export default function ProviderPaywall() {
                 size="icon"
                 onClick={() => {
                   setShowCheckoutModal(false);
+                  setIsCheckoutLoading(false);
                   setIsPurchasing(false);
                 }}
               >
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            <div 
-              ref={checkoutContainerRef} 
-              className="p-4 min-h-[400px]"
-              id="revenuecat-checkout-container"
-            >
-              {isPurchasing && (
-                <div className="flex items-center justify-center h-[300px]">
+
+            <div className="relative p-4 min-h-[400px]">
+              {/* IMPORTANT: keep this div empty so RevenueCat can inject the checkout UI */}
+              <div
+                ref={checkoutContainerRef}
+                className="min-h-[360px]"
+                id="revenuecat-checkout-container"
+              />
+
+              {isCheckoutLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-background/80">
                   <div className="text-center space-y-4">
                     <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
                     <p className="text-muted-foreground">Loading checkout...</p>
