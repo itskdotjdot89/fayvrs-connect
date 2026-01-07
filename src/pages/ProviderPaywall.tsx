@@ -13,7 +13,7 @@ import { PurchasesOfferings, PurchasesPackage } from '@revenuecat/purchases-capa
 
 export default function ProviderPaywall() {
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const {
     isInitialized,
@@ -30,28 +30,13 @@ export default function ProviderPaywall() {
   const [isRestoring, setIsRestoring] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
-  const [showCheckout, setShowCheckout] = useState(false);
-  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const checkoutContainerRef = useRef<HTMLDivElement>(null);
-  const initializedUserRef = useRef<string | null>(null);
 
   // Initialize RevenueCat when component mounts (both native and web)
-  // Use a ref to ensure we only initialize once per user ID
   useEffect(() => {
-    if (user?.id && initializedUserRef.current !== user.id) {
-      initializedUserRef.current = user.id;
-      console.log('[ProviderPaywall] Initializing RevenueCat for user:', user.id);
-      console.log('[ProviderPaywall] Platform check:', {
-        isNative: isNative(),
-        isIOS: isIOS(),
-        isAndroid: isAndroid(),
-        userAgent: navigator.userAgent
-      });
-      initialize(user.id).then(() => {
-        console.log('[ProviderPaywall] RevenueCat initialized successfully');
-      }).catch((err) => {
-        console.error('[ProviderPaywall] RevenueCat init failed:', err);
-      });
+    if (user?.id) {
+      initialize(user.id);
     }
   }, [user?.id, initialize]);
 
@@ -61,24 +46,6 @@ export default function ProviderPaywall() {
       identifyUser(user.id);
     }
   }, [isInitialized, user?.id, identifyUser]);
-
-  // Web checkout: show a loader until RevenueCat injects the checkout UI into our container
-  useEffect(() => {
-    if (!showCheckout) return;
-
-    const el = checkoutContainerRef.current;
-    if (!el) return;
-
-    const sync = () => setIsCheckoutLoading(el.childElementCount === 0);
-    sync();
-
-    const observer = new MutationObserver(sync);
-    observer.observe(el, { childList: true, subtree: true });
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [showCheckout]);
 
   // Redirect to feed if already subscribed
   useEffect(() => {
@@ -164,39 +131,17 @@ export default function ProviderPaywall() {
           });
         }
       } else {
-        // Web purchase - show inline checkout and pass a stable, mounted container to RevenueCat
-        setShowCheckout(true);
-        setIsCheckoutLoading(true);
-        console.log('[ProviderPaywall] Web checkout: showing checkout container');
-
-        const waitForContainer = async () => {
-          const startedAt = Date.now();
-          while (!checkoutContainerRef.current && Date.now() - startedAt < 3000) {
-            await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-          }
-          return checkoutContainerRef.current;
-        };
-
-        const container = await waitForContainer();
-        console.log('[ProviderPaywall] Container ready:', !!container, container?.id);
+        // Web purchase - show checkout modal and pass the container ref
+        setShowCheckoutModal(true);
         
-        if (!container) {
-          throw new Error('Checkout failed to open. Please try again.');
-        }
+        // Wait for the modal to render
+        await new Promise(resolve => setTimeout(resolve, 100));
 
-        console.log('[ProviderPaywall] Calling purchasePackage with container:', {
-          containerId: container.id,
-          containerChildren: container.childElementCount,
-          packageId: (pkg as WebPackage).identifier
-        });
-
-        const result = await purchasePackage(pkg as WebPackage, container);
-        console.log('[ProviderPaywall] Purchase result received:', result);
+        // Pass the checkout container to RevenueCat
+        const result = await purchasePackage(pkg as WebPackage, checkoutContainerRef.current);
         console.log('[ProviderPaywall] Web purchase result:', result);
 
-        // Hide checkout after purchase flow finishes
-        setShowCheckout(false);
-        setIsCheckoutLoading(false);
+        setShowCheckoutModal(false);
 
         if (result.success) {
           toast({
@@ -214,8 +159,7 @@ export default function ProviderPaywall() {
       }
     } catch (error: any) {
       console.error('[ProviderPaywall] Purchase error:', error);
-      setShowCheckout(false);
-      setIsCheckoutLoading(false);
+      setShowCheckoutModal(false);
       toast({
         title: "Error",
         description: error.message || "An unexpected error occurred. Please try again.",
@@ -295,18 +239,6 @@ export default function ProviderPaywall() {
     return (offerings as WebOfferings).current?.availablePackages || [];
   };
 
-  // Wait for auth to finish loading before checking user
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
   // Auth guard (prevents infinite loading when user is not signed in)
   if (!user?.id) {
     return (
@@ -332,9 +264,7 @@ export default function ProviderPaywall() {
   }
 
   // Loading state
-  // NOTE: RevenueCat sets isLoading=true during purchases/restores too.
-  // We should only block the whole screen while initializing (i.e., before offerings are available).
-  if (!isInitialized || (isLoading && !offerings)) {
+  if (!isInitialized || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
@@ -580,40 +510,37 @@ export default function ProviderPaywall() {
         </div>
       </div>
 
-      {/* RevenueCat Checkout Container for Web - inline, no modal */}
-      {showCheckout && (
-        <div className="mt-6 bg-background border rounded-lg p-4 relative">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg">Checkout</h2>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                setShowCheckout(false);
-                setIsCheckoutLoading(false);
-                setIsPurchasing(false);
-              }}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-
-          <div className="relative min-h-[360px]">
-            {/* IMPORTANT: keep this div empty so RevenueCat can inject the checkout UI */}
-            <div
-              ref={checkoutContainerRef}
-              className="min-h-[360px]"
+      {/* RevenueCat Checkout Modal for Web */}
+      {showCheckoutModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+          <div className="bg-background rounded-lg w-full max-w-lg max-h-[90vh] overflow-auto relative">
+            <div className="sticky top-0 bg-background border-b p-4 flex items-center justify-between">
+              <h2 className="font-semibold text-lg">Complete Your Purchase</h2>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setShowCheckoutModal(false);
+                  setIsPurchasing(false);
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div 
+              ref={checkoutContainerRef} 
+              className="p-4 min-h-[400px]"
               id="revenuecat-checkout-container"
-            />
-
-            {isCheckoutLoading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-background/80">
-                <div className="text-center space-y-4">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-                  <p className="text-muted-foreground">Loading checkout...</p>
+            >
+              {isPurchasing && (
+                <div className="flex items-center justify-center h-[300px]">
+                  <div className="text-center space-y-4">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+                    <p className="text-muted-foreground">Loading checkout...</p>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       )}
