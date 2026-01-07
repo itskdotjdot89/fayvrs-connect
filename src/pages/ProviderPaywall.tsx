@@ -185,6 +185,15 @@ export default function ProviderPaywall() {
     }
   };
 
+  // Helper to detect yearly product
+  const isYearlyProduct = (identifier: string, duration?: string | null) => {
+    const lowerId = identifier.toLowerCase();
+    return lowerId.includes('_1y') || 
+           lowerId.includes('yearly') || 
+           lowerId.includes('annual') ||
+           duration === 'P1Y';
+  };
+
   // Helper to get package display info (works for both native and web)
   const getPackageInfo = (pkg: PurchasesPackage | WebPackage) => {
     if ('product' in pkg) {
@@ -192,14 +201,14 @@ export default function ProviderPaywall() {
       return {
         identifier: pkg.product.identifier,
         priceString: pkg.product.priceString,
-        isYearly: pkg.product.identifier === PRODUCT_IDS.yearly,
+        isYearly: isYearlyProduct(pkg.product.identifier),
       };
     } else {
       // Web package
       return {
         identifier: pkg.rcBillingProduct.identifier,
         priceString: pkg.rcBillingProduct.currentPrice.formattedPrice,
-        isYearly: pkg.rcBillingProduct.identifier === PRODUCT_IDS.yearly,
+        isYearly: isYearlyProduct(pkg.rcBillingProduct.identifier, pkg.rcBillingProduct.normalPeriodDuration),
       };
     }
   };
