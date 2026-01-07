@@ -53,24 +53,11 @@ export const isWebApiKeyConfigured = async (): Promise<boolean> => {
   return !!apiKey;
 };
 
-// Product identifiers - these should match RevenueCat product IDs
+// Product identifiers
 export const PRODUCT_IDS = {
-  monthly: 'fayvrs_23999_1m',
-  yearly: 'fayvrs_23999_1y',
+  monthly: 'monthly',
+  yearly: 'yearly',
 } as const;
-
-// Helper to check if a product/package is yearly based on identifier or duration
-export const isYearlyProduct = (identifier: string, duration?: string | null): boolean => {
-  // Check identifier patterns
-  if (identifier.includes('_1y') || identifier.includes('yearly') || identifier.includes('annual')) {
-    return true;
-  }
-  // Check duration (P1Y = 1 year)
-  if (duration && (duration === 'P1Y' || duration.includes('Y'))) {
-    return true;
-  }
-  return false;
-};
 
 // Web-compatible types that match the shape of native types
 export interface WebCustomerInfo {
@@ -132,7 +119,7 @@ export interface RevenueCatState {
 export interface UseRevenueCatReturn extends RevenueCatState {
   initialize: (userId?: string) => Promise<void>;
   identifyUser: (userId: string) => Promise<void>;
-  purchasePackage: (pkg: PurchasesPackage | WebPackage, htmlTarget?: HTMLElement | null) => Promise<{ success: boolean; error?: string }>;
+  purchasePackage: (pkg: PurchasesPackage | WebPackage) => Promise<{ success: boolean; error?: string }>;
   restorePurchases: () => Promise<{ success: boolean; error?: string }>;
   checkEntitlements: () => Promise<boolean>;
   getOfferings: () => Promise<PurchasesOfferings | WebOfferings | null>;
@@ -309,9 +296,8 @@ export const useRevenueCat = (): UseRevenueCatReturn => {
 
   /**
    * Purchase a package
-   * For web, htmlTarget is required - the checkout UI will be rendered there
    */
-  const purchasePackage = useCallback(async (pkg: PurchasesPackage | WebPackage, htmlTarget?: HTMLElement | null): Promise<{ success: boolean; error?: string }> => {
+  const purchasePackage = useCallback(async (pkg: PurchasesPackage | WebPackage): Promise<{ success: boolean; error?: string }> => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
@@ -330,19 +316,7 @@ export const useRevenueCat = (): UseRevenueCatReturn => {
         return { success: true };
       } else if (webPurchasesInstance) {
         const webPkg = pkg as WebPackage;
-        
-        // Web SDK requires htmlTarget for the checkout UI
-        const purchaseOptions: any = { rcPackage: webPkg };
-        if (htmlTarget) {
-          purchaseOptions.htmlTarget = htmlTarget;
-        }
-        
-        console.log('[RevenueCat Web] Starting purchase with options:', { 
-          packageId: webPkg.identifier,
-          hasHtmlTarget: !!htmlTarget 
-        });
-        
-        const { customerInfo } = await webPurchasesInstance.purchase(purchaseOptions);
+        const { customerInfo } = await webPurchasesInstance.purchase({ rcPackage: webPkg as any });
         const isProSubscriber = hasProEntitlement(customerInfo as unknown as WebCustomerInfo);
 
         setState(prev => ({
@@ -360,14 +334,8 @@ export const useRevenueCat = (): UseRevenueCatReturn => {
     } catch (error: any) {
       console.error('[RevenueCat] Purchase error:', error);
       
-      // Handle user cancellation - check multiple possible error patterns
-      const isCancelled = 
-        error.code === 'PURCHASE_CANCELLED' || 
-        error.code === 'UserCancelledError' ||
-        error.errorCode === 'UserCancelledError' ||
-        error.message?.toLowerCase().includes('cancel');
-      
-      if (isCancelled) {
+      // Handle user cancellation
+      if (error.code === 'PURCHASE_CANCELLED' || error.message?.includes('cancelled')) {
         setState(prev => ({ ...prev, isLoading: false }));
         return { success: false, error: 'Purchase was cancelled' };
       }

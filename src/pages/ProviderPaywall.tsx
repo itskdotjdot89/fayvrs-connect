@@ -1,11 +1,11 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RevenueCatUI, PAYWALL_RESULT } from '@revenuecat/purchases-capacitor-ui';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Check, Crown, ArrowLeft, RotateCcw, X } from 'lucide-react';
-import { useRevenueCat, PRODUCT_IDS, WebPackage, WebOfferings, isYearlyProduct } from '@/hooks/useRevenueCat';
+import { Loader2, Check, Crown, ArrowLeft, RotateCcw } from 'lucide-react';
+import { useRevenueCat, PRODUCT_IDS, WebPackage, WebOfferings } from '@/hooks/useRevenueCat';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { isNative, isIOS, isAndroid } from '@/utils/platform';
@@ -30,8 +30,6 @@ export default function ProviderPaywall() {
   const [isRestoring, setIsRestoring] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
-  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
-  const checkoutContainerRef = useRef<HTMLDivElement>(null);
 
   // Initialize RevenueCat when component mounts (both native and web)
   useEffect(() => {
@@ -106,16 +104,36 @@ export default function ProviderPaywall() {
     }
   };
 
-  const handlePurchaseWithPackage = async (pkg: PurchasesPackage | WebPackage) => {
-    const info = getPackageInfo(pkg);
-    console.log('[ProviderPaywall] Starting purchase for package:', info);
-    
+  const handleManualPurchase = async (productId: string) => {
+    if (!offerings?.current) {
+      toast({
+        title: "Error",
+        description: "Unable to load subscription options. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsPurchasing(true);
 
     try {
       if (isNative()) {
-        const result = await purchasePackage(pkg as PurchasesPackage);
-        console.log('[ProviderPaywall] Native purchase result:', result);
+        // Native purchase
+        const nativeOfferings = offerings as PurchasesOfferings;
+        const pkg = nativeOfferings.current?.availablePackages.find(
+          (p: PurchasesPackage) => p.product.identifier === productId
+        );
+
+        if (!pkg) {
+          toast({
+            title: "Error",
+            description: "Subscription package not found.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const result = await purchasePackage(pkg);
 
         if (result.success) {
           toast({
@@ -131,17 +149,22 @@ export default function ProviderPaywall() {
           });
         }
       } else {
-        // Web purchase - show checkout modal and pass the container ref
-        setShowCheckoutModal(true);
-        
-        // Wait for the modal to render
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Web purchase
+        const webOfferings = offerings as WebOfferings;
+        const pkg = webOfferings.current?.availablePackages.find(
+          (p: WebPackage) => p.rcBillingProduct.identifier === productId
+        );
 
-        // Pass the checkout container to RevenueCat
-        const result = await purchasePackage(pkg as WebPackage, checkoutContainerRef.current);
-        console.log('[ProviderPaywall] Web purchase result:', result);
+        if (!pkg) {
+          toast({
+            title: "Error",
+            description: "Subscription package not found.",
+            variant: "destructive",
+          });
+          return;
+        }
 
-        setShowCheckoutModal(false);
+        const result = await purchasePackage(pkg);
 
         if (result.success) {
           toast({
@@ -149,7 +172,7 @@ export default function ProviderPaywall() {
             description: "Your subscription is now active.",
           });
           navigate('/feed');
-        } else if (result.error && result.error !== 'Purchase was cancelled') {
+        } else if (result.error !== 'Purchase was cancelled') {
           toast({
             title: "Purchase failed",
             description: result.error,
@@ -157,73 +180,26 @@ export default function ProviderPaywall() {
           });
         }
       }
-    } catch (error: any) {
-      console.error('[ProviderPaywall] Purchase error:', error);
-      setShowCheckoutModal(false);
-      toast({
-        title: "Error",
-        description: error.message || "An unexpected error occurred. Please try again.",
-        variant: "destructive",
-      });
     } finally {
       setIsPurchasing(false);
     }
-  };
-
-  // Find monthly package - try by duration first, then by product ID
-  const findMonthlyPackage = () => {
-    const packages = getAvailablePackages();
-    // First try to find by checking it's NOT yearly
-    let pkg = packages.find(p => {
-      const info = getPackageInfo(p as PurchasesPackage | WebPackage);
-      return !info.isYearly;
-    });
-    // Fallback: find by PRODUCT_IDS.monthly
-    if (!pkg) {
-      pkg = packages.find(p => {
-        const info = getPackageInfo(p as PurchasesPackage | WebPackage);
-        return info.identifier === PRODUCT_IDS.monthly;
-      });
-    }
-    return pkg;
-  };
-
-  // Find yearly package - try by duration first, then by product ID
-  const findYearlyPackage = () => {
-    const packages = getAvailablePackages();
-    // First try to find by checking isYearly
-    let pkg = packages.find(p => {
-      const info = getPackageInfo(p as PurchasesPackage | WebPackage);
-      return info.isYearly;
-    });
-    // Fallback: find by PRODUCT_IDS.yearly
-    if (!pkg) {
-      pkg = packages.find(p => {
-        const info = getPackageInfo(p as PurchasesPackage | WebPackage);
-        return info.identifier === PRODUCT_IDS.yearly;
-      });
-    }
-    return pkg;
   };
 
   // Helper to get package display info (works for both native and web)
   const getPackageInfo = (pkg: PurchasesPackage | WebPackage) => {
     if ('product' in pkg) {
       // Native package
-      const identifier = pkg.product.identifier;
       return {
-        identifier,
+        identifier: pkg.product.identifier,
         priceString: pkg.product.priceString,
-        isYearly: isYearlyProduct(identifier),
+        isYearly: pkg.product.identifier === PRODUCT_IDS.yearly,
       };
     } else {
       // Web package
-      const identifier = pkg.rcBillingProduct.identifier;
-      const duration = pkg.rcBillingProduct.normalPeriodDuration;
       return {
-        identifier,
+        identifier: pkg.rcBillingProduct.identifier,
         priceString: pkg.rcBillingProduct.currentPrice.formattedPrice,
-        isYearly: isYearlyProduct(identifier, duration),
+        isYearly: pkg.rcBillingProduct.identifier === PRODUCT_IDS.yearly,
       };
     }
   };
@@ -400,9 +376,13 @@ export default function ProviderPaywall() {
             <Card 
               className="cursor-pointer hover:border-primary transition-colors"
               onClick={() => {
-                const monthlyPkg = findMonthlyPackage();
+                const monthlyPkg = availablePackages.find(pkg => {
+                  const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
+                  return !info.isYearly;
+                });
                 if (monthlyPkg) {
-                  handlePurchaseWithPackage(monthlyPkg as PurchasesPackage | WebPackage);
+                  const info = getPackageInfo(monthlyPkg as PurchasesPackage | WebPackage);
+                  handleManualPurchase(info.identifier);
                 } else {
                   toast({
                     title: "Loading...",
@@ -419,7 +399,10 @@ export default function ProviderPaywall() {
                     <p className="font-semibold text-foreground">Monthly</p>
                     <p className="text-lg font-bold text-primary">
                       {(() => {
-                        const monthlyPkg = findMonthlyPackage();
+                        const monthlyPkg = availablePackages.find(pkg => {
+                          const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
+                          return !info.isYearly;
+                        });
                         if (monthlyPkg) {
                           return getPackageInfo(monthlyPkg as PurchasesPackage | WebPackage).priceString;
                         }
@@ -436,9 +419,13 @@ export default function ProviderPaywall() {
             <Card 
               className="cursor-pointer hover:border-primary transition-colors border-primary/50"
               onClick={() => {
-                const yearlyPkg = findYearlyPackage();
+                const yearlyPkg = availablePackages.find(pkg => {
+                  const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
+                  return info.isYearly;
+                });
                 if (yearlyPkg) {
-                  handlePurchaseWithPackage(yearlyPkg as PurchasesPackage | WebPackage);
+                  const info = getPackageInfo(yearlyPkg as PurchasesPackage | WebPackage);
+                  handleManualPurchase(info.identifier);
                 } else {
                   toast({
                     title: "Loading...",
@@ -455,7 +442,10 @@ export default function ProviderPaywall() {
                     <p className="font-semibold text-foreground">Annual</p>
                     <p className="text-lg font-bold text-primary">
                       {(() => {
-                        const yearlyPkg = findYearlyPackage();
+                        const yearlyPkg = availablePackages.find(pkg => {
+                          const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
+                          return info.isYearly;
+                        });
                         if (yearlyPkg) {
                           return getPackageInfo(yearlyPkg as PurchasesPackage | WebPackage).priceString;
                         }
@@ -509,41 +499,6 @@ export default function ProviderPaywall() {
           </div>
         </div>
       </div>
-
-      {/* RevenueCat Checkout Modal for Web */}
-      {showCheckoutModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <div className="bg-background rounded-lg w-full max-w-lg max-h-[90vh] overflow-auto relative">
-            <div className="sticky top-0 bg-background border-b p-4 flex items-center justify-between">
-              <h2 className="font-semibold text-lg">Complete Your Purchase</h2>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  setShowCheckoutModal(false);
-                  setIsPurchasing(false);
-                }}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <div 
-              ref={checkoutContainerRef} 
-              className="p-4 min-h-[400px]"
-              id="revenuecat-checkout-container"
-            >
-              {isPurchasing && (
-                <div className="flex items-center justify-center h-[300px]">
-                  <div className="text-center space-y-4">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-                    <p className="text-muted-foreground">Loading checkout...</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
