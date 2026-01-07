@@ -1,6 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { RevenueCatUI, PAYWALL_RESULT } from '@revenuecat/purchases-capacitor-ui';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +9,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { isNative, isIOS, isAndroid } from '@/utils/platform';
 import { PurchasesOfferings, PurchasesPackage } from '@revenuecat/purchases-capacitor';
+
+// Dynamic import for RevenueCat UI to avoid SSR issues
+let RevenueCatUI: any = null;
+let PAYWALL_RESULT: any = null;
+
+if (isNative()) {
+  import('@revenuecat/purchases-capacitor-ui').then((module) => {
+    RevenueCatUI = module.RevenueCatUI;
+    PAYWALL_RESULT = module.PAYWALL_RESULT;
+  });
+}
 
 export default function ProviderPaywall() {
   const navigate = useNavigate();
@@ -59,7 +69,7 @@ export default function ProviderPaywall() {
   }, [isProSubscriber, navigate, toast]);
 
   const handlePresentPaywall = async () => {
-    if (isNative()) {
+    if (isNative() && RevenueCatUI) {
       // Native: use RevenueCat UI paywall
       try {
         setShowPaywall(true);
@@ -68,7 +78,7 @@ export default function ProviderPaywall() {
         
         console.log('[ProviderPaywall] Paywall result:', paywallResult);
         
-        if (paywallResult.result === PAYWALL_RESULT.PURCHASED || paywallResult.result === PAYWALL_RESULT.RESTORED) {
+        if (PAYWALL_RESULT && (paywallResult.result === PAYWALL_RESULT.PURCHASED || paywallResult.result === PAYWALL_RESULT.RESTORED)) {
           toast({
             title: "Welcome to Fayvrs Pro!",
             description: "Your subscription is now active.",
