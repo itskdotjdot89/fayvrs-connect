@@ -33,10 +33,13 @@ export default function ProviderPaywall() {
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const checkoutContainerRef = useRef<HTMLDivElement>(null);
+  const initializedUserRef = useRef<string | null>(null);
 
   // Initialize RevenueCat when component mounts (both native and web)
+  // Use a ref to ensure we only initialize once per user ID
   useEffect(() => {
-    if (user?.id) {
+    if (user?.id && initializedUserRef.current !== user.id) {
+      initializedUserRef.current = user.id;
       console.log('[ProviderPaywall] Initializing RevenueCat for user:', user.id);
       console.log('[ProviderPaywall] Platform check:', {
         isNative: isNative(),
