@@ -13,7 +13,7 @@ import { PurchasesOfferings, PurchasesPackage } from '@revenuecat/purchases-capa
 
 export default function ProviderPaywall() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const {
     isInitialized,
@@ -36,7 +36,18 @@ export default function ProviderPaywall() {
   // Initialize RevenueCat when component mounts (both native and web)
   useEffect(() => {
     if (user?.id) {
-      initialize(user.id);
+      console.log('[ProviderPaywall] Initializing RevenueCat for user:', user.id);
+      console.log('[ProviderPaywall] Platform check:', {
+        isNative: isNative(),
+        isIOS: isIOS(),
+        isAndroid: isAndroid(),
+        userAgent: navigator.userAgent
+      });
+      initialize(user.id).then(() => {
+        console.log('[ProviderPaywall] RevenueCat initialized successfully');
+      }).catch((err) => {
+        console.error('[ProviderPaywall] RevenueCat init failed:', err);
+      });
     }
   }, [user?.id, initialize]);
 
@@ -238,6 +249,18 @@ export default function ProviderPaywall() {
 
     return (offerings as WebOfferings).current?.availablePackages || [];
   };
+
+  // Wait for auth to finish loading before checking user
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Auth guard (prevents infinite loading when user is not signed in)
   if (!user?.id) {
