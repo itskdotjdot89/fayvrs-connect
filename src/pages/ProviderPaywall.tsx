@@ -167,21 +167,31 @@ export default function ProviderPaywall() {
         // Web purchase - show inline checkout and pass a stable, mounted container to RevenueCat
         setShowCheckout(true);
         setIsCheckoutLoading(true);
+        console.log('[ProviderPaywall] Web checkout: showing checkout container');
 
         const waitForContainer = async () => {
           const startedAt = Date.now();
-          while (!checkoutContainerRef.current && Date.now() - startedAt < 2000) {
+          while (!checkoutContainerRef.current && Date.now() - startedAt < 3000) {
             await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
           }
           return checkoutContainerRef.current;
         };
 
         const container = await waitForContainer();
+        console.log('[ProviderPaywall] Container ready:', !!container, container?.id);
+        
         if (!container) {
           throw new Error('Checkout failed to open. Please try again.');
         }
 
+        console.log('[ProviderPaywall] Calling purchasePackage with container:', {
+          containerId: container.id,
+          containerChildren: container.childElementCount,
+          packageId: (pkg as WebPackage).identifier
+        });
+
         const result = await purchasePackage(pkg as WebPackage, container);
+        console.log('[ProviderPaywall] Purchase result received:', result);
         console.log('[ProviderPaywall] Web purchase result:', result);
 
         // Hide checkout after purchase flow finishes
