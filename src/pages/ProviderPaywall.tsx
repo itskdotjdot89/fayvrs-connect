@@ -60,28 +60,22 @@ export default function ProviderPaywall() {
   }, [isInitialized, user?.id, identifyUser]);
 
   // Web checkout: show a loader until RevenueCat injects the checkout UI into our container
+  // If RevenueCat temporarily removes/re-adds its nodes (can happen while Stripe elements mount),
+  // keep the loader visible so the user never sees a blank modal.
   useEffect(() => {
     if (!showCheckoutModal) return;
 
     const el = checkoutContainerRef.current;
     if (!el) return;
 
-    setIsCheckoutLoading(true);
+    const sync = () => setIsCheckoutLoading(el.childElementCount === 0);
+    sync();
 
-    const observer = new MutationObserver(() => {
-      if (el.childElementCount > 0) {
-        setIsCheckoutLoading(false);
-      }
-    });
-
+    const observer = new MutationObserver(sync);
     observer.observe(el, { childList: true, subtree: true });
-
-    // Safety fallback: don't keep the overlay forever if the SDK injects late
-    const fallback = window.setTimeout(() => setIsCheckoutLoading(false), 2500);
 
     return () => {
       observer.disconnect();
-      window.clearTimeout(fallback);
     };
   }, [showCheckoutModal]);
 
@@ -169,17 +163,28 @@ export default function ProviderPaywall() {
           });
         }
       } else {
-        // Web purchase - show checkout modal and pass the container ref
+        // Web purchase - show checkout modal and pass a stable, mounted container to RevenueCat
         setShowCheckoutModal(true);
-        
-        // Wait for the modal to render
-        await new Promise(resolve => setTimeout(resolve, 100));
 
-        // Pass the checkout container to RevenueCat
-        const result = await purchasePackage(pkg as WebPackage, checkoutContainerRef.current);
+        const waitForContainer = async () => {
+          const startedAt = Date.now();
+          while (!checkoutContainerRef.current && Date.now() - startedAt < 2000) {
+            await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+          }
+          return checkoutContainerRef.current;
+        };
+
+        const container = await waitForContainer();
+        if (!container) {
+          throw new Error('Checkout failed to open. Please try again.');
+        }
+
+        const result = await purchasePackage(pkg as WebPackage, container);
         console.log('[ProviderPaywall] Web purchase result:', result);
 
+        // Close modal after purchase flow finishes (success/cancel/failure)
         setShowCheckoutModal(false);
+        setIsCheckoutLoading(false);
 
         if (result.success) {
           toast({
@@ -198,6 +203,7 @@ export default function ProviderPaywall() {
     } catch (error: any) {
       console.error('[ProviderPaywall] Purchase error:', error);
       setShowCheckoutModal(false);
+      setIsCheckoutLoading(false);
       toast({
         title: "Error",
         description: error.message || "An unexpected error occurred. Please try again.",
