@@ -30,7 +30,7 @@ export default function ProviderPaywall() {
   const [isRestoring, setIsRestoring] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
-  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [showCheckout, setShowCheckout] = useState(false);
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const checkoutContainerRef = useRef<HTMLDivElement>(null);
   const initializedUserRef = useRef<string | null>(null);
@@ -63,10 +63,8 @@ export default function ProviderPaywall() {
   }, [isInitialized, user?.id, identifyUser]);
 
   // Web checkout: show a loader until RevenueCat injects the checkout UI into our container
-  // If RevenueCat temporarily removes/re-adds its nodes (can happen while Stripe elements mount),
-  // keep the loader visible so the user never sees a blank modal.
   useEffect(() => {
-    if (!showCheckoutModal) return;
+    if (!showCheckout) return;
 
     const el = checkoutContainerRef.current;
     if (!el) return;
@@ -80,7 +78,7 @@ export default function ProviderPaywall() {
     return () => {
       observer.disconnect();
     };
-  }, [showCheckoutModal]);
+  }, [showCheckout]);
 
   // Redirect to feed if already subscribed
   useEffect(() => {
@@ -166,8 +164,9 @@ export default function ProviderPaywall() {
           });
         }
       } else {
-        // Web purchase - show checkout modal and pass a stable, mounted container to RevenueCat
-        setShowCheckoutModal(true);
+        // Web purchase - show inline checkout and pass a stable, mounted container to RevenueCat
+        setShowCheckout(true);
+        setIsCheckoutLoading(true);
 
         const waitForContainer = async () => {
           const startedAt = Date.now();
@@ -185,8 +184,8 @@ export default function ProviderPaywall() {
         const result = await purchasePackage(pkg as WebPackage, container);
         console.log('[ProviderPaywall] Web purchase result:', result);
 
-        // Close modal after purchase flow finishes (success/cancel/failure)
-        setShowCheckoutModal(false);
+        // Hide checkout after purchase flow finishes
+        setShowCheckout(false);
         setIsCheckoutLoading(false);
 
         if (result.success) {
@@ -205,7 +204,7 @@ export default function ProviderPaywall() {
       }
     } catch (error: any) {
       console.error('[ProviderPaywall] Purchase error:', error);
-      setShowCheckoutModal(false);
+      setShowCheckout(false);
       setIsCheckoutLoading(false);
       toast({
         title: "Error",
@@ -571,42 +570,40 @@ export default function ProviderPaywall() {
         </div>
       </div>
 
-      {/* RevenueCat Checkout Modal for Web */}
-      {showCheckoutModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <div className="bg-background rounded-lg w-full max-w-lg max-h-[90vh] overflow-auto relative">
-            <div className="sticky top-0 bg-background border-b p-4 flex items-center justify-between">
-              <h2 className="font-semibold text-lg">Complete Your Purchase</h2>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  setShowCheckoutModal(false);
-                  setIsCheckoutLoading(false);
-                  setIsPurchasing(false);
-                }}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
+      {/* RevenueCat Checkout Container for Web - inline, no modal */}
+      {showCheckout && (
+        <div className="mt-6 bg-background border rounded-lg p-4 relative">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-lg">Checkout</h2>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                setShowCheckout(false);
+                setIsCheckoutLoading(false);
+                setIsPurchasing(false);
+              }}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
 
-            <div className="relative p-4 min-h-[400px]">
-              {/* IMPORTANT: keep this div empty so RevenueCat can inject the checkout UI */}
-              <div
-                ref={checkoutContainerRef}
-                className="min-h-[360px]"
-                id="revenuecat-checkout-container"
-              />
+          <div className="relative min-h-[360px]">
+            {/* IMPORTANT: keep this div empty so RevenueCat can inject the checkout UI */}
+            <div
+              ref={checkoutContainerRef}
+              className="min-h-[360px]"
+              id="revenuecat-checkout-container"
+            />
 
-              {isCheckoutLoading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-background/80">
-                  <div className="text-center space-y-4">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-                    <p className="text-muted-foreground">Loading checkout...</p>
-                  </div>
+            {isCheckoutLoading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-background/80">
+                <div className="text-center space-y-4">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+                  <p className="text-muted-foreground">Loading checkout...</p>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       )}
