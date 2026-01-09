@@ -20,6 +20,7 @@ interface AuthContextType {
   activeRole: 'requester' | 'provider' | 'admin' | null;
   userRoles: ('requester' | 'provider' | 'admin')[];
   switchRole: (role: 'requester' | 'provider' | 'admin') => Promise<void>;
+  refreshSubscriptionStatus: () => Promise<void>;
   signUp: (email: string, password: string, fullName: string, role: 'requester' | 'provider', phone?: string, referralCode?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signInWithGoogle: () => Promise<{ error: any }>;
@@ -117,6 +118,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       title: "Role switched",
       description: `Switched to ${role} mode`
     });
+  };
+
+  // Manually refresh subscription status (called after purchase completes)
+  const refreshSubscriptionStatus = async () => {
+    if (!session) return;
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('check-subscription', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
+
+      if (error) throw error;
+      
+      const source = isNative() 
+        ? (data.source || 'apple') 
+        : (data.source || 'stripe');
+      
+      setSubscriptionStatus({ ...data, source });
+      console.log('[AuthContext] Subscription status refreshed:', data);
+    } catch (error) {
+      console.error('Error refreshing subscription status:', error);
+    }
   };
 
   // Check subscription whenever session changes
@@ -357,6 +382,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       activeRole,
       userRoles,
       switchRole,
+      refreshSubscriptionStatus,
       signUp, 
       signIn,
       signInWithGoogle,

@@ -13,7 +13,7 @@ import { PurchasesOfferings, PurchasesPackage } from '@revenuecat/purchases-capa
 
 export default function ProviderPaywall() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, refreshSubscriptionStatus } = useAuth();
   const { toast } = useToast();
   const {
     isInitialized,
@@ -67,6 +67,9 @@ export default function ProviderPaywall() {
         console.log('[ProviderPaywall] Paywall result:', paywallResult);
         
         if (paywallResult.result === PAYWALL_RESULT.PURCHASED || paywallResult.result === PAYWALL_RESULT.RESTORED) {
+          // Sync subscription status immediately
+          await refreshSubscriptionStatus();
+          
           toast({
             title: "Welcome to Fayvrs Pro!",
             description: "Your subscription is now active.",
@@ -136,6 +139,7 @@ export default function ProviderPaywall() {
         const result = await purchasePackage(pkg);
 
         if (result.success) {
+          await refreshSubscriptionStatus();
           toast({
             title: "Welcome to Fayvrs Pro!",
             description: "Your subscription is now active.",
@@ -167,6 +171,7 @@ export default function ProviderPaywall() {
         const result = await purchasePackage(pkg);
 
         if (result.success) {
+          await refreshSubscriptionStatus();
           toast({
             title: "Welcome to Fayvrs Pro!",
             description: "Your subscription is now active.",
