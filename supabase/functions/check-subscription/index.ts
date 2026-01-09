@@ -41,9 +41,63 @@ serve(async (req) => {
     logStep("User authenticated", { userId: user.id, email: user.email });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    
-    if (customers.data.length === 0) {
+
+    // RevenueCat Web Billing may create Stripe customers without setting `email`.
+    // Try multiple lookup strategies to find the Stripe customer for this app user.
+    let customerId: string | null = null;
+
+    // 1) Find by email (works when Stripe customer.email is set)
+    const customersByEmail = await stripe.customers.list({ email: user.email, limit: 1 });
+    if (customersByEmail.data.length > 0) {
+      customerId = customersByEmail.data[0].id;
+      logStep("Found Stripe customer by email", { customerId });
+    }
+
+    // 2) Find by metadata (works when the integration stores app user id in metadata)
+    if (!customerId) {
+      const metadataKeys = ["app_user_id", "revenuecat_user_id", "rc_app_user_id", "rc_user_id"];
+      for (const key of metadataKeys) {
+        try {
+          const result = await stripe.customers.search({
+            query: `metadata['${key}']:'${user.id}'`,
+            limit: 1,
+          });
+
+          if (result.data.length > 0) {
+            customerId = result.data[0].id;
+            logStep("Found Stripe customer by metadata", { key, customerId });
+            break;
+          }
+        } catch (err) {
+          // Search can be disabled on some Stripe accounts; ignore and continue.
+          logStep("Customer metadata search failed", { key });
+        }
+      }
+    }
+
+    // 3) If still not found, try finding a subscription via metadata and derive customer id
+    if (!customerId) {
+      const metadataKeys = ["app_user_id", "revenuecat_user_id", "rc_app_user_id", "rc_user_id"];
+      for (const key of metadataKeys) {
+        try {
+          const result = await stripe.subscriptions.search({
+            query: `metadata['${key}']:'${user.id}'`,
+            limit: 1,
+          });
+
+          if (result.data.length > 0) {
+            const sub = result.data[0];
+            customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
+            logStep("Found Stripe subscription by metadata", { key, subscriptionId: sub.id, customerId });
+            break;
+          }
+        } catch (err) {
+          logStep("Subscription metadata search failed", { key });
+        }
+      }
+    }
+
+    if (!customerId) {
       logStep("No customer found");
       return new Response(JSON.stringify({ subscribed: false }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -51,8 +105,7 @@ serve(async (req) => {
       });
     }
 
-    const customerId = customers.data[0].id;
-    logStep("Found Stripe customer", { customerId });
+    logStep("Using Stripe customer", { customerId });
 
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
