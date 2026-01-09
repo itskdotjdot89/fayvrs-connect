@@ -43,38 +43,49 @@ export default function CustomerCenter() {
 
   const handleCancelSubscription = async () => {
     setIsCancelling(true);
-    
+
     if (isNative()) {
       // Native: Open App Store/Play Store subscription management
-      const url = isIOS() 
+      const url = isIOS()
         ? 'https://apps.apple.com/account/subscriptions'
         : 'https://play.google.com/store/account/subscriptions';
       window.open(url, '_blank');
       setIsCancelling(false);
-    } else {
-      // Web: Use the customer-portal edge function for Stripe
-      try {
-        const { data, error } = await supabase.functions.invoke('customer-portal', {
-          headers: {
-            Authorization: `Bearer ${session?.access_token}`
-          }
-        });
-        
-        if (error) throw error;
-        
-        if (data?.url) {
-          window.open(data.url, '_blank');
-        }
-      } catch (error) {
-        console.error('Error opening customer portal:', error);
-        toast({
-          title: "Error",
-          description: "Unable to open subscription management. Please try again.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsCancelling(false);
+      return;
+    }
+
+    // Web: Prefer RevenueCat-provided management URL (no Stripe lookup needed)
+    const webManagementUrl = (customerInfo as WebCustomerInfo | null)?.managementURL;
+    if (webManagementUrl) {
+      window.open(webManagementUrl, '_blank');
+      setIsCancelling(false);
+      return;
+    }
+
+    // Fallback: Stripe customer portal (may fail if no Stripe customer exists)
+    try {
+      const { data, error } = await supabase.functions.invoke('customer-portal', {
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        window.open(data.url, '_blank');
+      } else {
+        throw new Error('No portal URL returned');
       }
+    } catch (error) {
+      console.error('Error opening subscription management:', error);
+      toast({
+        title: 'Error',
+        description: 'Unable to open subscription management. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -119,6 +130,15 @@ export default function CustomerCenter() {
   };
 
   const handleManageSubscription = () => {
+    // Web: RevenueCat provides a management URL when available
+    if (isWeb()) {
+      const webManagementUrl = (customerInfo as WebCustomerInfo | null)?.managementURL;
+      if (webManagementUrl) {
+        window.open(webManagementUrl, '_blank');
+        return;
+      }
+    }
+
     const url = getSubscriptionManagementUrl();
     if (url) {
       window.open(url, '_blank');
@@ -284,7 +304,7 @@ export default function CustomerCenter() {
               className="w-full justify-start"
             >
               <CreditCard className="h-4 w-4 mr-2" />
-              Manage in App Store
+              {isWeb() ? 'Manage Subscription' : 'Manage in App Store'}
             </Button>
 
             {/* Restore purchases */}
@@ -324,22 +344,24 @@ export default function CustomerCenter() {
                   <AlertDialogContent>
                     <AlertDialogHeader>
                       <AlertDialogTitle>Cancel your subscription?</AlertDialogTitle>
-                      <AlertDialogDescription className="space-y-3">
-                        <p>Are you sure you want to cancel your Fayvrs Pro subscription?</p>
-                        <ul className="list-disc list-inside text-sm space-y-1">
-                          <li>Your access will continue until the end of your billing period</li>
-                          <li>You'll lose access to provider features after cancellation</li>
-                          <li>You can resubscribe anytime</li>
-                        </ul>
-                        {isNative() ? (
-                          <p className="text-sm font-medium mt-2">
-                            You'll be taken to your {isIOS() ? 'App Store' : 'Play Store'} subscriptions to complete cancellation.
-                          </p>
-                        ) : (
-                          <p className="text-sm font-medium mt-2">
-                            You'll be taken to the Stripe customer portal to complete cancellation.
-                          </p>
-                        )}
+                      <AlertDialogDescription asChild>
+                        <div className="space-y-3 text-sm text-muted-foreground">
+                          <p>Are you sure you want to cancel your Fayvrs Pro subscription?</p>
+                          <ul className="list-disc list-inside space-y-1">
+                            <li>Your access will continue until the end of your billing period</li>
+                            <li>You'll lose access to provider features after cancellation</li>
+                            <li>You can resubscribe anytime</li>
+                          </ul>
+                          {isNative() ? (
+                            <p className="font-medium mt-2">
+                              You'll be taken to your {isIOS() ? 'App Store' : 'Play Store'} subscriptions to complete cancellation.
+                            </p>
+                          ) : (
+                            <p className="font-medium mt-2">
+                              You'll be taken to subscription management to complete cancellation.
+                            </p>
+                          )}
+                        </div>
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

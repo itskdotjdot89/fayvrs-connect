@@ -4,10 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Check, CreditCard, Shield, ExternalLink, Apple, XCircle, Loader2 } from "lucide-react";
 import { isNative, isIOS } from "@/utils/platform";
-import { useAuth } from "@/contexts/AuthContext";
 import { useProviderAccess } from "@/hooks/useProviderAccess";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,9 +20,7 @@ import {
 export default function SubscriptionDetails() {
   const navigate = useNavigate();
   const isNativeApp = isNative();
-  const { session } = useAuth();
   const { isSubscribed } = useProviderAccess();
-  const { toast } = useToast();
   const [isCancelling, setIsCancelling] = useState(false);
 
   const handleCancelSubscription = async () => {
@@ -39,29 +34,9 @@ export default function SubscriptionDetails() {
       window.open(url, '_blank');
       setIsCancelling(false);
     } else {
-      // Web: Use the customer-portal edge function for Stripe
-      try {
-        const { data, error } = await supabase.functions.invoke('customer-portal', {
-          headers: {
-            Authorization: `Bearer ${session?.access_token}`
-          }
-        });
-        
-        if (error) throw error;
-        
-        if (data?.url) {
-          window.open(data.url, '_blank');
-        }
-      } catch (error) {
-        console.error('Error opening customer portal:', error);
-        toast({
-          title: "Error",
-          description: "Unable to open subscription management. Please try again.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsCancelling(false);
-      }
+      // Web: use in-app Customer Center (RevenueCat-managed management URL)
+      navigate('/customer-center');
+      setIsCancelling(false);
     }
   };
 
