@@ -369,22 +369,24 @@ export default function SubscriptionDetails() {
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>Cancel your subscription?</AlertDialogTitle>
-                    <AlertDialogDescription className="space-y-3">
-                      <p>Are you sure you want to cancel your Fayvrs Pro subscription?</p>
-                      <ul className="list-disc list-inside text-sm space-y-1">
-                        <li>Your access will continue until the end of your billing period</li>
-                        <li>You'll lose access to provider features after cancellation</li>
-                        <li>You can resubscribe anytime</li>
-                      </ul>
-                      {isNativeApp ? (
-                        <p className="text-sm font-medium mt-2">
-                          You'll be taken to your {isIOS() ? 'App Store' : 'Play Store'} subscriptions to complete cancellation.
-                        </p>
-                      ) : (
-                        <p className="text-sm font-medium mt-2">
-                          You'll be taken to the Stripe customer portal to complete cancellation.
-                        </p>
-                      )}
+                    <AlertDialogDescription asChild>
+                      <div className="space-y-3 text-sm text-muted-foreground">
+                        <p>Are you sure you want to cancel your Fayvrs Pro subscription?</p>
+                        <ul className="list-disc list-inside space-y-1">
+                          <li>Your access will continue until the end of your billing period</li>
+                          <li>You'll lose access to provider features after cancellation</li>
+                          <li>You can resubscribe anytime</li>
+                        </ul>
+                        {isNativeApp ? (
+                          <p className="font-medium mt-2">
+                            You'll be taken to your {isIOS() ? 'App Store' : 'Play Store'} subscriptions to complete cancellation.
+                          </p>
+                        ) : (
+                          <p className="font-medium mt-2">
+                            You'll be taken to the Stripe customer portal to complete cancellation.
+                          </p>
+                        )}
+                      </div>
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
