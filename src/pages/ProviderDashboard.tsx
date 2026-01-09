@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function ProviderDashboard() {
   const navigate = useNavigate();
   const { user, subscriptionStatus } = useAuth();
-  const { hasProviderAccess, loading: accessLoading, missingRequirements } = useProviderAccess();
+  const { hasProviderAccess, isSubscribed, loading: accessLoading, missingRequirements } = useProviderAccess();
 
   // Fetch profile for NearbyRequestsWidget
   const { data: profile } = useQuery({
@@ -91,7 +91,7 @@ export default function ProviderDashboard() {
     { label: "Selections", value: selectionsCount?.toString() || "0", icon: CheckCircle, color: "text-verified", isLoading: loadingSelections },
     { 
       label: "Renewal", 
-      value: subscriptionStatus?.subscribed ? "Active" : "N/A", 
+      value: isSubscribed ? "Active" : "N/A", 
       icon: Calendar, 
       color: "text-orange-500",
       isLoading: false
@@ -120,7 +120,7 @@ export default function ProviderDashboard() {
 
       <div className="max-w-md mx-auto px-4 py-6 space-y-6">
         {/* Subscription Status */}
-        {subscriptionStatus?.subscribed ? (
+        {isSubscribed ? (
           <div className="bg-gradient-to-br from-primary to-primary-hover rounded-card p-6 shadow-soft text-white space-y-3">
             <div className="flex items-center justify-between">
               <Badge className="bg-white/20 text-white border-white/30">Active</Badge>
@@ -129,12 +129,19 @@ export default function ProviderDashboard() {
             <div>
               <p className="text-sm opacity-90">Current Plan</p>
               <h2 className="text-2xl font-bold capitalize">
-                {subscriptionStatus.plan === 'monthly' ? 'Monthly' : 'Annual'} Subscription
+                {subscriptionStatus?.plan === 'monthly'
+                  ? 'Monthly'
+                  : subscriptionStatus?.plan === 'yearly'
+                    ? 'Annual'
+                    : 'Pro'}{' '}
+                Subscription
               </h2>
             </div>
             <div className="flex items-center justify-between pt-2">
               <span className="text-sm">
-                ${subscriptionStatus.plan === 'monthly' ? '30/month' : '240/year'}
+                {subscriptionStatus?.plan
+                  ? `$${subscriptionStatus.plan === 'monthly' ? '30/month' : '240/year'}`
+                  : 'Active'}
               </span>
               <Button 
                 size="sm" 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useRevenueCat } from '@/hooks/useRevenueCat';
 
 /**
  * Provider Access Hook
@@ -22,6 +23,23 @@ export const useProviderAccess = () => {
   const { user, subscriptionStatus } = useAuth();
   const [isVerified, setIsVerified] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
+
+  // RevenueCat is the source of truth for entitlements on both web + native.
+  // The backend "check-subscription" is best-effort, but can legitimately fail to map
+  // a billing account back to a user (e.g., missing Stripe email).
+  const { isInitialized, isProSubscriber, initialize, identifyUser } = useRevenueCat();
+
+  useEffect(() => {
+    if (user?.id) {
+      initialize(user.id);
+    }
+  }, [user?.id, initialize]);
+
+  useEffect(() => {
+    if (isInitialized && user?.id) {
+      identifyUser(user.id);
+    }
+  }, [isInitialized, user?.id, identifyUser]);
   
   useEffect(() => {
     const checkVerification = async () => {
@@ -48,18 +66,17 @@ export const useProviderAccess = () => {
     
     checkVerification();
   }, [user]);
+
+  const subscribed = !!(user && (isProSubscriber || subscriptionStatus?.subscribed));
   
   // Basic provider access: user + subscription (verification NOT required)
-  const hasBasicProviderAccess = !!(
-    user && 
-    subscriptionStatus?.subscribed
-  );
+  const hasBasicProviderAccess = subscribed;
 
   // Full provider access: includes verification (for high-value actions)
   const hasFullProviderAccess = !!(
     user && 
     isVerified && 
-    subscriptionStatus?.subscribed
+    subscribed
   );
 
   // Check if a specific job value requires verification
@@ -76,18 +93,18 @@ export const useProviderAccess = () => {
   };
 
   // Actions that ALWAYS require verification
-  const canRequestPayout = isVerified && subscriptionStatus?.subscribed;
+  const canRequestPayout = isVerified && subscribed;
   const canEnableVerifiedBadge = isVerified;
   
   const missingRequirements = {
     needsAuth: !user,
-    needsSubscription: user && !subscriptionStatus?.subscribed,
+    needsSubscription: user && !subscribed,
     // Verification is now optional for basic access
     needsVerification: false, // Changed from: user && !isVerified
     // New granular checks
-    needsVerificationForPayout: user && subscriptionStatus?.subscribed && !isVerified,
+    needsVerificationForPayout: user && subscribed && !isVerified,
     needsVerificationForHighValue: (jobValue?: number) => 
-      user && subscriptionStatus?.subscribed && requiresVerificationForJob(jobValue) && !isVerified,
+      user && subscribed && requiresVerificationForJob(jobValue) && !isVerified,
   };
   
   return { 
@@ -97,7 +114,7 @@ export const useProviderAccess = () => {
     hasFullProviderAccess,
     loading,
     isVerified,
-    isSubscribed: subscriptionStatus?.subscribed || false,
+    isSubscribed: subscribed,
     missingRequirements,
     // Granular permission checks
     canAcceptJob,
