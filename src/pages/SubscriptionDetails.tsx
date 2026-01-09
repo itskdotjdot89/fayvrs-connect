@@ -1,12 +1,69 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Check, CreditCard, Shield, ExternalLink, Apple } from "lucide-react";
-import { isNative } from "@/utils/platform";
+import { ArrowLeft, Check, CreditCard, Shield, ExternalLink, Apple, XCircle, Loader2 } from "lucide-react";
+import { isNative, isIOS } from "@/utils/platform";
+import { useAuth } from "@/contexts/AuthContext";
+import { useProviderAccess } from "@/hooks/useProviderAccess";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function SubscriptionDetails() {
   const navigate = useNavigate();
   const isNativeApp = isNative();
+  const { session } = useAuth();
+  const { isSubscribed } = useProviderAccess();
+  const { toast } = useToast();
+  const [isCancelling, setIsCancelling] = useState(false);
+
+  const handleCancelSubscription = async () => {
+    setIsCancelling(true);
+    
+    if (isNativeApp) {
+      // Native: Open App Store/Play Store subscription management
+      const url = isIOS() 
+        ? 'https://apps.apple.com/account/subscriptions'
+        : 'https://play.google.com/store/account/subscriptions';
+      window.open(url, '_blank');
+      setIsCancelling(false);
+    } else {
+      // Web: Use the customer-portal edge function for Stripe
+      try {
+        const { data, error } = await supabase.functions.invoke('customer-portal', {
+          headers: {
+            Authorization: `Bearer ${session?.access_token}`
+          }
+        });
+        
+        if (error) throw error;
+        
+        if (data?.url) {
+          window.open(data.url, '_blank');
+        }
+      } catch (error) {
+        console.error('Error opening customer portal:', error);
+        toast({
+          title: "Error",
+          description: "Unable to open subscription management. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsCancelling(false);
+      }
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -275,6 +332,79 @@ export default function SubscriptionDetails() {
                   </Button>
                 </Link>
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Cancel Subscription Section - Only show for active subscribers */}
+        {isSubscribed && (
+          <Card className="border-destructive/30">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-destructive">
+                <XCircle className="w-5 h-5" />
+                Cancel Subscription
+              </CardTitle>
+              <CardDescription>
+                We're sorry to see you go. You can cancel anytime.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    variant="destructive" 
+                    className="w-full"
+                    disabled={isCancelling}
+                  >
+                    {isCancelling ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Opening...
+                      </>
+                    ) : (
+                      'Cancel Subscription'
+                    )}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Cancel your subscription?</AlertDialogTitle>
+                    <AlertDialogDescription className="space-y-3">
+                      <p>Are you sure you want to cancel your Fayvrs Pro subscription?</p>
+                      <ul className="list-disc list-inside text-sm space-y-1">
+                        <li>Your access will continue until the end of your billing period</li>
+                        <li>You'll lose access to provider features after cancellation</li>
+                        <li>You can resubscribe anytime</li>
+                      </ul>
+                      {isNativeApp ? (
+                        <p className="text-sm font-medium mt-2">
+                          You'll be taken to your {isIOS() ? 'App Store' : 'Play Store'} subscriptions to complete cancellation.
+                        </p>
+                      ) : (
+                        <p className="text-sm font-medium mt-2">
+                          You'll be taken to the Stripe customer portal to complete cancellation.
+                        </p>
+                      )}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Keep Subscription</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={handleCancelSubscription}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Yes, Cancel
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              
+              <p className="text-xs text-muted-foreground mt-3 text-center">
+                {isNativeApp 
+                  ? "Cancellation is managed through your device's app store."
+                  : "Cancellation is managed through Stripe's secure portal."
+                }
+              </p>
             </CardContent>
           </Card>
         )}

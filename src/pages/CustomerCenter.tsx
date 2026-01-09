@@ -4,16 +4,28 @@ import { RevenueCatUI } from '@revenuecat/purchases-capacitor-ui';
 import { CustomerInfo } from '@revenuecat/purchases-capacitor';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, CreditCard, RefreshCw, HelpCircle } from 'lucide-react';
+import { Loader2, ArrowLeft, CreditCard, RefreshCw, HelpCircle, XCircle } from 'lucide-react';
 import { useRevenueCat, WebCustomerInfo } from '@/hooks/useRevenueCat';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { isNative, isWeb, getSubscriptionManagementUrl } from '@/utils/platform';
+import { isNative, isWeb, isIOS, getSubscriptionManagementUrl } from '@/utils/platform';
 import { Separator } from '@/components/ui/separator';
+import { supabase } from '@/integrations/supabase/client';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function CustomerCenter() {
   const navigate = useNavigate();
-  const { user, refreshSubscriptionStatus } = useAuth();
+  const { user, session, refreshSubscriptionStatus } = useAuth();
   const { toast } = useToast();
   const {
     isInitialized,
@@ -27,6 +39,44 @@ export default function CustomerCenter() {
 
   const [isRestoring, setIsRestoring] = useState(false);
   const [showingCustomerCenter, setShowingCustomerCenter] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+
+  const handleCancelSubscription = async () => {
+    setIsCancelling(true);
+    
+    if (isNative()) {
+      // Native: Open App Store/Play Store subscription management
+      const url = isIOS() 
+        ? 'https://apps.apple.com/account/subscriptions'
+        : 'https://play.google.com/store/account/subscriptions';
+      window.open(url, '_blank');
+      setIsCancelling(false);
+    } else {
+      // Web: Use the customer-portal edge function for Stripe
+      try {
+        const { data, error } = await supabase.functions.invoke('customer-portal', {
+          headers: {
+            Authorization: `Bearer ${session?.access_token}`
+          }
+        });
+        
+        if (error) throw error;
+        
+        if (data?.url) {
+          window.open(data.url, '_blank');
+        }
+      } catch (error) {
+        console.error('Error opening customer portal:', error);
+        toast({
+          title: "Error",
+          description: "Unable to open subscription management. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsCancelling(false);
+      }
+    }
+  };
 
   // Initialize RevenueCat when component mounts (both native and web now)
   useEffect(() => {
@@ -251,6 +301,60 @@ export default function CustomerCenter() {
               )}
               Restore Purchases
             </Button>
+
+            {/* Cancel Subscription */}
+            {isProSubscriber && (
+              <>
+                <Separator />
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      className="w-full justify-start"
+                      disabled={isCancelling}
+                    >
+                      {isCancelling ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <XCircle className="h-4 w-4 mr-2" />
+                      )}
+                      Cancel Subscription
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Cancel your subscription?</AlertDialogTitle>
+                      <AlertDialogDescription className="space-y-3">
+                        <p>Are you sure you want to cancel your Fayvrs Pro subscription?</p>
+                        <ul className="list-disc list-inside text-sm space-y-1">
+                          <li>Your access will continue until the end of your billing period</li>
+                          <li>You'll lose access to provider features after cancellation</li>
+                          <li>You can resubscribe anytime</li>
+                        </ul>
+                        {isNative() ? (
+                          <p className="text-sm font-medium mt-2">
+                            You'll be taken to your {isIOS() ? 'App Store' : 'Play Store'} subscriptions to complete cancellation.
+                          </p>
+                        ) : (
+                          <p className="text-sm font-medium mt-2">
+                            You'll be taken to the Stripe customer portal to complete cancellation.
+                          </p>
+                        )}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Keep Subscription</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={handleCancelSubscription}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Yes, Cancel
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
+            )}
           </CardContent>
         </Card>
 
