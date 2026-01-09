@@ -13,7 +13,7 @@ import { Separator } from '@/components/ui/separator';
 
 export default function CustomerCenter() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, refreshSubscriptionStatus } = useAuth();
   const { toast } = useToast();
   const {
     isInitialized,
@@ -81,6 +81,7 @@ export default function CustomerCenter() {
     setIsRestoring(false);
 
     if (result.success) {
+      await refreshSubscriptionStatus();
       toast({
         title: "Purchases restored",
         description: "Your previous purchases have been restored.",
