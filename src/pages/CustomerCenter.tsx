@@ -45,7 +45,7 @@ export default function CustomerCenter() {
     setIsCancelling(true);
 
     if (isNative()) {
-      // Native: Open App Store/Play Store subscription management
+      // Native: ONLY open App Store/Play Store - NO Stripe fallback (Apple compliance)
       const url = isIOS()
         ? 'https://apps.apple.com/account/subscriptions'
         : 'https://play.google.com/store/account/subscriptions';
@@ -54,7 +54,7 @@ export default function CustomerCenter() {
       return;
     }
 
-    // Web: Prefer RevenueCat-provided management URL (no Stripe lookup needed)
+    // Web ONLY: Prefer RevenueCat-provided management URL
     const webManagementUrl = (customerInfo as WebCustomerInfo | null)?.managementURL;
     if (webManagementUrl) {
       window.open(webManagementUrl, '_blank');
@@ -62,7 +62,7 @@ export default function CustomerCenter() {
       return;
     }
 
-    // Fallback: Stripe customer portal (may fail if no Stripe customer exists)
+    // Web fallback: Stripe customer portal
     try {
       const { data, error } = await supabase.functions.invoke('customer-portal', {
         headers: {

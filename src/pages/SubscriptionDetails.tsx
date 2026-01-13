@@ -358,7 +358,7 @@ export default function SubscriptionDetails() {
                           </p>
                         ) : (
                           <p className="font-medium mt-2">
-                            You'll be taken to the Stripe customer portal to complete cancellation.
+                            You'll be taken to subscription management to complete cancellation.
                           </p>
                         )}
                       </div>
