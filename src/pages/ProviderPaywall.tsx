@@ -371,111 +371,106 @@ export default function ProviderPaywall() {
           </Button>
         )}
 
-        {/* Subscription options */}
-        <div id="subscription-options" className="space-y-3 mb-6">
-          {!isNative() && (
+        {/* Subscription options - WEB ONLY (iOS must use RevenueCat native paywall for Apple compliance) */}
+        {!isNative() && (
+          <div id="subscription-options" className="space-y-3 mb-6">
             <h3 className="text-lg font-semibold text-center text-foreground mb-4">
               Choose Your Plan
             </h3>
-          )}
-          {isNative() && availablePackages.length > 0 && (
-            <p className="text-sm text-center text-muted-foreground">
-              Or select a plan directly:
-            </p>
-          )}
-          
-          {/* Always show pricing cards - use RevenueCat data if available, fallback to hardcoded */}
-          <div className="grid grid-cols-2 gap-3">
-            {/* Monthly Plan */}
-            <Card 
-              className="cursor-pointer hover:border-primary transition-colors"
-              onClick={() => {
-                const monthlyPkg = availablePackages.find(pkg => {
-                  const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
-                  return !info.isYearly;
-                });
-                if (monthlyPkg) {
-                  const info = getPackageInfo(monthlyPkg as PurchasesPackage | WebPackage);
-                  handleManualPurchase(info.identifier);
-                } else {
-                  toast({
-                    title: "Loading...",
-                    description: "Please wait while subscription options load.",
+            
+            {/* Pricing cards - WEB ONLY */}
+            <div className="grid grid-cols-2 gap-3">
+              {/* Monthly Plan */}
+              <Card 
+                className="cursor-pointer hover:border-primary transition-colors"
+                onClick={() => {
+                  const monthlyPkg = availablePackages.find(pkg => {
+                    const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
+                    return !info.isYearly;
                   });
-                }
-              }}
-            >
-              <CardContent className="p-4 text-center">
-                {isPurchasing ? (
-                  <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                ) : (
-                  <>
-                    <p className="font-semibold text-foreground">Monthly</p>
-                    <p className="text-lg font-bold text-primary">
-                      {(() => {
-                        const monthlyPkg = availablePackages.find(pkg => {
-                          const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
-                          return !info.isYearly;
-                        });
-                        if (monthlyPkg) {
-                          return getPackageInfo(monthlyPkg as PurchasesPackage | WebPackage).priceString;
-                        }
-                        return '$29.99';
-                      })()}
-                    </p>
-                    <p className="text-xs text-muted-foreground">per month</p>
-                  </>
-                )}
-              </CardContent>
-            </Card>
+                  if (monthlyPkg) {
+                    const info = getPackageInfo(monthlyPkg as PurchasesPackage | WebPackage);
+                    handleManualPurchase(info.identifier);
+                  } else {
+                    toast({
+                      title: "Loading...",
+                      description: "Please wait while subscription options load.",
+                    });
+                  }
+                }}
+              >
+                <CardContent className="p-4 text-center">
+                  {isPurchasing ? (
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                  ) : (
+                    <>
+                      <p className="font-semibold text-foreground">Monthly</p>
+                      <p className="text-lg font-bold text-primary">
+                        {(() => {
+                          const monthlyPkg = availablePackages.find(pkg => {
+                            const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
+                            return !info.isYearly;
+                          });
+                          if (monthlyPkg) {
+                            return getPackageInfo(monthlyPkg as PurchasesPackage | WebPackage).priceString;
+                          }
+                          return '$29.99';
+                        })()}
+                      </p>
+                      <p className="text-xs text-muted-foreground">per month</p>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
 
-            {/* Yearly Plan */}
-            <Card 
-              className="cursor-pointer hover:border-primary transition-colors border-primary/50"
-              onClick={() => {
-                const yearlyPkg = availablePackages.find(pkg => {
-                  const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
-                  return info.isYearly;
-                });
-                if (yearlyPkg) {
-                  const info = getPackageInfo(yearlyPkg as PurchasesPackage | WebPackage);
-                  handleManualPurchase(info.identifier);
-                } else {
-                  toast({
-                    title: "Loading...",
-                    description: "Please wait while subscription options load.",
+              {/* Yearly Plan */}
+              <Card 
+                className="cursor-pointer hover:border-primary transition-colors border-primary/50"
+                onClick={() => {
+                  const yearlyPkg = availablePackages.find(pkg => {
+                    const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
+                    return info.isYearly;
                   });
-                }
-              }}
-            >
-              <CardContent className="p-4 text-center">
-                {isPurchasing ? (
-                  <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                ) : (
-                  <>
-                    <p className="font-semibold text-foreground">Annual</p>
-                    <p className="text-lg font-bold text-primary">
-                      {(() => {
-                        const yearlyPkg = availablePackages.find(pkg => {
-                          const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
-                          return info.isYearly;
-                        });
-                        if (yearlyPkg) {
-                          return getPackageInfo(yearlyPkg as PurchasesPackage | WebPackage).priceString;
-                        }
-                        return '$239.99';
-                      })()}
-                    </p>
-                    <p className="text-xs text-muted-foreground">per year</p>
-                    <Badge variant="secondary" className="mt-2 text-xs">
-                      Save 33%
-                    </Badge>
-                  </>
-                )}
-              </CardContent>
-            </Card>
+                  if (yearlyPkg) {
+                    const info = getPackageInfo(yearlyPkg as PurchasesPackage | WebPackage);
+                    handleManualPurchase(info.identifier);
+                  } else {
+                    toast({
+                      title: "Loading...",
+                      description: "Please wait while subscription options load.",
+                    });
+                  }
+                }}
+              >
+                <CardContent className="p-4 text-center">
+                  {isPurchasing ? (
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                  ) : (
+                    <>
+                      <p className="font-semibold text-foreground">Annual</p>
+                      <p className="text-lg font-bold text-primary">
+                        {(() => {
+                          const yearlyPkg = availablePackages.find(pkg => {
+                            const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
+                            return info.isYearly;
+                          });
+                          if (yearlyPkg) {
+                            return getPackageInfo(yearlyPkg as PurchasesPackage | WebPackage).priceString;
+                          }
+                          return '$239.99';
+                        })()}
+                      </p>
+                      <p className="text-xs text-muted-foreground">per year</p>
+                      <Badge variant="secondary" className="mt-2 text-xs">
+                        Save 33%
+                      </Badge>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Restore purchases */}
         <Button
