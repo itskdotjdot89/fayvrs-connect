@@ -163,11 +163,11 @@ export default function ReferralDashboard() {
                   <p className="font-semibold text-foreground">Earn 20% commission for 12 months on each referral</p>
                   <div className="space-y-2">
                     <div className="p-3 bg-muted/50 rounded-lg">
-                      <p className="font-medium text-foreground">Monthly Plan ($30/month)</p>
+                      <p className="font-medium text-foreground">Monthly Plan ($29.99/month)</p>
                       <p>$6 per month × 12 months = <span className="font-bold text-foreground">$72 total</span></p>
                     </div>
                     <div className="p-3 bg-muted/50 rounded-lg">
-                      <p className="font-medium text-foreground">Annual Plan ($240/year)</p>
+                      <p className="font-medium text-foreground">Annual Plan ($239.99/year)</p>
                       <p>$48 for the year = <span className="font-bold text-foreground">$48 total</span></p>
                     </div>
                   </div>
@@ -216,7 +216,7 @@ export default function ReferralDashboard() {
                 <AccordionContent className="space-y-3 text-muted-foreground">
                   <p className="font-semibold text-foreground">Minimum: $100</p>
                   <div className="space-y-2">
-                    <p><span className="font-medium text-foreground">Bank Transfer (Stripe):</span> Direct deposit to your bank account</p>
+                    <p><span className="font-medium text-foreground">Bank Transfer:</span> Direct deposit to your bank account</p>
                     <p><span className="font-medium text-foreground">PayPal:</span> Transfer to your PayPal account</p>
                     <p><span className="font-medium text-foreground">Subscription Credit:</span> Apply earnings toward your own subscription</p>
                   </div>
@@ -302,7 +302,7 @@ export default function ReferralDashboard() {
                   <SelectValue placeholder="Select method" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="stripe_connect">Bank Transfer (Stripe)</SelectItem>
+                  <SelectItem value="stripe_connect">Bank Transfer</SelectItem>
                   <SelectItem value="paypal">PayPal</SelectItem>
                   <SelectItem value="subscription_credit">Apply to Subscription</SelectItem>
                 </SelectContent>

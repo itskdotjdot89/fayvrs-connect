@@ -141,7 +141,7 @@ export default function Home() {
                   <div className="absolute inset-0 bg-gradient-to-r from-background/60 via-background/80 to-background/60 backdrop-blur-sm z-10 flex items-center justify-center">
                     <div className="text-center">
                       <Shield className="h-12 w-12 text-primary mx-auto mb-2" />
-                      <p className="font-semibold mb-2">Demo Mode</p>
+                      <p className="font-semibold mb-2">Sample Requests</p>
                       <p className="text-sm text-muted-foreground mb-4">Sign up to view full details</p>
                       <Link to="/auth">
                         <Button size="sm">Create Account</Button>
@@ -242,7 +242,7 @@ export default function Home() {
                     <span className="flex-shrink-0 w-8 h-8 bg-secondary text-secondary-foreground rounded-full flex items-center justify-center font-semibold">1</span>
                     <div>
                       <p className="font-medium">Subscribe & Verify</p>
-                      <p className="text-sm text-muted-foreground">$30/month or $240/year, pass identity check</p>
+                      <p className="text-sm text-muted-foreground">Subscription required, pass identity check</p>
                     </div>
                   </li>
                   <li className="flex gap-3">

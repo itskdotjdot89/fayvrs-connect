@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Shield, AlertTriangle, Lock, Phone, MessageSquare, Flag } from "lucide-react";
+import { isNative } from "@/utils/platform";
 
 export default function SafetyCenter() {
   return (
@@ -76,7 +77,7 @@ export default function SafetyCenter() {
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-muted-foreground">
             <ul className="list-disc list-inside space-y-2 ml-2">
-              <li>All payments are processed securely through Stripe</li>
+              <li>All payments are processed securely {isNative() ? 'through your app store' : 'through our payment partner'}</li>
               <li>Never send money outside of the Fayvrs platform</li>
               <li>Be wary of requests for cash, wire transfers, or gift cards</li>
               <li>Report any suspicious payment requests immediately</li>

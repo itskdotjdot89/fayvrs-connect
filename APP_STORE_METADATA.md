@@ -96,33 +96,38 @@ Start connecting with your local community today!
 **Important Information for Reviewers:**
 
 1. **Subscription Information:**
-   - Provider subscriptions ($30/month or $240/year) are for accessing business tools and lead generation
-   - This is NOT an in-app purchase as it provides access to real-world services and business tools
-   - Payments processed via Stripe, not Apple/Google IAP, in compliance with app store guidelines
-   - Detailed subscription information available in-app under Settings → Subscription Details
+   - Provider subscriptions available via standard In-App Purchase (StoreKit 2)
+   - Monthly ($29.99) and Annual ($239.99) options available
+   - Subscriptions managed through Apple Subscriptions
+   - Includes 7-day free trial for first-time subscribers
 
-2. **Demo Data:**
-   - The app includes sample requests and profiles for testing
-   - Demo accounts are pre-configured and ready to use
-   - All features are accessible with the provided demo accounts
+2. **Demo Accounts:**
+   - demo-requester@fayvrs.com / DemoPass123!
+   - demo-provider@fayvrs.com / DemoPass123!
+   - All features accessible with demo accounts
 
-3. **Permissions:**
+3. **Optional Verification:**
+   - Phone and ID verification are NOT required at signup
+   - Users can browse and use the app without verification
+   - ID verification only required for payouts and jobs over $200 threshold
+
+4. **Permissions:**
    - Location: Required for matching users with nearby service providers
    - Camera/Photos: Optional, used for profile pictures and request photos
    - Notifications: Optional, keeps users updated on requests and messages
    - All permissions have pre-permission screens explaining their use
 
-4. **Safety Features:**
+5. **Safety Features:**
    - Identity verification system for providers
    - In-app reporting on profiles, requests, and messages
    - Comprehensive Safety Center accessible from settings
    - Community Guidelines enforced
 
-5. **Real-World Services:**
+6. **Real-World Services:**
    - Platform connects users for real-world service exchanges
    - No digital goods or content are sold through the app
-   - Payment arrangements are made directly between users outside the app
-   - Platform subscription is separate from service transactions
+   - Service payment arrangements are made directly between users
+   - Platform subscription provides access to business tools
 
 ## Screenshots Needed
 

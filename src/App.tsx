@@ -50,7 +50,7 @@ const CustomerCenter = lazy(() => import("./pages/CustomerCenter"));
 const KYCReview = lazy(() => import("./pages/admin/KYCReview"));
 const ModerationQueue = lazy(() => import("./pages/admin/ModerationQueue"));
 
-// Mockup pages - lazy loaded
+// Mockup pages - lazy loaded (only in development)
 const OnboardingMockup = lazy(() => import("./pages/mockups/Onboarding"));
 const DemoFeed = lazy(() => import("./pages/mockups/DemoFeed"));
 const SignUpLogin = lazy(() => import("./pages/mockups/SignUpLogin"));
@@ -64,6 +64,7 @@ const PortfolioMockup = lazy(() => import("./pages/mockups/Portfolio"));
 const Billing = lazy(() => import("./pages/mockups/Billing"));
 const SettingsMockup = lazy(() => import("./pages/mockups/Settings"));
 const MockupIndex = lazy(() => import("./pages/mockups/Index"));
+const isDev = import.meta.env.DEV;
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -132,20 +133,24 @@ const AppContent = () => {
               </ProtectedRoute>
             } />
               
-            {/* Fayvrs Mockups */}
-            <Route path="/mockups" element={<MockupIndex />} />
-            <Route path="/mockup/onboarding" element={<OnboardingMockup />} />
-            <Route path="/mockup/demo-feed" element={<DemoFeed />} />
-            <Route path="/mockup/signup" element={<SignUpLogin />} />
-            <Route path="/mockup/verification" element={<IdentityVerificationMockup />} />
-            <Route path="/mockup/ai-chat" element={<AIRequestChat />} />
-            <Route path="/mockup/request-feed" element={<RequestFeed />} />
-            <Route path="/mockup/request-details" element={<RequestDetailsMockup />} />
-            <Route path="/mockup/messaging" element={<MessagingMockup />} />
-            <Route path="/mockup/dashboard" element={<ProviderDashboardMockup />} />
-            <Route path="/mockup/portfolio" element={<PortfolioMockup />} />
-            <Route path="/mockup/billing" element={<Billing />} />
-            <Route path="/mockup/settings" element={<SettingsMockup />} />
+            {/* Fayvrs Mockups - Development only */}
+            {isDev && (
+              <>
+                <Route path="/mockups" element={<MockupIndex />} />
+                <Route path="/mockup/onboarding" element={<OnboardingMockup />} />
+                <Route path="/mockup/demo-feed" element={<DemoFeed />} />
+                <Route path="/mockup/signup" element={<SignUpLogin />} />
+                <Route path="/mockup/verification" element={<IdentityVerificationMockup />} />
+                <Route path="/mockup/ai-chat" element={<AIRequestChat />} />
+                <Route path="/mockup/request-feed" element={<RequestFeed />} />
+                <Route path="/mockup/request-details" element={<RequestDetailsMockup />} />
+                <Route path="/mockup/messaging" element={<MessagingMockup />} />
+                <Route path="/mockup/dashboard" element={<ProviderDashboardMockup />} />
+                <Route path="/mockup/portfolio" element={<PortfolioMockup />} />
+                <Route path="/mockup/billing" element={<Billing />} />
+                <Route path="/mockup/settings" element={<SettingsMockup />} />
+              </>
+            )}
               
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

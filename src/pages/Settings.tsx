@@ -659,11 +659,13 @@ export default function Settings() {
                 Refund Policy
               </Button>
             </Link>
-            <Link to="/app-store-readiness">
-              <Button variant="ghost" className="w-full justify-start">
-                App Store Readiness
-              </Button>
-            </Link>
+            {import.meta.env.DEV && (
+              <Link to="/app-store-readiness">
+                <Button variant="ghost" className="w-full justify-start">
+                  App Store Readiness
+                </Button>
+              </Link>
+            )}
           </CardContent>
         </Card>
 

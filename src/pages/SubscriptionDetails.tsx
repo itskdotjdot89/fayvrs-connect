@@ -379,7 +379,7 @@ export default function SubscriptionDetails() {
               <p className="text-xs text-muted-foreground mt-3 text-center">
                 {isNativeApp 
                   ? "Cancellation is managed through your device's app store."
-                  : "Cancellation is managed through Stripe's secure portal."
+                  : "Cancellation is managed through your subscription portal."
                 }
               </p>
             </CardContent>
