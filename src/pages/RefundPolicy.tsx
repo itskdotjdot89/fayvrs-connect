@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { isNative, isIOS, isAndroid } from "@/utils/platform";
 
 export default function RefundPolicy() {
   return (
@@ -30,15 +31,15 @@ export default function RefundPolicy() {
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-foreground">1. Provider Subscription Refunds</h2>
           <div className="space-y-3 text-muted-foreground">
-            <p><strong>Monthly Subscriptions ($30/month):</strong></p>
+            <p><strong>Monthly Subscriptions ($29.99/month):</strong></p>
             <ul className="list-disc list-inside space-y-2 ml-4">
               <li>Subscriptions are billed monthly in advance</li>
-              <li>You can cancel at any time through your Stripe customer portal</li>
+              <li>You can cancel at any time through your {isIOS() ? 'App Store settings' : isAndroid() ? 'Play Store settings' : 'subscription portal'}</li>
               <li>No refunds for partial months - you'll retain access until the end of your billing period</li>
               <li>Cancellations take effect at the end of the current billing cycle</li>
             </ul>
 
-            <p className="mt-4"><strong>Annual Subscriptions ($240/year):</strong></p>
+            <p className="mt-4"><strong>Annual Subscriptions ($239.99/year):</strong></p>
             <ul className="list-disc list-inside space-y-2 ml-4">
               <li>Billed annually in advance</li>
               <li>Refunds available within 30 days of purchase if you haven't actively used the service</li>
@@ -107,12 +108,12 @@ export default function RefundPolicy() {
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-foreground">4. Payment Processing</h2>
           <div className="space-y-2 text-muted-foreground">
-            <p>All subscription payments are processed by Stripe, our secure payment processor:</p>
+            <p>All subscription payments are processed securely {isNative() ? 'through your app store' : 'by our payment partner'}:</p>
             <ul className="list-disc list-inside space-y-2 ml-4">
-              <li>Fayvrs does not store your credit card information</li>
+              <li>Fayvrs does not store your payment information</li>
               <li>Refunds are issued to the original payment method</li>
-              <li>Processing time depends on your bank (typically 5-10 business days)</li>
-              <li>You can manage your subscription through your Stripe customer portal</li>
+              <li>Processing time depends on your payment provider (typically 5-10 business days)</li>
+              <li>You can manage your subscription through your {isIOS() ? 'App Store settings' : isAndroid() ? 'Play Store settings' : 'subscription portal'}</li>
             </ul>
           </div>
         </section>
@@ -124,7 +125,7 @@ export default function RefundPolicy() {
             <ol className="list-decimal list-inside space-y-2 ml-4">
               <li>Log into your Fayvrs account</li>
               <li>Go to Settings → Subscription Details</li>
-              <li>Click "Manage Subscription" to access your Stripe portal</li>
+              <li>Click "Manage Subscription" to access your subscription settings</li>
               <li>Select "Cancel Subscription"</li>
               <li>Confirm cancellation</li>
             </ol>
