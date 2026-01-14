@@ -10,7 +10,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { isNative, isWeb, isIOS, getSubscriptionManagementUrl } from '@/utils/platform';
 import { Separator } from '@/components/ui/separator';
-import { supabase } from '@/integrations/supabase/client';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -54,7 +53,7 @@ export default function CustomerCenter() {
       return;
     }
 
-    // Web ONLY: Prefer RevenueCat-provided management URL
+    // Web: Use RevenueCat-provided management URL
     const webManagementUrl = (customerInfo as WebCustomerInfo | null)?.managementURL;
     if (webManagementUrl) {
       window.open(webManagementUrl, '_blank');
@@ -62,31 +61,12 @@ export default function CustomerCenter() {
       return;
     }
 
-    // Web fallback: Stripe customer portal
-    try {
-      const { data, error } = await supabase.functions.invoke('customer-portal', {
-        headers: {
-          Authorization: `Bearer ${session?.access_token}`,
-        },
-      });
-
-      if (error) throw error;
-
-      if (data?.url) {
-        window.open(data.url, '_blank');
-      } else {
-        throw new Error('No portal URL returned');
-      }
-    } catch (error) {
-      console.error('Error opening subscription management:', error);
-      toast({
-        title: 'Error',
-        description: 'Unable to open subscription management. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsCancelling(false);
-    }
+    // Fallback: Show message to contact support
+    toast({
+      title: 'Manage via RevenueCat',
+      description: 'Please contact support@fayvrs.com to manage your subscription.',
+    });
+    setIsCancelling(false);
   };
 
   // Initialize RevenueCat when component mounts (both native and web now)

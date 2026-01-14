@@ -9,7 +9,7 @@ interface SubscriptionStatus {
   product_id?: string;
   plan?: 'monthly' | 'yearly';
   subscription_end?: string;
-  source?: 'stripe' | 'apple' | 'google';
+  source?: 'revenuecat' | 'apple' | 'google';
 }
 
 interface AuthContextType {
@@ -121,56 +121,71 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Manually refresh subscription status (called after purchase completes)
+  // Now relies on RevenueCat - this is just for syncing to database
   const refreshSubscriptionStatus = async () => {
-    if (!session) return;
+    if (!session || !user) return;
     
+    // Simply query the local database for subscription status
+    // RevenueCat webhooks keep this in sync
     try {
-      const { data, error } = await supabase.functions.invoke('check-subscription', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`
-        }
-      });
+      const { data, error } = await supabase
+        .from('provider_subscriptions')
+        .select('*')
+        .eq('provider_id', user.id)
+        .eq('status', 'active')
+        .single();
 
-      if (error) throw error;
+      if (error && error.code !== 'PGRST116') throw error;
       
-      const source = isNative() 
-        ? (data.source || 'apple') 
-        : (data.source || 'stripe');
-      
-      setSubscriptionStatus({ ...data, source });
-      console.log('[AuthContext] Subscription status refreshed:', data);
+      if (data) {
+        const source = isNative() ? 'apple' : 'revenuecat';
+        setSubscriptionStatus({
+          subscribed: true,
+          plan: data.plan as 'monthly' | 'yearly',
+          subscription_end: data.expires_at,
+          source
+        });
+        console.log('[AuthContext] Subscription status refreshed from database:', data);
+      } else {
+        setSubscriptionStatus({ subscribed: false });
+      }
     } catch (error) {
       console.error('Error refreshing subscription status:', error);
     }
   };
 
   // Check subscription whenever session changes
-  // This is a fallback/sync mechanism - RevenueCat now handles both native and web subscriptions
-  // This edge function syncs the subscription status to the database for server-side checks
+  // RevenueCat webhooks keep the database in sync - we just read from the database
   // IMPORTANT: This runs in the background and does NOT block initial app render
   useEffect(() => {
-    if (!session) {
+    if (!session || !user) {
       setSubscriptionStatus(null);
       return;
     }
 
-    // Run subscription check in background - don't block UI
+    // Query database for subscription status (kept in sync by RevenueCat webhooks)
     const syncSubscriptionStatus = async () => {
       try {
-        const { data, error } = await supabase.functions.invoke('check-subscription', {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`
-          }
-        });
+        const { data, error } = await supabase
+          .from('provider_subscriptions')
+          .select('*')
+          .eq('provider_id', user.id)
+          .eq('status', 'active')
+          .single();
 
-        if (error) throw error;
+        if (error && error.code !== 'PGRST116') throw error;
         
-        // Determine source based on platform
-        const source = isNative() 
-          ? (data.source || 'apple') 
-          : (data.source || 'stripe');
-        
-        setSubscriptionStatus({ ...data, source });
+        if (data) {
+          const source = isNative() ? 'apple' : 'revenuecat';
+          setSubscriptionStatus({
+            subscribed: true,
+            plan: data.plan as 'monthly' | 'yearly',
+            subscription_end: data.expires_at,
+            source
+          });
+        } else {
+          setSubscriptionStatus({ subscribed: false });
+        }
       } catch (error) {
         console.error('Error syncing subscription status:', error);
         // Don't clear subscription status on error - RevenueCat is the source of truth
@@ -187,7 +202,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       clearTimeout(timeout);
       clearInterval(interval);
     };
-  }, [session]);
+  }, [session, user]);
 
   const signUp = async (email: string, password: string, fullName: string, role: 'requester' | 'provider', phone?: string, referralCode?: string) => {
     // Apple App Store Guideline 5.1.1: Don't force verification after signup
