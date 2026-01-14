@@ -1,6 +1,6 @@
 # Fayvrs Legal & Compliance Documentation
 
-**Last Updated:** January 2025
+**Last Updated:** January 2026
 
 This document provides a comprehensive overview of Fayvrs' legal and compliance infrastructure, designed to meet App Store, Google Play, GDPR, CCPA, and marketplace safety requirements.
 
@@ -26,7 +26,7 @@ Fayvrs is a location-based service marketplace connecting requesters with local 
 - **Legal**: Terms, privacy, community standards, refund policies
 - **Safety**: User verification, content moderation, reporting systems
 - **Privacy**: Data protection, user rights, transparent collection practices
-- **Payments**: Subscription transparency, billing disclosures, Stripe integration
+- **Payments**: Subscription transparency, billing disclosures, RevenueCat integration (iOS, Android, Web)
 - **Platform Policies**: App Store and Google Play requirements
 
 ---
@@ -47,7 +47,7 @@ All legal pages are accessible via:
 | **Community Guidelines** | `/community-guidelines` | Acceptable use, prohibited content, user conduct | ✅ Live |
 | **Refund Policy** | `/refund-policy` | Provider subscription refunds, dispute resolution | ✅ Live |
 | **Safety Center** | `/safety-center` | Safety tips, meeting guidelines, emergency resources | ✅ Live |
-| **Subscription Details** | `/subscription-details` | Pricing, billing cycle, cancellation, Stripe disclosure | ✅ Live |
+| **Subscription Details** | `/subscription-details` | Pricing, billing cycle, cancellation, payment disclosure | ✅ Live |
 
 ### Legal Page Features
 
@@ -218,12 +218,14 @@ Each legal page includes:
 **Required Disclosures:**
 
 ✅ **Pricing Clarity**
-- Monthly: $30/month
-- Annual: $240/year (20% savings)
+- Monthly: $29.99/month (7-day free trial)
+- Annual: $239.99/year (7-day free trial, 33% savings)
 
 ✅ **Billing Method**
-- Processed via Stripe (not Apple IAP or Google Play Billing)
-- Justification: Business tools, not digital goods
+- **iOS:** Apple In-App Purchase via RevenueCat
+- **Android:** Google Play Billing via RevenueCat
+- **Web:** RevenueCat Web Billing (Stripe-powered, managed by RevenueCat)
+- All platforms use native payment methods for full App Store/Play Store compliance
 
 ✅ **Subscription Purpose**
 - Provider access to request notifications
@@ -233,16 +235,19 @@ Each legal page includes:
 
 ✅ **Cancellation**
 - Cancel anytime
-- Managed via Stripe Customer Portal
-- No refunds for partial months
+- **iOS:** Managed via App Store subscription settings
+- **Android:** Managed via Google Play subscription settings
+- **Web:** Managed via RevenueCat subscription management portal
+- No refunds for partial months (handled by respective app stores)
 
 ✅ **Renewals**
 - Auto-renewal disclosed
 - Billing cycle clearly stated
 
-**Customer Portal:**
-- Accessed via edge function: `supabase/functions/customer-portal/index.ts`
-- Allows users to update payment, cancel, view invoices
+**Subscription Management:**
+- **Native (iOS/Android):** RevenueCat CustomerCenterView for native management UI
+- **Web:** RevenueCat managementURL for subscription portal access
+- **Hook:** `src/hooks/useRevenueCat.tsx` provides unified subscription status
 
 ---
 
@@ -330,19 +335,20 @@ Password: DemoFayvrs2025!
 - ✅ Profile photos (uploaded by user)
 - ✅ Service requests (created by user)
 - ✅ Messages (sent/received)
-- ✅ Payment information (via Stripe)
+- ✅ Payment information (via RevenueCat/App Store/Play Store)
 - ✅ Identity verification docs (providers only, secure storage)
 - ✅ Usage analytics (anonymous)
 
 **How We Use It:**
 - ✅ Match requesters with nearby providers
 - ✅ Facilitate communication
-- ✅ Process payments via Stripe
+- ✅ Process payments via RevenueCat (Apple/Google/Web)
 - ✅ Verify provider identities
 - ✅ Improve service quality
 
 **Who We Share With:**
-- ✅ Stripe (payment processing)
+- ✅ RevenueCat (subscription management)
+- ✅ Apple/Google (payment processing via In-App Purchase)
 - ✅ OpenAI (content moderation AI, no PII)
 - ✅ No selling of user data
 
@@ -422,7 +428,7 @@ Password: DemoFayvrs2025!
 - Test permission prompts on device
 - Confirm moderation queue accessible
 - Test account deletion flow
-- Verify Stripe integration
+- Verify RevenueCat integration (all platforms)
 
 ---
 
@@ -493,6 +499,11 @@ notification_preferences - Privacy settings
 - `delete-user-account` - Complete data deletion
 - `update-verification-status` - KYC workflow
 
+**Subscription & Payments:**
+- `revenuecat-webhook` - RevenueCat server-to-server events for referral commission tracking
+- `get-revenuecat-web-key` - Secure retrieval of RevenueCat Web API key
+- `get-revenuecat-native-key` - Secure retrieval of RevenueCat Native API key
+
 **Notifications:**
 - `send-email-notification` - Compliance emails
 - `send-founder-notification` - Critical alerts
@@ -506,7 +517,7 @@ notification_preferences - Privacy settings
 4. Submit test report (user, request, message)
 5. Test moderation flow (create flagged content)
 6. Verify KYC submission and admin review
-7. Test subscription flow and Customer Portal
+7. Test subscription flow via RevenueCat (iOS/Android/Web)
 8. Confirm demo accounts work
 
 **Platform Testing:**
@@ -533,6 +544,7 @@ For compliance questions or legal inquiries:
 | Date | Version | Changes |
 |------|---------|---------|
 | Jan 2025 | 1.0 | Initial compliance implementation |
+| Jan 2026 | 2.0 | Migrated to RevenueCat-only payment architecture (removed direct Stripe integration) |
 
 ---
 
