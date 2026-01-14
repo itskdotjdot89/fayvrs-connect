@@ -561,6 +561,7 @@ export type Database = {
           referral_relationship_id: string
           referred_user_id: string
           referrer_id: string
+          revenuecat_transaction_id: string | null
           status:
             | Database["public"]["Enums"]["referral_commission_status"]
             | null
@@ -581,6 +582,7 @@ export type Database = {
           referral_relationship_id: string
           referred_user_id: string
           referrer_id: string
+          revenuecat_transaction_id?: string | null
           status?:
             | Database["public"]["Enums"]["referral_commission_status"]
             | null
@@ -601,6 +603,7 @@ export type Database = {
           referral_relationship_id?: string
           referred_user_id?: string
           referrer_id?: string
+          revenuecat_transaction_id?: string | null
           status?:
             | Database["public"]["Enums"]["referral_commission_status"]
             | null
@@ -684,6 +687,7 @@ export type Database = {
         Row: {
           commission_end_date: string | null
           created_at: string | null
+          customer_id: string | null
           first_payment_date: string | null
           id: string
           referral_code_id: string
@@ -692,8 +696,7 @@ export type Database = {
           status:
             | Database["public"]["Enums"]["referral_relationship_status"]
             | null
-          stripe_customer_id: string | null
-          stripe_subscription_id: string | null
+          subscription_id: string | null
           subscription_start_date: string | null
           total_commission_earned: number | null
           total_payments_count: number | null
@@ -702,6 +705,7 @@ export type Database = {
         Insert: {
           commission_end_date?: string | null
           created_at?: string | null
+          customer_id?: string | null
           first_payment_date?: string | null
           id?: string
           referral_code_id: string
@@ -710,8 +714,7 @@ export type Database = {
           status?:
             | Database["public"]["Enums"]["referral_relationship_status"]
             | null
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
+          subscription_id?: string | null
           subscription_start_date?: string | null
           total_commission_earned?: number | null
           total_payments_count?: number | null
@@ -720,6 +723,7 @@ export type Database = {
         Update: {
           commission_end_date?: string | null
           created_at?: string | null
+          customer_id?: string | null
           first_payment_date?: string | null
           id?: string
           referral_code_id?: string
@@ -728,8 +732,7 @@ export type Database = {
           status?:
             | Database["public"]["Enums"]["referral_relationship_status"]
             | null
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
+          subscription_id?: string | null
           subscription_start_date?: string | null
           total_commission_earned?: number | null
           total_payments_count?: number | null

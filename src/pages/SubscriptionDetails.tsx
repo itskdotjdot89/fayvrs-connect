@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Check, CreditCard, Shield, ExternalLink, Apple, XCircle, Loader2 } from "lucide-react";
+import { ArrowLeft, Check, CreditCard, Shield, Apple, XCircle, Loader2 } from "lucide-react";
 import { isNative, isIOS } from "@/utils/platform";
 import { useProviderAccess } from "@/hooks/useProviderAccess";
 import {
@@ -217,7 +217,7 @@ export default function SubscriptionDetails() {
               <div>
                 <p className="font-medium text-foreground mb-2">Secure Payment Processing</p>
                 <ul className="list-disc list-inside space-y-1 ml-2">
-                  <li>All payments are processed securely by Stripe</li>
+                  <li>All payments are processed securely</li>
                   <li>Fayvrs does not store your credit card information</li>
                   <li>Your payment details are encrypted and secure</li>
                   <li>PCI DSS compliant payment processing</li>
@@ -237,20 +237,19 @@ export default function SubscriptionDetails() {
               <div>
                 <p className="font-medium text-foreground mb-2">Managing Your Subscription</p>
                 <ul className="list-disc list-inside space-y-1 ml-2">
-                  <li>Cancel anytime through your Stripe customer portal</li>
+                  <li>Cancel anytime through subscription management</li>
                   <li>Update payment method without losing service</li>
                   <li>Switch between monthly and annual plans</li>
-                  <li>View payment history and download invoices</li>
+                  <li>View payment history and receipts</li>
                 </ul>
               </div>
 
               <Button 
                 variant="outline" 
                 className="w-full mt-4"
-                onClick={() => window.open('https://billing.stripe.com/p/login/', '_blank')}
+                onClick={() => navigate('/customer-center')}
               >
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Manage Subscription in Stripe
+                Manage Subscription
               </Button>
             </CardContent>
           </Card>
@@ -270,7 +269,7 @@ export default function SubscriptionDetails() {
                 <p className="font-medium text-foreground mb-2">Web Subscription</p>
                 <p>
                   This subscription is for real-world business services and tools. 
-                  Payments are processed by Stripe.
+                  Payments are processed securely.
                 </p>
               </div>
 
