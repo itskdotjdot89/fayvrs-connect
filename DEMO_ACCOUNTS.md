@@ -112,8 +112,7 @@ Fayvrs includes pre-configured demo accounts for app store reviewers to thorough
 
 ### For iOS Review:
 - All permissions include pre-permission screens explaining usage
-- Subscription managed through Stripe (external provider)
-- No Apple IAP required as this is for business services access
+- Subscriptions managed through Apple In-App Purchase via RevenueCat
 - Demo accounts have location set to San Francisco for testing
 
 ### For Android Review:

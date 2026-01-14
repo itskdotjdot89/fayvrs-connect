@@ -91,7 +91,7 @@ const PrivacyPolicy = () => {
             <p className="text-foreground/80 leading-relaxed mb-3">We share data with:</p>
             <ul className="list-disc pl-6 space-y-2 text-foreground/80">
               <li>Cloud infrastructure providers (Supabase)</li>
-              <li>Payment processors (Stripe)</li>
+              <li>Payment processors (RevenueCat, Apple, Google)</li>
               <li>Analytics services</li>
               <li>Customer support tools</li>
             </ul>

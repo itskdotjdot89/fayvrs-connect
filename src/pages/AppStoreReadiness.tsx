@@ -213,7 +213,7 @@ export default function AppStoreReadiness() {
 
           <CheckItem
             title="Payment Transparency Set Up"
-            description="Clear subscription details and Stripe billing information"
+            description="Clear subscription details and billing information"
             passed={checks.paymentTransparency}
             details={
               <div className="space-y-1 mt-2">
@@ -221,9 +221,9 @@ export default function AppStoreReadiness() {
                   <Button variant="outline" size="sm">View Subscription Details</Button>
                 </Link>
                 <ul className="list-disc list-inside text-sm text-muted-foreground mt-2">
-                  <li>$30/month and $240/year pricing clearly shown</li>
-                  <li>Stripe billing disclaimer</li>
-                  <li>Not an in-app purchase explanation</li>
+                  <li>$29.99/month and $239.99/year pricing clearly shown</li>
+                  <li>Platform-appropriate billing (App Store/Play Store/Web)</li>
+                  <li>7-day free trial disclosure</li>
                   <li>Cancellation policy</li>
                 </ul>
               </div>

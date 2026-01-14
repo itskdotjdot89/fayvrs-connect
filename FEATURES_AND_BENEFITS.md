@@ -548,15 +548,15 @@ Fayvrs is a comprehensive service marketplace platform that connects service req
 
 ---
 
-#### 42. **Stripe Checkout Integration**
-**What It Does**: Secure payment processing for subscriptions  
+#### 42. **RevenueCat Subscription Integration**
+**What It Does**: Unified payment processing for subscriptions across all platforms  
 **Benefits**:
-- PCI-compliant payments
-- Multiple payment methods
-- Automatic billing
-- Customer portal access
+- Native In-App Purchase on iOS and Android
+- Web billing via RevenueCat
+- Automatic billing and renewals
+- Cross-platform subscription sync
 
-**User Impact**: Safe, reliable payment processing
+**User Impact**: Safe, reliable payment processing on any device
 
 ---
 
@@ -843,11 +843,11 @@ Fayvrs is a comprehensive service marketplace platform that connects service req
 #### 61. **Subscription Transparency**
 **What It Does**: Dedicated page explaining provider subscription details, billing, and features  
 **Benefits**:
-- Required transparency for non-IAP subscriptions
-- Clear explanation that subscription is for business tools (not digital content)
-- Stripe billing details and cancellation process
+- Clear pricing and trial information
+- Platform-appropriate billing (Apple/Google/Web)
+- RevenueCat-powered subscription management
 - Feature breakdown and value proposition
-- Compliance with Apple's payment transparency requirements
+- Compliance with App Store payment requirements
 
 **User Impact**: Understand exactly what you're paying for and how to manage your subscription
 
@@ -951,7 +951,7 @@ Fayvrs is a comprehensive service marketplace platform that connects service req
 ### Infrastructure
 - **Vite** - Lightning-fast build tool
 - **Capacitor** - Native mobile deployment
-- **Stripe** - Payment processing
+- **RevenueCat** - Unified subscription management (iOS, Android, Web)
 
 ---
 
@@ -1084,10 +1084,11 @@ Full compliance with Apple and Google policies including content moderation, saf
 ## Integration Capabilities
 
 ### Payment Processing
-- **Stripe Integration**: Subscription management, checkout, customer portal
-- **Payment Methods**: Credit/debit cards, ACH, digital wallets
-- **Recurring Billing**: Automated subscription renewals
-- **Invoicing**: Transaction history and receipts
+- **RevenueCat Integration**: Unified subscription management across all platforms
+- **iOS**: Apple In-App Purchase via StoreKit 2
+- **Android**: Google Play Billing
+- **Web**: RevenueCat Web Billing
+- **Recurring Billing**: Automated subscription renewals via native app stores
 
 ### AI Services
 - **Lovable AI**: No API key required for supported models
