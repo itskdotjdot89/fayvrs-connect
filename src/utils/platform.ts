@@ -34,5 +34,5 @@ export const getSubscriptionManagementUrl = (): string | null => {
   if (isAndroid()) {
     return 'https://play.google.com/store/account/subscriptions';
   }
-  return null; // Web uses Stripe customer portal
+  return null; // Web uses RevenueCat subscription management
 };

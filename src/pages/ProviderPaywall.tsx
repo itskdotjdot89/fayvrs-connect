@@ -305,7 +305,7 @@ export default function ProviderPaywall() {
     } else if (isAndroid()) {
       return "Subscriptions will be charged to your Google Play account at confirmation of purchase.";
     } else {
-      return "Subscriptions will be charged to your payment method via Stripe at confirmation of purchase.";
+      return "Subscriptions will be charged to your payment method at confirmation of purchase.";
     }
   };
 

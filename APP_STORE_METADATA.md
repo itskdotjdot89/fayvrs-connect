@@ -187,7 +187,7 @@ Similar to iOS, adjusted for Material Design guidelines
 - **Can be deleted:** Yes
 
 ### Financial Info:**
-- **Payment method:** Collected by Stripe (not stored in app)
+- **Payment method:** Collected via In-App Purchase (iOS/Android) or RevenueCat Web Billing
 - **Purpose:** Provider subscriptions only
 
 ## App Store Connect Checklist

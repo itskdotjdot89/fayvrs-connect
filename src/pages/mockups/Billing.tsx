@@ -124,7 +124,7 @@ export default function Billing() {
         {/* Footer Note */}
         <div className="bg-surface rounded-xl p-4 text-center">
           <p className="text-xs text-muted-foreground">
-            Cancel anytime. No hidden fees. Powered by Stripe.
+            Cancel anytime. No hidden fees. Secure payments.
           </p>
         </div>
       </div>
