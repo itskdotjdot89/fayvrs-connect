@@ -455,11 +455,6 @@ export default function Auth() {
                   <Label htmlFor="name">Full Name</Label>
                   <Input id="name" placeholder="John Doe" value={fullName} onChange={e => setFullName(e.target.value)} required={isSignUp} />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-phone">Phone Number (optional)</Label>
-                  <Input id="signup-phone" type="tel" placeholder="+1 (555) 123-4567" value={phone} onChange={e => setPhone(e.target.value)} />
-                  <p className="text-xs text-muted-foreground">Optional. Used for SMS notifications if enabled.</p>
-                </div>
               </>}
 
               {isSignUp && (
