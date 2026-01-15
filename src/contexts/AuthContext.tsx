@@ -250,11 +250,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signInWithGoogle = async () => {
-    // Use the current origin for redirect after auth completes
-    const redirectUrl = `${window.location.origin}/feed`;
-    
+    // In the Lovable preview, the app may run inside an iframe with a different origin.
+    // Prefer using the referrer's origin (the "real" preview/published URL) for OAuth redirects.
+    const getPreferredRedirectOrigin = () => {
+      try {
+        const referrer = document.referrer ? new URL(document.referrer).origin : null;
+        if (referrer && referrer.includes('lovable.app')) return referrer;
+      } catch {
+        // ignore
+      }
+      return window.location.origin;
+    };
+
+    const redirectOrigin = getPreferredRedirectOrigin();
+    const redirectUrl = `${redirectOrigin}/feed`;
+
     console.log('[Auth] Google sign-in redirect URL:', redirectUrl);
-    
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -262,8 +274,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
-        }
-      }
+        },
+      },
     });
 
     if (error) {
