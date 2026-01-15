@@ -250,15 +250,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signInWithGoogle = async () => {
-    // Apple App Store Guideline 5.1.1: Don't force verification after OAuth
+    // Use the current origin for redirect after auth completes
+    const redirectUrl = `${window.location.origin}/feed`;
+    
+    console.log('[Auth] Google sign-in redirect URL:', redirectUrl);
+    
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/feed`
+        redirectTo: redirectUrl,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        }
       }
     });
 
     if (error) {
+      console.error('[Auth] Google sign-in error:', error);
       toast({
         title: "Sign in failed",
         description: error.message,
