@@ -86,20 +86,55 @@ export default function RequestDetails() {
     },
   });
 
+  // Loading state with timeout protection
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+  
+  useEffect(() => {
+    if (loadingRequest) {
+      const timer = setTimeout(() => setLoadingTimeout(true), 8000);
+      return () => clearTimeout(timer);
+    }
+    setLoadingTimeout(false);
+  }, [loadingRequest]);
+
   if (loadingRequest) {
     return (
-      <div className="min-h-screen bg-surface flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="min-h-screen bg-surface flex items-center justify-center p-4">
+        <div className="text-center space-y-4">
+          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
+          <p className="text-muted-foreground">Loading request details...</p>
+          {loadingTimeout && (
+            <div className="space-y-2">
+              <p className="text-sm text-destructive">Taking longer than expected</p>
+              <Button variant="outline" onClick={() => window.location.reload()}>
+                Retry
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
 
   if (!request) {
     return (
-      <div className="min-h-screen bg-surface flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-foreground mb-2">Request not found</h2>
-          <Button onClick={() => navigate('/feed')}>Back to Feed</Button>
+      <div className="min-h-screen bg-surface flex items-center justify-center p-4">
+        <div className="text-center space-y-4 max-w-sm">
+          <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
+            <Flag className="w-8 h-8 text-destructive" />
+          </div>
+          <h2 className="text-xl font-semibold text-foreground">Request Not Found</h2>
+          <p className="text-muted-foreground text-sm">
+            This request may have been removed or is no longer available.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2 justify-center">
+            <Button variant="outline" onClick={() => navigate(-1)}>
+              Go Back
+            </Button>
+            <Button onClick={() => navigate('/feed')}>
+              Browse Requests
+            </Button>
+          </div>
         </div>
       </div>
     );

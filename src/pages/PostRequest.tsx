@@ -49,9 +49,11 @@ export default function PostRequest() {
   const [checkingVerification, setCheckingVerification] = useState(true);
 
   // Step 1: Natural language input
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1); // Added step 3 for confirmation
   const [naturalInput, setNaturalInput] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analyzeProgress, setAnalyzeProgress] = useState("");
+  const [analyzeTimeout, setAnalyzeTimeout] = useState(false);
   const [uploadedImages, setUploadedImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
@@ -170,8 +172,18 @@ export default function PostRequest() {
       return;
     }
     setIsAnalyzing(true);
+    setAnalyzeProgress("Preparing request...");
+    setAnalyzeTimeout(false);
+    
+    // Set timeout for slow analysis
+    const timeoutTimer = setTimeout(() => {
+      setAnalyzeTimeout(true);
+      setAnalyzeProgress("Still analyzing... This is taking longer than usual.");
+    }, 4000);
+    
     try {
       // Convert images to base64 for sending to edge function
+      setAnalyzeProgress("Processing images...");
       const imageBase64Array: string[] = [];
       for (const file of uploadedImages) {
         const reader = new FileReader();
@@ -182,6 +194,7 @@ export default function PostRequest() {
         imageBase64Array.push(base64);
       }
 
+      setAnalyzeProgress("Analyzing with AI...");
       const {
         data,
         error
@@ -191,12 +204,16 @@ export default function PostRequest() {
           images: imageBase64Array
         }
       });
+      
+      clearTimeout(timeoutTimer);
+      
       if (error) throw error;
       if (data.error) {
         throw new Error(data.details || data.error);
       }
       
       // If no location detected and we have user coords, reverse geocode
+      setAnalyzeProgress("Detecting location...");
       let finalLocation = data.location || "";
       if (!finalLocation && userCoords) {
         console.log('No location in request, using geolocation...');
@@ -230,6 +247,7 @@ export default function PostRequest() {
           variant: "destructive"
         });
         setIsAnalyzing(false);
+        setAnalyzeProgress("");
         return;
       }
 
@@ -259,6 +277,7 @@ export default function PostRequest() {
       });
       setStep(2);
     } catch (error) {
+      clearTimeout(timeoutTimer);
       console.error('Analysis error:', error);
       toast({
         title: "Analysis Failed",
@@ -267,7 +286,34 @@ export default function PostRequest() {
       });
     } finally {
       setIsAnalyzing(false);
+      setAnalyzeProgress("");
+      setAnalyzeTimeout(false);
     }
+  };
+  
+  // Manual fallback when AI fails
+  const handleSkipAnalysis = () => {
+    setParsedData({
+      title: "",
+      description: naturalInput,
+      request_type: "service",
+      category: "",
+      location: "",
+      budget_min: null,
+      budget_max: null,
+      tags: [],
+    });
+    setStep(2);
+    toast({
+      title: "Manual Entry Mode",
+      description: "Fill in the details manually below.",
+    });
+  };
+  
+  const handleCancelAnalysis = () => {
+    setIsAnalyzing(false);
+    setAnalyzeProgress("");
+    setAnalyzeTimeout(false);
   };
   const handleSubmit = async () => {
     if (!user || !parsedData) return;
@@ -493,15 +539,40 @@ export default function PostRequest() {
                   )}
                 </div>
 
-                <Button onClick={handleAnalyze} size="lg" className="w-full" disabled={isAnalyzing || !naturalInput.trim()}>
-                  {isAnalyzing ? <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Analyzing...
-                    </> : <>
+                {isAnalyzing ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-center gap-2 text-primary">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span className="text-sm font-medium">{analyzeProgress}</span>
+                    </div>
+                    {analyzeTimeout && (
+                      <div className="flex gap-2 justify-center">
+                        <Button variant="outline" size="sm" onClick={handleCancelAnalysis}>
+                          Cancel
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={handleSkipAnalysis}>
+                          Skip & Enter Manually
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <Button onClick={handleAnalyze} size="lg" className="w-full" disabled={!naturalInput.trim()}>
                       <Sparkles className="w-4 h-4 mr-2" />
                       Analyze Request
-                    </>}
-                </Button>
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="w-full text-muted-foreground"
+                      onClick={handleSkipAnalysis}
+                      disabled={!naturalInput.trim()}
+                    >
+                      Skip AI analysis and enter details manually
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </> :
