@@ -38,14 +38,14 @@ export function ReportDialog({
       if (!user?.id) throw new Error("Must be logged in to report");
       
       const { error } = await supabase
-        .from('user_reports' as any)
+        .from('user_reports')
         .insert({
           reporter_id: user.id,
           reported_user_id: reportedUserId || null,
           reported_request_id: reportedRequestId || null,
           reported_message_id: reportedMessageId || null,
           reason: reason,
-        } as any);
+        });
 
       if (error) throw error;
     },
