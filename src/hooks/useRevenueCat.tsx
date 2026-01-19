@@ -159,11 +159,13 @@ export const useRevenueCat = (): UseRevenueCatReturn => {
     try {
       if (isNative()) {
         // Native initialization
-        console.log('[RevenueCat Native] Fetching API key...');
+        console.log('[RevenueCat Native] === INITIALIZATION START ===');
+        console.log('[RevenueCat Native] Fetching API key from edge function...');
         const nativeApiKey = await fetchNativeApiKey();
         
         if (!nativeApiKey) {
-          console.warn('[RevenueCat Native] API key not configured - subscriptions will not work');
+          console.error('[RevenueCat Native] ❌ API key not configured - subscriptions will not work');
+          console.error('[RevenueCat Native] Check REVENUECAT_NATIVE_API_KEY in Cloud Secrets');
           setState({
             isInitialized: true,
             isLoading: false,
@@ -175,18 +177,51 @@ export const useRevenueCat = (): UseRevenueCatReturn => {
           return;
         }
 
+        console.log('[RevenueCat Native] ✓ API key retrieved, length:', nativeApiKey.length);
+        console.log('[RevenueCat Native] API key prefix:', nativeApiKey.substring(0, 8) + '...');
+        console.log('[RevenueCat Native] Configuring SDK with userId:', userId || 'anonymous');
+
         await Purchases.configure({
           apiKey: nativeApiKey,
           appUserID: userId,
         });
+        console.log('[RevenueCat Native] ✓ SDK configured');
 
         await Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG });
+        console.log('[RevenueCat Native] ✓ Debug logging enabled');
 
+        console.log('[RevenueCat Native] Fetching customer info...');
         const { customerInfo } = await Purchases.getCustomerInfo();
+        console.log('[RevenueCat Native] ✓ Customer info received:', {
+          originalAppUserId: customerInfo.originalAppUserId,
+          activeEntitlements: Object.keys(customerInfo.entitlements.active),
+          allEntitlements: Object.keys(customerInfo.entitlements.all),
+        });
+        
         const isProSubscriber = hasProEntitlement(customerInfo);
+        console.log('[RevenueCat Native] Has Pro entitlement:', isProSubscriber);
 
+        console.log('[RevenueCat Native] Fetching offerings...');
         const offeringsResult = await Purchases.getOfferings();
         const offerings = offeringsResult as PurchasesOfferings;
+        
+        console.log('[RevenueCat Native] ✓ Offerings received:', {
+          currentOffering: offerings?.current?.identifier || 'none',
+          availablePackages: offerings?.current?.availablePackages?.length || 0,
+        });
+        
+        if (offerings?.current?.availablePackages) {
+          offerings.current.availablePackages.forEach((pkg, idx) => {
+            console.log(`[RevenueCat Native] Package ${idx}:`, {
+              identifier: pkg.product?.identifier,
+              priceString: pkg.product?.priceString,
+              packageType: pkg.packageType,
+            });
+          });
+        } else {
+          console.warn('[RevenueCat Native] ⚠️ No packages in current offering!');
+          console.warn('[RevenueCat Native] Check RevenueCat Dashboard: Products, Entitlements, Offerings');
+        }
         
         setState({
           isInitialized: true,
@@ -197,54 +232,12 @@ export const useRevenueCat = (): UseRevenueCatReturn => {
           isProSubscriber,
         });
 
-        console.log('[RevenueCat Native] Initialized successfully', {
+        console.log('[RevenueCat Native] === INITIALIZATION COMPLETE ===');
+        console.log('[RevenueCat Native] Summary:', {
           userId: customerInfo.originalAppUserId,
           isProSubscriber,
           hasOfferings: !!offerings?.current,
-        });
-      } else {
-        // Web initialization
-        console.log('[RevenueCat Web] Fetching API key...');
-        const webApiKey = await fetchWebApiKey();
-        
-        if (!webApiKey) {
-          console.warn('[RevenueCat Web] API key not configured - subscriptions will not work');
-          setState({
-            isInitialized: true,
-            isLoading: false,
-            error: 'RevenueCat Web API key not configured. Please set up your RevenueCat Web Billing API key.',
-            customerInfo: null,
-            offerings: null,
-            isProSubscriber: false,
-          });
-          return;
-        }
-
-        console.log('[RevenueCat Web] Initializing...');
-        
-        webPurchasesInstance = PurchasesWebClass.configure(
-          webApiKey,
-          userId || 'anonymous'
-        );
-
-        const customerInfo = await webPurchasesInstance.getCustomerInfo();
-        const isProSubscriber = hasProEntitlement(customerInfo as unknown as WebCustomerInfo);
-
-        const offerings = await webPurchasesInstance.getOfferings();
-        
-        setState({
-          isInitialized: true,
-          isLoading: false,
-          error: null,
-          customerInfo: customerInfo as unknown as WebCustomerInfo,
-          offerings: offerings as unknown as WebOfferings,
-          isProSubscriber,
-        });
-
-        console.log('[RevenueCat Web] Initialized successfully', {
-          userId: customerInfo.originalAppUserId,
-          isProSubscriber,
-          hasOfferings: !!offerings?.current,
+          packagesCount: offerings?.current?.availablePackages?.length || 0,
         });
       }
     } catch (error: any) {

@@ -62,9 +62,32 @@ export default function ProviderPaywall() {
       try {
         setShowPaywall(true);
         
+        // Diagnostic logging for iOS debugging
+        console.log('[ProviderPaywall] === PAYWALL DEBUG START ===');
+        console.log('[ProviderPaywall] Platform:', isIOS() ? 'iOS' : isAndroid() ? 'Android' : 'Unknown Native');
+        console.log('[ProviderPaywall] isInitialized:', isInitialized);
+        console.log('[ProviderPaywall] Offerings available:', !!offerings?.current);
+        console.log('[ProviderPaywall] Current offering:', offerings?.current ? JSON.stringify(offerings.current, null, 2) : 'null');
+        
+        if (offerings?.current) {
+          const nativeOfferings = offerings as PurchasesOfferings;
+          const packages = nativeOfferings.current?.availablePackages || [];
+          console.log('[ProviderPaywall] Packages count:', packages.length);
+          packages.forEach((pkg, idx) => {
+            console.log(`[ProviderPaywall] Package ${idx}:`, {
+              identifier: pkg.product?.identifier,
+              priceString: pkg.product?.priceString,
+              packageType: pkg.packageType,
+            });
+          });
+        }
+        
+        console.log('[ProviderPaywall] Presenting RevenueCat paywall...');
         const paywallResult = await RevenueCatUI.presentPaywall();
         
-        console.log('[ProviderPaywall] Paywall result:', paywallResult);
+        console.log('[ProviderPaywall] Paywall result code:', paywallResult.result);
+        console.log('[ProviderPaywall] Paywall full result:', JSON.stringify(paywallResult, null, 2));
+        console.log('[ProviderPaywall] === PAYWALL DEBUG END ===');
         
         if (paywallResult.result === PAYWALL_RESULT.PURCHASED || paywallResult.result === PAYWALL_RESULT.RESTORED) {
           // Sync subscription status immediately
@@ -75,9 +98,28 @@ export default function ProviderPaywall() {
             description: "Your subscription is now active.",
           });
           navigate('/feed');
+        } else if (paywallResult.result === PAYWALL_RESULT.CANCELLED) {
+          console.log('[ProviderPaywall] User cancelled paywall');
+        } else if (paywallResult.result === PAYWALL_RESULT.ERROR) {
+          console.error('[ProviderPaywall] Paywall returned error');
+          toast({
+            title: "Subscription Error",
+            description: "Unable to load subscription options. Please try again.",
+            variant: "destructive",
+          });
         }
       } catch (error: any) {
-        console.error('[ProviderPaywall] Error presenting paywall:', error);
+        console.error('[ProviderPaywall] === PAYWALL ERROR ===');
+        console.error('[ProviderPaywall] Error type:', error.constructor?.name);
+        console.error('[ProviderPaywall] Error code:', error.code);
+        console.error('[ProviderPaywall] Error message:', error.message);
+        console.error('[ProviderPaywall] Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+        
+        toast({
+          title: "Unable to load subscriptions",
+          description: error.message || "Please try again or contact support.",
+          variant: "destructive",
+        });
       } finally {
         setShowPaywall(false);
       }
