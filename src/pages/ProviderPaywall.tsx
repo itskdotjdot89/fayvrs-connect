@@ -33,6 +33,14 @@ export default function ProviderPaywall() {
 
   // Initialize RevenueCat when component mounts (both native and web)
   useEffect(() => {
+    // Platform detection logging for debugging iOS StoreKit vs Web Billing issue
+    console.log('[ProviderPaywall] Platform detection:', {
+      isNative: isNative(),
+      isIOS: isIOS(),
+      isAndroid: isAndroid(),
+      userAgent: navigator.userAgent,
+    });
+    
     if (user?.id) {
       initialize(user.id);
     }
