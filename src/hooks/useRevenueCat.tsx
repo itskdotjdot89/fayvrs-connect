@@ -156,11 +156,31 @@ export const useRevenueCat = (): UseRevenueCatReturn => {
   const initialize = useCallback(async (userId?: string) => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
+    // Platform detection logging for debugging
+    const platformInfo = {
+      isNative: isNative(),
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A',
+    };
+    console.log('[RevenueCat] Platform detection:', platformInfo);
+
     try {
       if (isNative()) {
-        // Native initialization
-        console.log('[RevenueCat Native] Fetching API key...');
+        // Native initialization - MUST use Apple/Google API key, NOT web billing key
+        console.log('[RevenueCat Native] Fetching API key for StoreKit...');
+        
+        // Clear cache to ensure fresh key fetch (debugging)
+        cachedNativeApiKey = null;
         const nativeApiKey = await fetchNativeApiKey();
+        
+        // Log API key prefix to verify it's the correct type
+        const keyPrefix = nativeApiKey?.substring(0, 5) || 'null';
+        console.log('[RevenueCat Native] API key prefix:', keyPrefix);
+        console.log('[RevenueCat Native] Expected prefix for iOS: "appl_", for Android: "goog_"');
+        
+        if (keyPrefix.startsWith('rcb_')) {
+          console.error('[RevenueCat Native] ERROR: Web Billing key detected! This will cause StoreKit to fail.');
+          console.error('[RevenueCat Native] Please update REVENUECAT_NATIVE_API_KEY with an Apple App Store key (appl_xxx)');
+        }
         
         if (!nativeApiKey) {
           console.warn('[RevenueCat Native] API key not configured - subscriptions will not work');
@@ -175,6 +195,7 @@ export const useRevenueCat = (): UseRevenueCatReturn => {
           return;
         }
 
+        console.log('[RevenueCat Native] Configuring with native SDK...');
         await Purchases.configure({
           apiKey: nativeApiKey,
           appUserID: userId,
@@ -201,6 +222,7 @@ export const useRevenueCat = (): UseRevenueCatReturn => {
           userId: customerInfo.originalAppUserId,
           isProSubscriber,
           hasOfferings: !!offerings?.current,
+          packageCount: offerings?.current?.availablePackages?.length || 0,
         });
       } else {
         // Web initialization
