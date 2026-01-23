@@ -2,13 +2,13 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RevenueCatUI } from '@revenuecat/purchases-capacitor-ui';
 import { CustomerInfo } from '@revenuecat/purchases-capacitor';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, CreditCard, RefreshCw, HelpCircle, XCircle } from 'lucide-react';
-import { useRevenueCat, WebCustomerInfo } from '@/hooks/useRevenueCat';
+import { Loader2, ArrowLeft, CreditCard, RefreshCw, HelpCircle, XCircle, Smartphone } from 'lucide-react';
+import { useRevenueCat } from '@/hooks/useRevenueCat';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { isNative, isWeb, isIOS, getSubscriptionManagementUrl } from '@/utils/platform';
+import { isNative, isIOS } from '@/utils/platform';
 import { Separator } from '@/components/ui/separator';
 import {
   AlertDialog,
@@ -24,7 +24,7 @@ import {
 
 export default function CustomerCenter() {
   const navigate = useNavigate();
-  const { user, session, refreshSubscriptionStatus } = useAuth();
+  const { user, refreshSubscriptionStatus } = useAuth();
   const { toast } = useToast();
   const {
     isInitialized,
@@ -43,50 +43,30 @@ export default function CustomerCenter() {
   const handleCancelSubscription = async () => {
     setIsCancelling(true);
 
-    if (isNative()) {
-      // Native: ONLY open App Store/Play Store - NO Stripe fallback (Apple compliance)
-      const url = isIOS()
-        ? 'https://apps.apple.com/account/subscriptions'
-        : 'https://play.google.com/store/account/subscriptions';
-      window.open(url, '_blank');
-      setIsCancelling(false);
-      return;
-    }
-
-    // Web: Use RevenueCat-provided management URL
-    const webManagementUrl = (customerInfo as WebCustomerInfo | null)?.managementURL;
-    if (webManagementUrl) {
-      window.open(webManagementUrl, '_blank');
-      setIsCancelling(false);
-      return;
-    }
-
-    // Fallback: Show message to contact support
-    toast({
-      title: 'Manage via RevenueCat',
-      description: 'Please contact support@fayvrs.com to manage your subscription.',
-    });
+    // Native: Open App Store/Play Store subscription management
+    const url = isIOS()
+      ? 'https://apps.apple.com/account/subscriptions'
+      : 'https://play.google.com/store/account/subscriptions';
+    window.open(url, '_blank');
     setIsCancelling(false);
   };
 
-  // Initialize RevenueCat when component mounts (both native and web now)
+  // Initialize RevenueCat when component mounts (native only)
   useEffect(() => {
-    if (user?.id) {
+    if (user?.id && isNative()) {
       initialize(user.id);
     }
   }, [user?.id, initialize]);
 
-  // Identify user when they're logged in
+  // Identify user when they're logged in (native only)
   useEffect(() => {
-    if (isInitialized && user?.id) {
+    if (isInitialized && user?.id && isNative()) {
       identifyUser(user.id);
     }
   }, [isInitialized, user?.id, identifyUser]);
 
   const handlePresentCustomerCenter = async () => {
     if (!isNative()) {
-      // On web, navigate to settings or open management URL
-      navigate('/settings');
       return;
     }
     
@@ -110,22 +90,22 @@ export default function CustomerCenter() {
   };
 
   const handleManageSubscription = () => {
-    // Web: RevenueCat provides a management URL when available
-    if (isWeb()) {
-      const webManagementUrl = (customerInfo as WebCustomerInfo | null)?.managementURL;
-      if (webManagementUrl) {
-        window.open(webManagementUrl, '_blank');
-        return;
-      }
-    }
-
-    const url = getSubscriptionManagementUrl();
-    if (url) {
-      window.open(url, '_blank');
-    }
+    const url = isIOS()
+      ? 'https://apps.apple.com/account/subscriptions'
+      : 'https://play.google.com/store/account/subscriptions';
+    window.open(url, '_blank');
   };
 
   const handleRestorePurchases = async () => {
+    if (!isNative()) {
+      toast({
+        title: "iOS App Required",
+        description: "Please download the Fayvrs app to restore purchases.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsRestoring(true);
     const result = await restorePurchases();
     setIsRestoring(false);
@@ -145,7 +125,69 @@ export default function CustomerCenter() {
     }
   };
 
-  // Loading state
+  // Web: Show download app message
+  if (!isNative()) {
+    return (
+      <div className="min-h-screen bg-background p-4">
+        <div className="max-w-lg mx-auto pt-8">
+          {/* Back button */}
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => navigate(-1)}
+            className="mb-6"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-2xl font-bold text-foreground mb-2">
+              Manage Subscription
+            </h1>
+            <p className="text-muted-foreground">
+              Subscription management is available in the iOS app
+            </p>
+          </div>
+
+          <Card className="border-primary/50 bg-primary/5">
+            <CardHeader>
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2">
+                <Smartphone className="h-6 w-6 text-primary" />
+              </div>
+              <CardTitle className="text-lg text-center">Download the iOS App</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground text-center">
+                Fayvrs Pro subscriptions are managed through Apple's App Store. Download the iOS app to subscribe, restore purchases, or manage your subscription.
+              </p>
+              
+              <Button 
+                className="w-full"
+                onClick={() => window.open('https://apps.apple.com/app/fayvrs', '_blank')}
+              >
+                Download on the App Store
+              </Button>
+
+              <p className="text-xs text-muted-foreground text-center">
+                Already have an active subscription? Sign in on the iOS app to access your Fayvrs Pro benefits.
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Help text */}
+          <div className="mt-8 text-center text-xs text-muted-foreground space-y-2">
+            <p>
+              Need help? Contact us at support@fayvrs.com
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Loading state (native only)
   if (!isInitialized || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -157,33 +199,9 @@ export default function CustomerCenter() {
     );
   }
 
-  // Helper functions to safely access properties that may differ between native and web
-  const getActiveSubscriptions = (): string[] => {
-    if (!customerInfo) return [];
-    if (isNative()) {
-      return (customerInfo as CustomerInfo).activeSubscriptions || [];
-    }
-    // For web, derive from active entitlements
-    const webInfo = customerInfo as WebCustomerInfo;
-    return Object.keys(webInfo.entitlements.active).map(key => 
-      webInfo.entitlements.active[key].productIdentifier
-    );
-  };
-
-  const getExpirationDate = (): string | null => {
-    if (!customerInfo) return null;
-    if (isNative()) {
-      return (customerInfo as CustomerInfo).latestExpirationDate || null;
-    }
-    // For web, get from first active entitlement
-    const webInfo = customerInfo as WebCustomerInfo;
-    const firstEntitlement = Object.values(webInfo.entitlements.active)[0];
-    return firstEntitlement?.expirationDate || null;
-  };
-
-  const activeSubscriptions = getActiveSubscriptions();
-  const expirationDate = getExpirationDate();
-  const managementUrl = customerInfo?.managementURL;
+  // Get subscription info from native CustomerInfo
+  const activeSubscriptions = customerInfo?.activeSubscriptions || [];
+  const expirationDate = customerInfo?.latestExpirationDate || null;
 
   return (
     <div className="min-h-screen bg-background p-4">
@@ -284,7 +302,7 @@ export default function CustomerCenter() {
               className="w-full justify-start"
             >
               <CreditCard className="h-4 w-4 mr-2" />
-              {isWeb() ? 'Manage Subscription' : 'Manage in App Store'}
+              Manage in {isIOS() ? 'App Store' : 'Play Store'}
             </Button>
 
             {/* Restore purchases */}
@@ -332,15 +350,9 @@ export default function CustomerCenter() {
                             <li>You'll lose access to provider features after cancellation</li>
                             <li>You can resubscribe anytime</li>
                           </ul>
-                          {isNative() ? (
-                            <p className="font-medium mt-2">
-                              You'll be taken to your {isIOS() ? 'App Store' : 'Play Store'} subscriptions to complete cancellation.
-                            </p>
-                          ) : (
-                            <p className="font-medium mt-2">
-                              You'll be taken to subscription management to complete cancellation.
-                            </p>
-                          )}
+                          <p className="font-medium mt-2">
+                            You'll be taken to your {isIOS() ? 'App Store' : 'Play Store'} subscriptions to complete cancellation.
+                          </p>
                         </div>
                       </AlertDialogDescription>
                     </AlertDialogHeader>
