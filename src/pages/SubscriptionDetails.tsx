@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Check, CreditCard, Shield, Apple, XCircle, Loader2 } from "lucide-react";
+import { ArrowLeft, Check, Apple, XCircle, Loader2, Smartphone } from "lucide-react";
 import { isNative, isIOS } from "@/utils/platform";
 import { useProviderAccess } from "@/hooks/useProviderAccess";
 import {
@@ -26,18 +26,12 @@ export default function SubscriptionDetails() {
   const handleCancelSubscription = async () => {
     setIsCancelling(true);
     
-    if (isNativeApp) {
-      // Native: Open App Store/Play Store subscription management
-      const url = isIOS() 
-        ? 'https://apps.apple.com/account/subscriptions'
-        : 'https://play.google.com/store/account/subscriptions';
-      window.open(url, '_blank');
-      setIsCancelling(false);
-    } else {
-      // Web: use in-app Customer Center (RevenueCat-managed management URL)
-      navigate('/customer-center');
-      setIsCancelling(false);
-    }
+    // Open App Store/Play Store subscription management
+    const url = isIOS() 
+      ? 'https://apps.apple.com/account/subscriptions'
+      : 'https://play.google.com/store/account/subscriptions';
+    window.open(url, '_blank');
+    setIsCancelling(false);
   };
 
   return (
@@ -206,112 +200,33 @@ export default function SubscriptionDetails() {
             </CardContent>
           </Card>
         ) : (
-          <Card>
+          <Card className="border-primary/50 bg-primary/5">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-primary" />
-                Payment Information
-              </CardTitle>
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2">
+                <Smartphone className="h-6 w-6 text-primary" />
+              </div>
+              <CardTitle className="text-lg text-center">iOS App Required</CardTitle>
+              <CardDescription className="text-center">
+                Subscriptions are available exclusively through the iOS app
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4 text-sm text-muted-foreground">
-              <div>
-                <p className="font-medium text-foreground mb-2">Secure Payment Processing</p>
-                <ul className="list-disc list-inside space-y-1 ml-2">
-                  <li>All payments are processed securely</li>
-                  <li>Fayvrs does not store your credit card information</li>
-                  <li>Your payment details are encrypted and secure</li>
-                  <li>PCI DSS compliant payment processing</li>
-                </ul>
-              </div>
-
-              <div>
-                <p className="font-medium text-foreground mb-2">Billing Cycle</p>
-                <ul className="list-disc list-inside space-y-1 ml-2">
-                  <li>Monthly plans: Billed on the same day each month</li>
-                  <li>Annual plans: Billed once per year on subscription date</li>
-                  <li>Automatic renewal unless cancelled</li>
-                  <li>Receive email receipt for each payment</li>
-                </ul>
-              </div>
-
-              <div>
-                <p className="font-medium text-foreground mb-2">Managing Your Subscription</p>
-                <ul className="list-disc list-inside space-y-1 ml-2">
-                  <li>Cancel anytime through subscription management</li>
-                  <li>Update payment method without losing service</li>
-                  <li>Switch between monthly and annual plans</li>
-                  <li>View payment history and receipts</li>
-                </ul>
-              </div>
-
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground text-center">
+                Fayvrs Pro subscriptions are processed through Apple In-App Purchases. Download the iOS app to subscribe and unlock all provider features.
+              </p>
+              
               <Button 
-                variant="outline" 
-                className="w-full mt-4"
-                onClick={() => navigate('/customer-center')}
+                className="w-full"
+                onClick={() => window.open('https://apps.apple.com/app/fayvrs', '_blank')}
               >
-                Manage Subscription
+                Download on the App Store
               </Button>
             </CardContent>
           </Card>
         )}
 
-        {/* Important Information - Platform-specific */}
-        {!isNativeApp && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="w-5 h-5 text-primary" />
-                Important Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 text-sm text-muted-foreground">
-              <div className="bg-muted/50 rounded-lg p-4">
-                <p className="font-medium text-foreground mb-2">Web Subscription</p>
-                <p>
-                  This subscription is for real-world business services and tools. 
-                  Payments are processed securely.
-                </p>
-              </div>
-
-              <div>
-                <p className="font-medium text-foreground mb-2">What This Subscription Is:</p>
-                <ul className="list-disc list-inside space-y-1 ml-2">
-                  <li>Access to business tools and lead generation platform</li>
-                  <li>Professional services marketplace membership</li>
-                  <li>Real-world service provider tools and features</li>
-                  <li>Business-to-business service subscription</li>
-                </ul>
-              </div>
-
-              <div>
-                <p className="font-medium text-foreground mb-2">Cancellation Policy:</p>
-                <ul className="list-disc list-inside space-y-1 ml-2">
-                  <li>Cancel anytime - no cancellation fees</li>
-                  <li>Access continues until end of paid period</li>
-                  <li>No partial refunds for monthly subscriptions</li>
-                  <li>Annual plans: 30-day refund window (see Refund Policy)</li>
-                </ul>
-              </div>
-
-              <div className="flex gap-2 flex-wrap mt-4">
-                <Link to="/refund-policy">
-                  <Button variant="link" className="p-0 h-auto">
-                    View Refund Policy
-                  </Button>
-                </Link>
-                <span className="text-muted-foreground">•</span>
-                <Link to="/terms-of-service">
-                  <Button variant="link" className="p-0 h-auto">
-                    Terms of Service
-                  </Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Cancel Subscription Section - Only show for active subscribers */}
-        {isSubscribed && (
+        {/* Cancel Subscription Section - Only show for active subscribers on native */}
+        {isSubscribed && isNativeApp && (
           <Card className="border-destructive/30">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-destructive">
@@ -351,15 +266,9 @@ export default function SubscriptionDetails() {
                           <li>You'll lose access to provider features after cancellation</li>
                           <li>You can resubscribe anytime</li>
                         </ul>
-                        {isNativeApp ? (
-                          <p className="font-medium mt-2">
-                            You'll be taken to your {isIOS() ? 'App Store' : 'Play Store'} subscriptions to complete cancellation.
-                          </p>
-                        ) : (
-                          <p className="font-medium mt-2">
-                            You'll be taken to subscription management to complete cancellation.
-                          </p>
-                        )}
+                        <p className="font-medium mt-2">
+                          You'll be taken to your {isIOS() ? 'App Store' : 'Play Store'} subscriptions to complete cancellation.
+                        </p>
                       </div>
                     </AlertDialogDescription>
                   </AlertDialogHeader>
@@ -376,10 +285,7 @@ export default function SubscriptionDetails() {
               </AlertDialog>
               
               <p className="text-xs text-muted-foreground mt-3 text-center">
-                {isNativeApp 
-                  ? "Cancellation is managed through your device's app store."
-                  : "Cancellation is managed through your subscription portal."
-                }
+                Cancellation is managed through your device's app store.
               </p>
             </CardContent>
           </Card>
