@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { RevenueCatUI, PAYWALL_RESULT } from '@revenuecat/purchases-capacitor-ui';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Check, Crown, ArrowLeft, RotateCcw, Smartphone } from 'lucide-react';
-import { useRevenueCat, PRODUCT_IDS } from '@/hooks/useRevenueCat';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, Check, Crown, ArrowLeft, RotateCcw } from 'lucide-react';
+import { useRevenueCat, PRODUCT_IDS, WebPackage, WebOfferings } from '@/hooks/useRevenueCat';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { isNative, isIOS, isAndroid } from '@/utils/platform';
@@ -28,8 +29,9 @@ export default function ProviderPaywall() {
   
   const [isRestoring, setIsRestoring] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [isPurchasing, setIsPurchasing] = useState(false);
 
-  // Initialize RevenueCat when component mounts (native only)
+  // Initialize RevenueCat when component mounts (both native and web)
   useEffect(() => {
     // Platform detection logging for debugging iOS StoreKit vs Web Billing issue
     console.log('[ProviderPaywall] Platform detection:', {
@@ -44,9 +46,9 @@ export default function ProviderPaywall() {
     }
   }, [user?.id, initialize]);
 
-  // Identify user when they're logged in (native only)
+  // Identify user when they're logged in
   useEffect(() => {
-    if (isInitialized && user?.id && isNative()) {
+    if (isInitialized && user?.id) {
       identifyUser(user.id);
     }
   }, [isInitialized, user?.id, identifyUser]);
@@ -63,44 +65,38 @@ export default function ProviderPaywall() {
   }, [isProSubscriber, navigate, toast]);
 
   const handlePresentPaywall = async () => {
-    if (!isNative()) {
-      return;
-    }
-
-    try {
-      setShowPaywall(true);
-      
-      const paywallResult = await RevenueCatUI.presentPaywall();
-      
-      console.log('[ProviderPaywall] Paywall result:', paywallResult);
-      
-      if (paywallResult.result === PAYWALL_RESULT.PURCHASED || paywallResult.result === PAYWALL_RESULT.RESTORED) {
-        // Sync subscription status immediately
-        await refreshSubscriptionStatus();
+    if (isNative()) {
+      // Native: use RevenueCat UI paywall
+      try {
+        setShowPaywall(true);
         
-        toast({
-          title: "Welcome to Fayvrs Pro!",
-          description: "Your subscription is now active.",
-        });
-        navigate('/feed');
+        const paywallResult = await RevenueCatUI.presentPaywall();
+        
+        console.log('[ProviderPaywall] Paywall result:', paywallResult);
+        
+        if (paywallResult.result === PAYWALL_RESULT.PURCHASED || paywallResult.result === PAYWALL_RESULT.RESTORED) {
+          // Sync subscription status immediately
+          await refreshSubscriptionStatus();
+          
+          toast({
+            title: "Welcome to Fayvrs Pro!",
+            description: "Your subscription is now active.",
+          });
+          navigate('/feed');
+        }
+      } catch (error: any) {
+        console.error('[ProviderPaywall] Error presenting paywall:', error);
+      } finally {
+        setShowPaywall(false);
       }
-    } catch (error: any) {
-      console.error('[ProviderPaywall] Error presenting paywall:', error);
-    } finally {
-      setShowPaywall(false);
+    } else {
+      // Web: scroll to subscription options
+      const subscriptionSection = document.getElementById('subscription-options');
+      subscriptionSection?.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
   const handleRestorePurchases = async () => {
-    if (!isNative()) {
-      toast({
-        title: "iOS App Required",
-        description: "Please download the Fayvrs app to restore purchases.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsRestoring(true);
     const result = await restorePurchases();
     setIsRestoring(false);
@@ -117,6 +113,128 @@ export default function ProviderPaywall() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleManualPurchase = async (productId: string) => {
+    if (!offerings?.current) {
+      toast({
+        title: "Error",
+        description: "Unable to load subscription options. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsPurchasing(true);
+
+    try {
+      if (isNative()) {
+        // Native purchase
+        const nativeOfferings = offerings as PurchasesOfferings;
+        const pkg = nativeOfferings.current?.availablePackages.find(
+          (p: PurchasesPackage) => p.product.identifier === productId
+        );
+
+        if (!pkg) {
+          toast({
+            title: "Error",
+            description: "Subscription package not found.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const result = await purchasePackage(pkg);
+
+        if (result.success) {
+          await refreshSubscriptionStatus();
+          toast({
+            title: "Welcome to Fayvrs Pro!",
+            description: "Your subscription is now active.",
+          });
+          navigate('/feed');
+        } else if (result.error !== 'Purchase was cancelled') {
+          toast({
+            title: "Purchase failed",
+            description: result.error,
+            variant: "destructive",
+          });
+        }
+      } else {
+        // Web purchase
+        const webOfferings = offerings as WebOfferings;
+        const pkg = webOfferings.current?.availablePackages.find(
+          (p: WebPackage) => p.rcBillingProduct.identifier === productId
+        );
+
+        if (!pkg) {
+          toast({
+            title: "Error",
+            description: "Subscription package not found.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const result = await purchasePackage(pkg);
+
+        if (result.success) {
+          await refreshSubscriptionStatus();
+          toast({
+            title: "Welcome to Fayvrs Pro!",
+            description: "Your subscription is now active.",
+          });
+          navigate('/feed');
+        } else if (result.error !== 'Purchase was cancelled') {
+          toast({
+            title: "Purchase failed",
+            description: result.error,
+            variant: "destructive",
+          });
+        }
+      }
+    } finally {
+      setIsPurchasing(false);
+    }
+  };
+
+  // Helper to detect yearly product
+  const isYearlyProduct = (identifier: string, duration?: string | null) => {
+    const lowerId = identifier.toLowerCase();
+    return lowerId.includes('_1y') || 
+           lowerId.includes('yearly') || 
+           lowerId.includes('annual') ||
+           duration === 'P1Y';
+  };
+
+  // Helper to get package display info (works for both native and web)
+  const getPackageInfo = (pkg: PurchasesPackage | WebPackage) => {
+    if ('product' in pkg) {
+      // Native package
+      return {
+        identifier: pkg.product.identifier,
+        priceString: pkg.product.priceString,
+        isYearly: isYearlyProduct(pkg.product.identifier),
+      };
+    } else {
+      // Web package
+      return {
+        identifier: pkg.rcBillingProduct.identifier,
+        priceString: pkg.rcBillingProduct.currentPrice.formattedPrice,
+        isYearly: isYearlyProduct(pkg.rcBillingProduct.identifier, pkg.rcBillingProduct.normalPeriodDuration),
+      };
+    }
+  };
+
+  // Get available packages based on platform
+  const getAvailablePackages = () => {
+    if (!offerings?.current) return [];
+
+    if (isNative()) {
+      return (offerings as PurchasesOfferings).current?.availablePackages || [];
+    }
+
+    return (offerings as WebOfferings).current?.availablePackages || [];
   };
 
   // Auth guard (prevents infinite loading when user is not signed in)
@@ -143,8 +261,8 @@ export default function ProviderPaywall() {
     );
   }
 
-  // Loading state (native only)
-  if (isNative() && (!isInitialized || isLoading)) {
+  // Loading state
+  if (!isInitialized || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
@@ -155,8 +273,8 @@ export default function ProviderPaywall() {
     );
   }
 
-  // Error state (native only)
-  if (isNative() && error) {
+  // Error state
+  if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="max-w-md w-full">
@@ -186,6 +304,8 @@ export default function ProviderPaywall() {
     'Access to premium requests',
   ];
 
+  const availablePackages = getAvailablePackages();
+
   // Get payment method text based on platform
   const getPaymentMethodText = () => {
     if (isIOS()) {
@@ -193,7 +313,7 @@ export default function ProviderPaywall() {
     } else if (isAndroid()) {
       return "Subscriptions will be charged to your Google Play account at confirmation of purchase.";
     } else {
-      return "Subscriptions are available exclusively through the Fayvrs iOS app.";
+      return "Subscriptions will be charged to your payment method at confirmation of purchase.";
     }
   };
 
@@ -241,91 +361,151 @@ export default function ProviderPaywall() {
           </CardContent>
         </Card>
 
-        {/* Native: Present Paywall CTA */}
+        {/* CTA - Present Paywall (native) or scroll to options (web) */}
         {isNative() && (
-          <>
-            <Button 
-              onClick={handlePresentPaywall}
-              className="w-full h-14 text-lg mb-4"
-              disabled={showPaywall}
-            >
-              {showPaywall ? (
-                <>
-                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                  Loading...
-                </>
-              ) : (
-                'View Subscription Options'
-              )}
-            </Button>
-
-            {/* Restore purchases */}
-            <Button
-              variant="ghost"
-              onClick={handleRestorePurchases}
-              disabled={isRestoring}
-              className="w-full"
-            >
-              {isRestoring ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Restoring...
-                </>
-              ) : (
-                <>
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  Restore Purchases
-                </>
-              )}
-            </Button>
-          </>
+          <Button 
+            onClick={handlePresentPaywall}
+            className="w-full h-14 text-lg mb-4"
+            disabled={showPaywall}
+          >
+            {showPaywall ? (
+              <>
+                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              'View Subscription Options'
+            )}
+          </Button>
         )}
 
-        {/* Web: Download iOS App Message */}
+        {/* Subscription options - WEB ONLY (iOS must use RevenueCat native paywall for Apple compliance) */}
         {!isNative() && (
-          <Card className="mb-6 border-primary/50 bg-primary/5">
-            <CardHeader>
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2">
-                <Smartphone className="h-6 w-6 text-primary" />
-              </div>
-              <CardTitle className="text-lg text-center">Download the iOS App</CardTitle>
-              <CardDescription className="text-center">
-                Fayvrs Pro subscriptions are available exclusively through the iOS app using Apple In-App Purchases.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="bg-muted/50 rounded-lg p-4 text-center">
-                <p className="text-sm text-muted-foreground mb-3">
-                  Download Fayvrs from the App Store to subscribe and unlock all provider features.
-                </p>
-                <div className="text-sm space-y-1">
-                  <p className="font-medium text-foreground">Monthly: $29.99/month</p>
-                  <p className="font-medium text-foreground">Annual: $239.99/year <span className="text-primary">(Save 33%)</span></p>
-                </div>
-              </div>
-              
-              <Button 
-                className="w-full"
-                onClick={() => window.open('https://apps.apple.com/app/fayvrs', '_blank')}
+          <div id="subscription-options" className="space-y-3 mb-6">
+            <h3 className="text-lg font-semibold text-center text-foreground mb-4">
+              Choose Your Plan
+            </h3>
+            
+            {/* Pricing cards - WEB ONLY */}
+            <div className="grid grid-cols-2 gap-3">
+              {/* Monthly Plan */}
+              <Card 
+                className="cursor-pointer hover:border-primary transition-colors"
+                onClick={() => {
+                  const monthlyPkg = availablePackages.find(pkg => {
+                    const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
+                    return !info.isYearly;
+                  });
+                  if (monthlyPkg) {
+                    const info = getPackageInfo(monthlyPkg as PurchasesPackage | WebPackage);
+                    handleManualPurchase(info.identifier);
+                  } else {
+                    toast({
+                      title: "Loading...",
+                      description: "Please wait while subscription options load.",
+                    });
+                  }
+                }}
               >
-                Download on the App Store
-              </Button>
+                <CardContent className="p-4 text-center">
+                  {isPurchasing ? (
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                  ) : (
+                    <>
+                      <p className="font-semibold text-foreground">Monthly</p>
+                      <p className="text-lg font-bold text-primary">
+                        {(() => {
+                          const monthlyPkg = availablePackages.find(pkg => {
+                            const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
+                            return !info.isYearly;
+                          });
+                          if (monthlyPkg) {
+                            return getPackageInfo(monthlyPkg as PurchasesPackage | WebPackage).priceString;
+                          }
+                          return '$29.99';
+                        })()}
+                      </p>
+                      <p className="text-xs text-muted-foreground">per month</p>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
 
-              <p className="text-xs text-muted-foreground text-center">
-                Already subscribed? Download the app and sign in to access your subscription.
-              </p>
-            </CardContent>
-          </Card>
+              {/* Yearly Plan */}
+              <Card 
+                className="cursor-pointer hover:border-primary transition-colors border-primary/50"
+                onClick={() => {
+                  const yearlyPkg = availablePackages.find(pkg => {
+                    const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
+                    return info.isYearly;
+                  });
+                  if (yearlyPkg) {
+                    const info = getPackageInfo(yearlyPkg as PurchasesPackage | WebPackage);
+                    handleManualPurchase(info.identifier);
+                  } else {
+                    toast({
+                      title: "Loading...",
+                      description: "Please wait while subscription options load.",
+                    });
+                  }
+                }}
+              >
+                <CardContent className="p-4 text-center">
+                  {isPurchasing ? (
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                  ) : (
+                    <>
+                      <p className="font-semibold text-foreground">Annual</p>
+                      <p className="text-lg font-bold text-primary">
+                        {(() => {
+                          const yearlyPkg = availablePackages.find(pkg => {
+                            const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
+                            return info.isYearly;
+                          });
+                          if (yearlyPkg) {
+                            return getPackageInfo(yearlyPkg as PurchasesPackage | WebPackage).priceString;
+                          }
+                          return '$239.99';
+                        })()}
+                      </p>
+                      <p className="text-xs text-muted-foreground">per year</p>
+                      <Badge variant="secondary" className="mt-2 text-xs">
+                        Save 33%
+                      </Badge>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         )}
+
+        {/* Restore purchases */}
+        <Button
+          variant="ghost"
+          onClick={handleRestorePurchases}
+          disabled={isRestoring}
+          className="w-full"
+        >
+          {isRestoring ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Restoring...
+            </>
+          ) : (
+            <>
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Restore Purchases
+            </>
+          )}
+        </Button>
 
         {/* Terms */}
         <div className="mt-8 text-center text-xs text-muted-foreground space-y-2">
           <p>{getPaymentMethodText()}</p>
-          {isNative() && (
-            <p>
-              Subscription automatically renews unless canceled at least 24 hours before the end of the current period.
-            </p>
-          )}
+          <p>
+            Subscription automatically renews unless canceled at least 24 hours before the end of the current period.
+          </p>
           <div className="flex justify-center gap-4">
             <Button variant="link" size="sm" className="text-xs h-auto p-0" onClick={() => navigate('/terms-of-service')}>
               Terms of Service
