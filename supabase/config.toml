@@ -3,6 +3,9 @@ project_id = "etnlkygkxlnnwxxkkcbi"
 [functions.get-revenuecat-native-key]
 verify_jwt = false
 
+[functions.get-revenuecat-web-key]
+verify_jwt = false
+
 [functions.analyze-request-openai]
 verify_jwt = true
 
