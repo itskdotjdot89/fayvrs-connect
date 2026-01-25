@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.fayvrs.app',
+  appId: 'com.DflPruUvMpIu.Fayvrs',
   appName: 'Fayvrs',
   webDir: 'dist',
   ios: {
