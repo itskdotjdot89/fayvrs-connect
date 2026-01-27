@@ -120,19 +120,26 @@ export default function RequestDetails() {
     return (
       <div className="min-h-screen bg-surface flex items-center justify-center p-4">
         <div className="text-center space-y-4 max-w-sm">
-          <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
-            <Flag className="w-8 h-8 text-destructive" />
+          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto">
+            <Flag className="w-8 h-8 text-muted-foreground" />
           </div>
           <h2 className="text-xl font-semibold text-foreground">Request Not Found</h2>
           <p className="text-muted-foreground text-sm">
-            This request may have been removed or is no longer available.
+            This request may have been completed, removed, or is no longer available. Browse other requests to find opportunities.
           </p>
-          <div className="flex flex-col sm:flex-row gap-2 justify-center">
-            <Button variant="outline" onClick={() => navigate(-1)}>
-              Go Back
+          <div className="flex flex-col gap-3 pt-2">
+            <Button 
+              size="lg" 
+              className="w-full"
+              onClick={() => navigate('/feed')}
+            >
+              Browse All Requests
             </Button>
-            <Button onClick={() => navigate('/feed')}>
-              Browse Requests
+            <Button 
+              variant="outline" 
+              onClick={() => navigate(-1)}
+            >
+              Go Back
             </Button>
           </div>
         </div>
