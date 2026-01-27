@@ -235,18 +235,37 @@ export default function ProviderDashboard() {
             </CardContent>
           </Card>
         ) : (
-          <Card className="border-2 border-primary">
-            <CardContent className="p-6 space-y-3">
-              <h3 className="font-semibold text-foreground">No Active Subscription</h3>
-              <p className="text-sm text-muted-foreground">
-                Subscribe to start receiving leads and connect with customers
-              </p>
+          <Card className="border-2 border-primary bg-gradient-to-br from-primary/5 to-primary/10">
+            <CardContent className="p-6 space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center flex-shrink-0">
+                  <CreditCard className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-foreground">Start Earning Today</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Subscribe to unlock unlimited leads and connect with customers in your area
+                  </p>
+                </div>
+              </div>
+              <div className="bg-white/50 rounded-lg p-3 space-y-1">
+                <p className="text-sm font-medium text-foreground">What you get:</p>
+                <ul className="text-xs text-muted-foreground space-y-1">
+                  <li>✓ Unlimited job leads in your area</li>
+                  <li>✓ Direct messaging with customers</li>
+                  <li>✓ 7-day free trial included</li>
+                </ul>
+              </div>
               <Button 
-                className="w-full rounded-xl"
+                size="lg"
+                className="w-full rounded-xl text-base font-semibold"
                 onClick={() => navigate('/provider-paywall')}
               >
-                Subscribe Now
+                View Subscription Options
               </Button>
+              <p className="text-xs text-center text-muted-foreground">
+                Starting at $29.99/month • Cancel anytime
+              </p>
             </CardContent>
           </Card>
         )}
