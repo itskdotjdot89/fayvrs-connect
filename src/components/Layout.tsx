@@ -1,23 +1,23 @@
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { Menu, X, Settings, User } from "lucide-react";
-import { useState } from "react";
+import { Menu, X, User } from "lucide-react";
 import fayvrsLogo from "@/assets/fayvrs-logo.png";
 import { useAuth } from "@/contexts/AuthContext";
-
 import { NotificationBell } from "./NotificationBell";
+import { ProfileMenu } from "./ProfileMenu";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "./ui/badge";
+
 interface LayoutProps {
   children: ReactNode;
 }
-export const Layout = ({
-  children
-}: LayoutProps) => {
+
+export const Layout = ({ children }: LayoutProps) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const location = useLocation();
   const { user, signOut, activeRole, userRoles } = useAuth();
   const isActive = (path: string) => location.pathname === path;
@@ -29,7 +29,7 @@ export const Layout = ({
       if (!user?.id) return null;
       const { data, error } = await supabase
         .from('profiles')
-        .select('avatar_url, full_name')
+        .select('avatar_url, full_name, username')
         .eq('id', user.id)
         .single();
       
@@ -112,15 +112,14 @@ export const Layout = ({
                 <Link to="/post-request">
                   <Button variant="outline" size="sm">Post Request</Button>
                 </Link>
-                <Link to="/settings">
-                  <Avatar className="w-8 h-8 cursor-pointer hover:ring-2 ring-primary transition-all">
+                <button onClick={() => setProfileMenuOpen(true)}>
+                  <Avatar className="w-8 h-8 cursor-pointer ring-2 ring-primary/20 hover:ring-primary/40 transition-all">
                     <AvatarImage src={profile?.avatar_url} />
                     <AvatarFallback className="bg-primary text-white text-sm">
                       {profile?.full_name?.[0] || <User className="w-4 h-4" />}
                     </AvatarFallback>
                   </Avatar>
-                </Link>
-                <Button onClick={signOut} variant="ghost" size="sm">Sign Out</Button>
+                </button>
               </>
             ) : (
               <>
@@ -170,19 +169,24 @@ export const Layout = ({
               )}
               {user ? (
                 <>
-                  <Link to="/settings" className="flex items-center gap-2 text-sm font-medium hover:text-primary transition-colors" onClick={() => setMobileMenuOpen(false)}>
+                  <button 
+                    className="flex items-center gap-2 text-sm font-medium hover:text-primary transition-colors" 
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      setProfileMenuOpen(true);
+                    }}
+                  >
                     <Avatar className="w-8 h-8">
                       <AvatarImage src={profile?.avatar_url} />
                       <AvatarFallback className="bg-primary text-white text-sm">
                         {profile?.full_name?.[0] || <User className="w-4 h-4" />}
                       </AvatarFallback>
                     </Avatar>
-                    Settings
-                  </Link>
+                    Profile & Settings
+                  </button>
                   <Link to="/post-request" onClick={() => setMobileMenuOpen(false)}>
                     <Button variant="outline" size="sm" className="w-full">Post Request</Button>
                   </Link>
-                  <Button onClick={signOut} variant="ghost" size="sm" className="w-full">Sign Out</Button>
                 </>
               ) : (
                 <>
@@ -276,5 +280,8 @@ export const Layout = ({
           </div>
         </div>
       </footer>
+
+      {/* Profile Menu Sheet - shared across all breakpoints */}
+      <ProfileMenu open={profileMenuOpen} onOpenChange={setProfileMenuOpen} profile={profile} />
     </div>;
 };
