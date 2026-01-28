@@ -6,7 +6,7 @@ import { Menu, X, Settings, User } from "lucide-react";
 import { useState } from "react";
 import fayvrsLogo from "@/assets/fayvrs-logo.png";
 import { useAuth } from "@/contexts/AuthContext";
-import { RoleSwitcher } from "./RoleSwitcher";
+
 import { NotificationBell } from "./NotificationBell";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -105,7 +105,7 @@ export const Layout = ({
                 )}
               </Link>
             )}
-            {user && <RoleSwitcher />}
+            
             {user ? (
               <>
                 <NotificationBell />
@@ -167,11 +167,6 @@ export const Layout = ({
                     </Badge>
                   )}
                 </Link>
-              )}
-              {user && (
-                <div className="flex justify-center">
-                  <RoleSwitcher />
-                </div>
               )}
               {user ? (
                 <>

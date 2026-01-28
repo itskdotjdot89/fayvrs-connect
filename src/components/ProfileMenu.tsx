@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { User, Settings, LogOut, Shield, Briefcase, UserCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "./ui/button";
-import { RoleSwitcher } from "./RoleSwitcher";
+
 import { Separator } from "./ui/separator";
 import { Badge } from "./ui/badge";
 import { useQuery } from "@tanstack/react-query";
@@ -84,15 +84,6 @@ export const ProfileMenu = ({ open, onOpenChange, profile }: ProfileMenuProps) =
         </SheetHeader>
 
         <div className="space-y-4">
-          {/* Role Switcher */}
-          {userRoles.length > 1 && (
-            <>
-              <div className="flex justify-center">
-                <RoleSwitcher />
-              </div>
-              <Separator />
-            </>
-          )}
 
           {/* Menu Items */}
           <div className="space-y-2">
