@@ -23,16 +23,19 @@ export default function RequestDetails() {
   const { hasProviderAccess, missingRequirements } = useProviderAccess();
 
   // Fetch request details (only public profile fields)
-  const { data: request, isLoading: loadingRequest } = useQuery({
+  const { data: request, isLoading: loadingRequest, error: requestError } = useQuery({
     queryKey: ['request', id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('requests')
-        .select('*, profiles(id, username, full_name, avatar_url, location, bio, is_verified)')
+        .select('*, profiles!requests_user_id_fkey(id, username, full_name, avatar_url, location, bio, is_verified)')
         .eq('id', id)
-        .single();
+        .maybeSingle();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Request fetch error:', error);
+        throw error;
+      }
       return data;
     },
     enabled: !!id,
@@ -44,7 +47,7 @@ export default function RequestDetails() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('proposals')
-        .select('*, profiles(id, username, full_name, avatar_url, location, bio, is_verified)')
+        .select('*, profiles!proposals_provider_id_fkey(id, username, full_name, avatar_url, location, bio, is_verified)')
         .eq('request_id', id)
         .order('price', { ascending: true });
       
