@@ -589,6 +589,14 @@ export default function Settings() {
             <CardTitle>App & Legal</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start"
+              onClick={() => navigate('/provider-paywall')}
+            >
+              <Crown className="h-4 w-4 mr-2" />
+              View Subscription Options
+            </Button>
             <Link to="/support">
               <Button variant="ghost" className="w-full justify-start">
                 Help & Support
