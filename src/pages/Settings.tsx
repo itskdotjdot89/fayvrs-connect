@@ -403,31 +403,34 @@ export default function Settings() {
                 </AvatarFallback>
               </Avatar>
 
-              <div className="flex-1">
-                <Label htmlFor="avatar-upload" className="cursor-pointer">
-                  <div className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors w-fit">
-                    {uploading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Uploading...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="w-4 h-4" />
-                        <span>Upload Photo</span>
-                      </>
-                    )}
-                  </div>
-                </Label>
-                <Input
-                  id="avatar-upload"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  disabled={uploading}
-                  className="hidden"
-                />
-                <p className="text-sm text-muted-foreground mt-2">
+              <div className="flex-1 space-y-3">
+                {/* Photo Library Option - Safer on iOS */}
+                <div>
+                  <Label htmlFor="avatar-upload-library" className="cursor-pointer">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors w-fit">
+                      {uploading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Uploading...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4" />
+                          <span>Choose from Library</span>
+                        </>
+                      )}
+                    </div>
+                  </Label>
+                  <Input
+                    id="avatar-upload-library"
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    onChange={handleFileChange}
+                    disabled={uploading}
+                    className="hidden"
+                  />
+                </div>
+                <p className="text-sm text-muted-foreground">
                   JPG, PNG or GIF. Max size 100MB.
                 </p>
               </div>

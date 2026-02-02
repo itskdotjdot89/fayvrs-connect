@@ -381,13 +381,13 @@ export default function ProviderPaywall() {
 
         {/* Subscription options - WEB ONLY (iOS must use RevenueCat native paywall for Apple compliance) */}
         {!isNative() && (
-          <div id="subscription-options" className="space-y-3 mb-6">
+          <div id="subscription-options" className="space-y-4 mb-6">
             <h3 className="text-lg font-semibold text-center text-foreground mb-4">
               Choose Your Plan
             </h3>
             
-            {/* Pricing cards - WEB ONLY */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Pricing cards - WEB ONLY - Apple Guideline 3.1.2 compliant: billed amount is most prominent */}
+            <div className="space-y-3">
               {/* Monthly Plan */}
               <Card 
                 className="cursor-pointer hover:border-primary transition-colors"
@@ -407,33 +407,41 @@ export default function ProviderPaywall() {
                   }
                 }}
               >
-                <CardContent className="p-4 text-center">
+                <CardContent className="p-5">
                   {isPurchasing ? (
-                    <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                    <div className="flex justify-center py-4">
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    </div>
                   ) : (
-                    <>
-                      <p className="font-semibold text-foreground">Monthly</p>
-                      <p className="text-lg font-bold text-primary">
-                        {(() => {
-                          const monthlyPkg = availablePackages.find(pkg => {
-                            const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
-                            return !info.isYearly;
-                          });
-                          if (monthlyPkg) {
-                            return getPackageInfo(monthlyPkg as PurchasesPackage | WebPackage).priceString;
-                          }
-                          return '$29.99';
-                        })()}
-                      </p>
-                      <p className="text-xs text-muted-foreground">per month</p>
-                    </>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-foreground text-lg">Monthly</p>
+                        <p className="text-sm text-muted-foreground">Billed monthly</p>
+                      </div>
+                      <div className="text-right">
+                        {/* Primary billed amount - most prominent per Apple 3.1.2 */}
+                        <p className="text-2xl font-bold text-foreground">
+                          {(() => {
+                            const monthlyPkg = availablePackages.find(pkg => {
+                              const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
+                              return !info.isYearly;
+                            });
+                            if (monthlyPkg) {
+                              return getPackageInfo(monthlyPkg as PurchasesPackage | WebPackage).priceString;
+                            }
+                            return '$29.99';
+                          })()}
+                        </p>
+                        <p className="text-sm text-muted-foreground">per month</p>
+                      </div>
+                    </div>
                   )}
                 </CardContent>
               </Card>
 
               {/* Yearly Plan */}
               <Card 
-                className="cursor-pointer hover:border-primary transition-colors border-primary/50"
+                className="cursor-pointer hover:border-primary transition-colors border-2 border-primary relative"
                 onClick={() => {
                   const yearlyPkg = availablePackages.find(pkg => {
                     const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
@@ -450,29 +458,39 @@ export default function ProviderPaywall() {
                   }
                 }}
               >
-                <CardContent className="p-4 text-center">
+                <Badge className="absolute -top-2 left-4 text-xs">Best Value</Badge>
+                <CardContent className="p-5 pt-6">
                   {isPurchasing ? (
-                    <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                    <div className="flex justify-center py-4">
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    </div>
                   ) : (
-                    <>
-                      <p className="font-semibold text-foreground">Annual</p>
-                      <p className="text-lg font-bold text-primary">
-                        {(() => {
-                          const yearlyPkg = availablePackages.find(pkg => {
-                            const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
-                            return info.isYearly;
-                          });
-                          if (yearlyPkg) {
-                            return getPackageInfo(yearlyPkg as PurchasesPackage | WebPackage).priceString;
-                          }
-                          return '$239.99';
-                        })()}
-                      </p>
-                      <p className="text-xs text-muted-foreground">per year</p>
-                      <Badge variant="secondary" className="mt-2 text-xs">
-                        Save 33%
-                      </Badge>
-                    </>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-foreground text-lg">Annual</p>
+                        <p className="text-sm text-muted-foreground">Billed annually</p>
+                        {/* Subordinate calculated pricing per Apple 3.1.2 */}
+                        <p className="text-xs text-muted-foreground mt-1">
+                          (~$20/mo, save 33%)
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        {/* Primary billed amount - most prominent per Apple 3.1.2 */}
+                        <p className="text-2xl font-bold text-foreground">
+                          {(() => {
+                            const yearlyPkg = availablePackages.find(pkg => {
+                              const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
+                              return info.isYearly;
+                            });
+                            if (yearlyPkg) {
+                              return getPackageInfo(yearlyPkg as PurchasesPackage | WebPackage).priceString;
+                            }
+                            return '$239.99';
+                          })()}
+                        </p>
+                        <p className="text-sm text-muted-foreground">per year</p>
+                      </div>
+                    </div>
                   )}
                 </CardContent>
               </Card>
