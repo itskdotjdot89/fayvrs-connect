@@ -525,8 +525,10 @@ export default function ProviderPaywall() {
             Subscription automatically renews unless canceled at least 24 hours before the end of the current period.
           </p>
           <div className="flex justify-center gap-4">
-            <Button variant="link" size="sm" className="text-xs h-auto p-0" onClick={() => navigate('/terms-of-service')}>
-              Terms of Service
+            <Button variant="link" size="sm" className="text-xs h-auto p-0" asChild>
+              <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" target="_blank" rel="noopener noreferrer">
+                Terms of Service
+              </a>
             </Button>
             <Button variant="link" size="sm" className="text-xs h-auto p-0" onClick={() => navigate('/privacy-policy')}>
               Privacy Policy
