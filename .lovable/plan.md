@@ -1,50 +1,121 @@
 
-# Fix Scroll Position on Route Navigation
 
-## Problem
-When navigating to a new page in the app, the scroll position stays where it was on the previous page instead of scrolling to the top. This creates a confusing user experience, especially noticeable when browsing requests and clicking into details.
+## Overview
 
-## Solution
-Create a `ScrollToTop` component that listens for route changes and automatically scrolls to the top of the page whenever the user navigates to a new route.
+Re-enable the "Take Photo" functionality for profile pictures on iOS by using the native Capacitor Camera plugin instead of the HTML file input that was causing crashes on iPad.
 
-## Implementation
+## The Problem
 
-### 1. Create ScrollToTop Component
-**New file:** `src/components/ScrollToTop.tsx`
+The previous implementation used an HTML `<input type="file" capture="camera">` which triggers WKWebView's unstable camera session on iPadOS, causing the app to crash. The temporary fix removed the camera option entirely, only allowing photo library selection.
 
-A simple component that uses React Router's `useLocation` hook to detect route changes and `useEffect` to scroll to top:
+## The Solution
 
+Use the `@capacitor/camera` plugin's `CameraSource.Camera` option, which goes through native iOS UIImagePickerController rather than WKWebView. This approach:
+- Uses native iOS camera APIs (not WKWebView getUserMedia)
+- Provides a more stable and consistent experience
+- Handles iPad presentation modes correctly
+
+## Implementation Plan
+
+### Step 1: Add Camera Option Handler
+
+Create a new function `handleTakePhoto` in Settings.tsx that:
+- Uses `Camera.getPhoto()` with `source: CameraSource.Camera`
+- Includes robust error handling for permission denials and cancellations
+- Converts the captured photo to a File for upload
+
+### Step 2: Update UI for iOS Native
+
+Modify the profile picture section to show two buttons on iOS native:
+- **"Take Photo"** - Uses native camera via Capacitor
+- **"Choose from Photos"** - Uses native photo library via Capacitor (existing)
+
+### Step 3: Add iPad-Specific Handling
+
+Add additional safety for iPad:
+- Use `presentationStyle: "popover"` option if needed for iPad
+- Add extra error catching around the camera invocation
+- Log any errors for debugging
+
+## UI Changes
+
+**Current (iOS Native):**
 ```text
-┌─────────────────────────────────────┐
-│         ScrollToTop Component        │
-├─────────────────────────────────────┤
-│ • Listens to location.pathname      │
-│ • On change: window.scrollTo(0, 0)  │
-│ • Returns null (no visual output)   │
-└─────────────────────────────────────┘
+┌─────────────────────────────────┐
+│  [Choose from Photos]           │
+└─────────────────────────────────┘
 ```
 
-### 2. Add to App.tsx
-Place the `ScrollToTop` component inside the `BrowserRouter` but outside the routes, so it triggers on every navigation:
-
+**New (iOS Native):**
 ```text
-<BrowserRouter>
-  <ScrollToTop />      ← Add here
-  <AppContent />
-</BrowserRouter>
+┌─────────────────────────────────┐
+│  [Take Photo]  [Choose from Photos] │
+└─────────────────────────────────┘
 ```
 
 ## Technical Details
 
-- The component will use `useLayoutEffect` instead of `useEffect` to ensure scroll happens before the browser paints, preventing any flash of the old scroll position
-- Uses `window.scrollTo(0, 0)` with smooth behavior disabled for instant response
-- No dependencies other than React Router's `useLocation`
+### Code Changes (Settings.tsx)
 
-## Files to Create/Modify
-1. **Create:** `src/components/ScrollToTop.tsx` - New scroll restoration component
-2. **Modify:** `src/App.tsx` - Import and add ScrollToTop component
+1. **New handler function:**
+```typescript
+const handleTakePhotoNative = async () => {
+  if (uploading) return;
+  setUploading(true);
+  try {
+    const photo = await Camera.getPhoto({
+      source: CameraSource.Camera, // Native camera
+      resultType: CameraResultType.Uri,
+      quality: 85,
+      width: 1024,
+    });
+    // ... convert to File and upload
+  } catch (error) {
+    // Handle cancellation gracefully (not an error)
+    // Show toast for actual errors
+  } finally {
+    setUploading(false);
+  }
+};
+```
 
-## Expected Behavior After Fix
-- Clicking any link navigates to the new page starting at the top
-- Back/forward browser navigation will also scroll to top (consistent behavior)
-- No visual flicker or delayed scrolling
+2. **Updated UI section:**
+```tsx
+{isNative() && isIOS() ? (
+  <div className="flex flex-wrap gap-2">
+    <Button onClick={handleTakePhotoNative} disabled={uploading}>
+      <Camera /> Take Photo
+    </Button>
+    <Button variant="outline" onClick={handlePickAvatarFromPhotos} disabled={uploading}>
+      <Upload /> Choose from Photos
+    </Button>
+  </div>
+) : (
+  // Web fallback with HTML file input
+)}
+```
+
+## Why This Works
+
+| Approach | Technology | Stability on iPad |
+|----------|-----------|-------------------|
+| HTML `<input capture="camera">` | WKWebView getUserMedia | ❌ Crashes |
+| Capacitor `CameraSource.Camera` | Native UIImagePickerController | ✅ Stable |
+| Capacitor `CameraSource.Photos` | Native PHPickerViewController | ✅ Stable |
+
+The native Capacitor Camera plugin bypasses WKWebView entirely when accessing the camera, using iOS's native UIImagePickerController which Apple designed specifically for this purpose.
+
+## Testing Recommendations
+
+After implementation:
+1. Test on iPad specifically (the device that caused the rejection)
+2. Test camera permission flow (first-time grant)
+3. Test camera cancellation (user presses Cancel)
+4. Test photo library selection (should still work)
+5. Test on iPhone for regression
+6. Run on iPadOS 26.2 if possible (matches review device)
+
+## Files to Modify
+
+- `src/pages/Settings.tsx` - Add camera handler and update UI
+
