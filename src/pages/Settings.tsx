@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
-import { Upload, Loader2, User, Bell, Mail, MessageSquare, AtSign, CheckCircle2, Crown, RotateCcw } from "lucide-react";
+import { Upload, Loader2, User, Bell, Mail, MessageSquare, AtSign, CheckCircle2, Crown, RotateCcw, Camera as CameraIcon } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -273,7 +273,52 @@ export default function Settings() {
     }
   };
 
-  // iOS native: avoid WKWebView camera/file-picker crashes by using the native photo library picker.
+  // iOS native: use native camera via Capacitor (stable UIImagePickerController, not WKWebView)
+  const handleTakePhotoNative = async () => {
+    if (uploading) return;
+
+    setUploading(true);
+    try {
+      const photo = await Camera.getPhoto({
+        source: CameraSource.Camera, // Native iOS camera API
+        resultType: CameraResultType.Uri,
+        quality: 85,
+        width: 1024,
+      });
+
+      if (!photo?.webPath) throw new Error("No photo captured");
+
+      const response = await fetch(photo.webPath);
+      const blob = await response.blob();
+
+      const ext = photo.format || blob.type.split("/")[1] || "jpg";
+      const mime = blob.type || `image/${ext}`;
+      const file = new File([blob], `avatar.${ext}`, { type: mime });
+
+      const validation = validateImageFile(file);
+      if (!validation.isValid) {
+        throw new Error(validation.error || "Invalid image file");
+      }
+
+      await uploadAvatarMutation.mutateAsync(file);
+    } catch (error: any) {
+      const message = String(error?.message || "").toLowerCase();
+      // Handle user cancellation or permission denial gracefully
+      const isCancel = message.includes("cancel") || message.includes("canceled") || message.includes("user denied");
+      if (!isCancel) {
+        console.error("Native camera failed:", error);
+        toast({
+          title: "Couldn't take photo",
+          description: error?.message || "Please try again.",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // iOS native: use native photo library picker via Capacitor (stable PHPickerViewController)
   const handlePickAvatarFromPhotos = async () => {
     if (uploading) return;
 
@@ -449,26 +494,45 @@ export default function Settings() {
               </Avatar>
 
               <div className="flex-1 space-y-3">
-                {/* iPad/iOS native stability: use native photo library picker (no camera) */}
+                {/* iOS native: use native Capacitor camera/photo picker for stability */}
                 {isNative() && isIOS() ? (
-                  <Button
-                    type="button"
-                    onClick={handlePickAvatarFromPhotos}
-                    disabled={uploading}
-                    className="w-fit"
-                  >
-                    {uploading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Uploading...
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="w-4 h-4 mr-2" />
-                        Choose from Photos
-                      </>
-                    )}
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      onClick={handleTakePhotoNative}
+                      disabled={uploading}
+                    >
+                      {uploading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <CameraIcon className="w-4 h-4 mr-2" />
+                          Take Photo
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handlePickAvatarFromPhotos}
+                      disabled={uploading}
+                    >
+                      {uploading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4 mr-2" />
+                          Choose from Photos
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 ) : (
                   <div>
                     <Label htmlFor="avatar-upload-library" className="cursor-pointer">
