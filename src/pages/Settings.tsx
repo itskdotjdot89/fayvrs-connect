@@ -14,9 +14,11 @@ import { Separator } from "@/components/ui/separator";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import VerificationStatus from "@/components/VerificationStatus";
 import { Link, useNavigate } from "react-router-dom";
-import { isNative, getSubscriptionManagementUrl } from "@/utils/platform";
+import { isIOS, isNative } from "@/utils/platform";
 import { useRevenueCat } from "@/hooks/useRevenueCat";
 import { SMSOptInDialog } from "@/components/SMSOptInDialog";
+import { validateImageFile } from "@/utils/fileValidation";
+import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
 
 export default function Settings() {
   const { user } = useAuth();
@@ -242,23 +244,15 @@ export default function Settings() {
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    // Allow picking the same file again
+    e.target.value = "";
     if (!file) return;
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
+    const validation = validateImageFile(file);
+    if (!validation.isValid) {
       toast({
         title: "Invalid file",
-        description: "Please upload an image file",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Validate file size (100MB)
-    if (file.size > 100 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Please upload an image smaller than 100MB",
+        description: validation.error || "Please choose a valid image.",
         variant: "destructive",
       });
       return;
@@ -267,6 +261,57 @@ export default function Settings() {
     setUploading(true);
     try {
       await uploadAvatarMutation.mutateAsync(file);
+    } catch (error: any) {
+      console.error("Avatar upload failed:", error);
+      toast({
+        title: "Upload failed",
+        description: error?.message || "Couldn't upload your photo. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // iOS native: avoid WKWebView camera/file-picker crashes by using the native photo library picker.
+  const handlePickAvatarFromPhotos = async () => {
+    if (uploading) return;
+
+    setUploading(true);
+    try {
+      const photo = await Camera.getPhoto({
+        source: CameraSource.Photos,
+        resultType: CameraResultType.Uri,
+        quality: 85,
+        width: 1024,
+      });
+
+      if (!photo?.webPath) throw new Error("No photo selected");
+
+      const response = await fetch(photo.webPath);
+      const blob = await response.blob();
+
+      const ext = photo.format || blob.type.split("/")[1] || "jpg";
+      const mime = blob.type || `image/${ext}`;
+      const file = new File([blob], `avatar.${ext}`, { type: mime });
+
+      const validation = validateImageFile(file);
+      if (!validation.isValid) {
+        throw new Error(validation.error || "Invalid image file");
+      }
+
+      await uploadAvatarMutation.mutateAsync(file);
+    } catch (error: any) {
+      const message = String(error?.message || "").toLowerCase();
+      const isCancel = message.includes("cancel") || message.includes("canceled");
+      if (!isCancel) {
+        console.error("Native photo picker failed:", error);
+        toast({
+          title: "Couldn't select photo",
+          description: error?.message || "Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setUploading(false);
     }
@@ -404,32 +449,53 @@ export default function Settings() {
               </Avatar>
 
               <div className="flex-1 space-y-3">
-                {/* Photo Library Option - Safer on iOS */}
-                <div>
-                  <Label htmlFor="avatar-upload-library" className="cursor-pointer">
-                    <div className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors w-fit">
-                      {uploading ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          <span>Uploading...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="w-4 h-4" />
-                          <span>Choose from Library</span>
-                        </>
-                      )}
-                    </div>
-                  </Label>
-                  <Input
-                    id="avatar-upload-library"
-                    type="file"
-                    accept="image/jpeg,image/png,image/gif,image/webp"
-                    onChange={handleFileChange}
+                {/* iPad/iOS native stability: use native photo library picker (no camera) */}
+                {isNative() && isIOS() ? (
+                  <Button
+                    type="button"
+                    onClick={handlePickAvatarFromPhotos}
                     disabled={uploading}
-                    className="hidden"
-                  />
-                </div>
+                    className="w-fit"
+                  >
+                    {uploading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4 mr-2" />
+                        Choose from Photos
+                      </>
+                    )}
+                  </Button>
+                ) : (
+                  <div>
+                    <Label htmlFor="avatar-upload-library" className="cursor-pointer">
+                      <div className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors w-fit">
+                        {uploading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Uploading...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-4 h-4" />
+                            <span>Choose from Library</span>
+                          </>
+                        )}
+                      </div>
+                    </Label>
+                    <Input
+                      id="avatar-upload-library"
+                      type="file"
+                      accept="image/jpeg,image/png,image/gif,image/webp,image/heic"
+                      onChange={handleFileChange}
+                      disabled={uploading}
+                      className="hidden"
+                    />
+                  </div>
+                )}
                 <p className="text-sm text-muted-foreground">
                   JPG, PNG or GIF. Max size 100MB.
                 </p>
