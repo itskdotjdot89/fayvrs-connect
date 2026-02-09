@@ -92,7 +92,7 @@ export default function ProviderDashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('proposals')
-        .select('*, requests(*)')
+        .select('*, requests!proposals_request_id_fkey(*)')
         .eq('provider_id', user!.id)
         .order('created_at', { ascending: false })
         .limit(5);
