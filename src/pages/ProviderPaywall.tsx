@@ -535,6 +535,53 @@ export default function ProviderPaywall() {
           </div>
         )}
 
+        {/* Promo code section */}
+        <div className="mb-4">
+          {!showPromoInput ? (
+            <Button
+              variant="ghost"
+              className="w-full text-muted-foreground"
+              onClick={() => setShowPromoInput(true)}
+            >
+              <Gift className="h-4 w-4 mr-2" />
+              Have a promo code?
+            </Button>
+          ) : (
+            <Card>
+              <CardContent className="p-4 space-y-3">
+                <p className="text-sm font-medium text-foreground">Enter promo code</p>
+                <div className="flex gap-2">
+                  <Input
+                    value={promoCode}
+                    onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                    placeholder="e.g. FAYVRS2025"
+                    disabled={isRedeeming}
+                    className="flex-1"
+                  />
+                  <Button
+                    onClick={handleRedeemPromo}
+                    disabled={isRedeeming || !promoCode.trim()}
+                  >
+                    {isRedeeming ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      'Redeem'
+                    )}
+                  </Button>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-xs"
+                  onClick={() => { setShowPromoInput(false); setPromoCode(''); }}
+                >
+                  Cancel
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
         {/* Restore purchases */}
         <Button
           variant="ghost"
