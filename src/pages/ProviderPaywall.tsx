@@ -554,7 +554,7 @@ export default function ProviderPaywall() {
                   <Input
                     value={promoCode}
                     onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                    placeholder="e.g. FAYVRS2025"
+                    placeholder="Add Code Here"
                     disabled={isRedeeming}
                     className="flex-1"
                   />
