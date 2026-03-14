@@ -203,6 +203,38 @@ export default function ProviderPaywall() {
     }
   };
 
+  const handleRedeemPromo = async () => {
+    if (!promoCode.trim()) return;
+    setIsRedeeming(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('redeem-promo-code', {
+        body: { code: promoCode.trim() },
+      });
+      if (error || !data?.success) {
+        toast({
+          title: 'Redemption failed',
+          description: data?.error || error?.message || 'Unable to redeem promo code.',
+          variant: 'destructive',
+        });
+      } else {
+        await refreshSubscriptionStatus();
+        toast({
+          title: 'Welcome to Fayvrs Pro!',
+          description: `Your free ${data.subscription.plan} subscription is now active.`,
+        });
+        navigate('/feed');
+      }
+    } catch (err: any) {
+      toast({
+        title: 'Error',
+        description: err.message || 'Something went wrong.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsRedeeming(false);
+    }
+  };
+
   // Helper to detect yearly product
   const isYearlyProduct = (identifier: string, duration?: string | null) => {
     const lowerId = identifier.toLowerCase();
