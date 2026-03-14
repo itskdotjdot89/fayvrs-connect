@@ -31,21 +31,25 @@ export const NearbyProvidersWidget = () => {
     },
   });
 
+  // Prefer live GPS coordinates, fall back to profile location
+  const effectiveLat = profile?.current_latitude ?? profile?.latitude;
+  const effectiveLng = profile?.current_longitude ?? profile?.longitude;
+
   const { data: nearbyProviders, isLoading } = useQuery({
-    queryKey: ["nearby-providers", profile?.latitude, profile?.longitude, searchRadius],
+    queryKey: ["nearby-providers", effectiveLat, effectiveLng, searchRadius],
     queryFn: async () => {
-      if (!profile?.latitude || !profile?.longitude) return [];
+      if (!effectiveLat || !effectiveLng) return [];
 
       const { data, error } = await supabase.rpc("find_nearby_providers", {
-        req_latitude: profile.latitude,
-        req_longitude: profile.longitude,
+        req_latitude: effectiveLat,
+        req_longitude: effectiveLng,
         radius_miles: searchRadius,
       });
 
       if (error) throw error;
       return data;
     },
-    enabled: !!profile?.latitude && !!profile?.longitude,
+    enabled: !!effectiveLat && !!effectiveLng,
   });
 
   if (!profile?.latitude || !profile?.longitude) {
