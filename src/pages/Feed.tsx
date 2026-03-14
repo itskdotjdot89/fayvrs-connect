@@ -87,13 +87,17 @@ export default function Feed() {
       .eq('id', user.id)
       .single();
     
-    if (data?.latitude && data?.longitude) {
+    // Prefer live GPS coordinates, fall back to profile location
+    const lat = data?.current_latitude ?? data?.latitude;
+    const lng = data?.current_longitude ?? data?.longitude;
+
+    if (lat && lng) {
       setUserLocation({
-        latitude: Number(data.latitude),
-        longitude: Number(data.longitude),
-        currentLatitude: data.current_latitude ? Number(data.current_latitude) : undefined,
-        currentLongitude: data.current_longitude ? Number(data.current_longitude) : undefined,
-        serviceRadius: data.service_radius || 25
+        latitude: Number(lat),
+        longitude: Number(lng),
+        currentLatitude: data?.current_latitude ? Number(data.current_latitude) : undefined,
+        currentLongitude: data?.current_longitude ? Number(data.current_longitude) : undefined,
+        serviceRadius: data?.service_radius || 25
       });
     }
   };
