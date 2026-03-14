@@ -4,12 +4,14 @@ import { RevenueCatUI, PAYWALL_RESULT } from '@revenuecat/purchases-capacitor-ui
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Check, Crown, ArrowLeft, RotateCcw } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Loader2, Check, Crown, ArrowLeft, RotateCcw, Gift } from 'lucide-react';
 import { useRevenueCat, PRODUCT_IDS, WebPackage, WebOfferings } from '@/hooks/useRevenueCat';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { isNative, isIOS, isAndroid } from '@/utils/platform';
 import { PurchasesOfferings, PurchasesPackage } from '@revenuecat/purchases-capacitor';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function ProviderPaywall() {
   const navigate = useNavigate();
