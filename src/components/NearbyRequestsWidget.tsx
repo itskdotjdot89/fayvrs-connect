@@ -25,21 +25,25 @@ export const NearbyRequestsWidget = ({ profile }: NearbyRequestsWidgetProps) => 
   const navigate = useNavigate();
   const [view, setView] = useState<'list' | 'map'>('list');
 
+  // Prefer live GPS coordinates, fall back to profile location
+  const effectiveLat = profile?.current_latitude ?? profile?.latitude;
+  const effectiveLng = profile?.current_longitude ?? profile?.longitude;
+
   const { data: nearbyRequests, isLoading } = useQuery({
-    queryKey: ["nearby-requests", profile?.latitude, profile?.longitude, profile?.service_radius],
+    queryKey: ["nearby-requests", effectiveLat, effectiveLng, profile?.service_radius],
     queryFn: async () => {
-      if (!profile?.latitude || !profile?.longitude) return [];
+      if (!effectiveLat || !effectiveLng) return [];
 
       const { data, error } = await supabase.rpc("find_nearby_requests", {
-        provider_latitude: profile.latitude,
-        provider_longitude: profile.longitude,
-        radius_miles: profile.service_radius || 25,
+        provider_latitude: effectiveLat,
+        provider_longitude: effectiveLng,
+        radius_miles: profile?.service_radius || 25,
       });
 
       if (error) throw error;
       return data;
     },
-    enabled: !!profile?.latitude && !!profile?.longitude,
+    enabled: !!effectiveLat && !!effectiveLng,
   });
 
   if (!profile?.latitude || !profile?.longitude) {
