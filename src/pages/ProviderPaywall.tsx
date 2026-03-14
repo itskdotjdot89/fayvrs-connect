@@ -4,12 +4,14 @@ import { RevenueCatUI, PAYWALL_RESULT } from '@revenuecat/purchases-capacitor-ui
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Check, Crown, ArrowLeft, RotateCcw } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Loader2, Check, Crown, ArrowLeft, RotateCcw, Gift } from 'lucide-react';
 import { useRevenueCat, PRODUCT_IDS, WebPackage, WebOfferings } from '@/hooks/useRevenueCat';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { isNative, isIOS, isAndroid } from '@/utils/platform';
 import { PurchasesOfferings, PurchasesPackage } from '@revenuecat/purchases-capacitor';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function ProviderPaywall() {
   const navigate = useNavigate();
@@ -29,6 +31,9 @@ export default function ProviderPaywall() {
   
   const [isRestoring, setIsRestoring] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [showPromoInput, setShowPromoInput] = useState(false);
+  const [promoCode, setPromoCode] = useState('');
+  const [isRedeeming, setIsRedeeming] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
 
   // Initialize RevenueCat when component mounts (both native and web)
@@ -195,6 +200,38 @@ export default function ProviderPaywall() {
       }
     } finally {
       setIsPurchasing(false);
+    }
+  };
+
+  const handleRedeemPromo = async () => {
+    if (!promoCode.trim()) return;
+    setIsRedeeming(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('redeem-promo-code', {
+        body: { code: promoCode.trim() },
+      });
+      if (error || !data?.success) {
+        toast({
+          title: 'Redemption failed',
+          description: data?.error || error?.message || 'Unable to redeem promo code.',
+          variant: 'destructive',
+        });
+      } else {
+        await refreshSubscriptionStatus();
+        toast({
+          title: 'Welcome to Fayvrs Pro!',
+          description: `Your free ${data.subscription.plan} subscription is now active.`,
+        });
+        navigate('/feed');
+      }
+    } catch (err: any) {
+      toast({
+        title: 'Error',
+        description: err.message || 'Something went wrong.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsRedeeming(false);
     }
   };
 
@@ -497,6 +534,53 @@ export default function ProviderPaywall() {
             </div>
           </div>
         )}
+
+        {/* Promo code section */}
+        <div className="mb-4">
+          {!showPromoInput ? (
+            <Button
+              variant="ghost"
+              className="w-full text-muted-foreground"
+              onClick={() => setShowPromoInput(true)}
+            >
+              <Gift className="h-4 w-4 mr-2" />
+              Have a promo code?
+            </Button>
+          ) : (
+            <Card>
+              <CardContent className="p-4 space-y-3">
+                <p className="text-sm font-medium text-foreground">Enter promo code</p>
+                <div className="flex gap-2">
+                  <Input
+                    value={promoCode}
+                    onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                    placeholder="e.g. FAYVRS2025"
+                    disabled={isRedeeming}
+                    className="flex-1"
+                  />
+                  <Button
+                    onClick={handleRedeemPromo}
+                    disabled={isRedeeming || !promoCode.trim()}
+                  >
+                    {isRedeeming ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      'Redeem'
+                    )}
+                  </Button>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-xs"
+                  onClick={() => { setShowPromoInput(false); setPromoCode(''); }}
+                >
+                  Cancel
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
         {/* Restore purchases */}
         <Button
