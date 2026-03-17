@@ -1,57 +1,32 @@
 
 
-## Plan: Server-Side Deferred Deep Linking for Referral Attribution
+## Fix: Provider Dashboard "Failed to load activity"
 
-### Problem
-When a user without the app clicks a referral link, the code is stored in the browser's `localStorage`. After downloading and opening the native app, that `localStorage` is inaccessible — the referral attribution is lost.
+### Root Cause
 
-### Solution
-Use the existing `referral_link_clicks` table (which already stores `ip_address` and `user_agent`) to match new signups to prior referral clicks server-side — a fingerprint-based deferred deep link.
+The "Recent Activity" query fails with a **300 status code** because there are two foreign key relationships between the `proposals` and `requests` tables:
 
-### Changes
+1. `proposals.request_id -> requests.id` (many-to-one, via `proposals_request_id_fkey`)
+2. `requests.selected_proposal_id -> proposals.id` (one-to-many, via `requests_selected_proposal_id_fkey`)
 
-#### 1. New Edge Function: `match-deferred-referral`
-- Called after signup when no referral code was explicitly provided
-- Accepts the user's IP and user agent
-- Queries `referral_link_clicks` for unconverted clicks matching that fingerprint within the last 7 days
-- If a match is found, automatically creates the `referral_relationship` (same logic as `apply-referral-code`)
-- Marks the click as converted
+The database cannot determine which relationship to use, so it returns an ambiguous relationship error instead of data.
 
-#### 2. Update `AuthContext.tsx` — Post-Signup Hook
-- After a successful signup **without** a referral code (no `localStorage` code), call `match-deferred-referral`
-- Pass no sensitive data from client — the edge function reads IP/user-agent from request headers
+### Fix
 
-#### 3. Update `apply-referral-code` Edge Function
-- Add a fallback: if no explicit `referral_code` is provided in the body, attempt the fingerprint match
-- This keeps the logic centralized rather than adding a separate function
+Update the query on line 94 of `src/pages/ProviderDashboard.tsx` to use an explicit relationship hint:
 
-### Revised Approach (Simpler)
-Instead of a new edge function, extend `apply-referral-code` to accept an optional `attempt_deferred_match: true` flag. When set (and no `referral_code` provided), it performs the IP/user-agent fingerprint lookup.
+```text
+Before: .select('*, requests(*)')
+After:  .select('*, requests!proposals_request_id_fkey(*)')
+```
 
-### Implementation Details
+This tells the database to join via the `proposals.request_id` foreign key, which is the correct relationship (each proposal belongs to one request).
 
-**In `apply-referral-code/index.ts`:**
-- Add a new code path: if `referral_code` is missing but `attempt_deferred_match` is true
-- Read IP from `x-forwarded-for` header, user agent from `user-agent` header
-- Query `referral_link_clicks` where `converted_to_signup = false`, matching IP + user agent, within last 7 days, ordered by most recent
-- If found, resolve the `referral_code_id` → get the referral code → proceed with existing relationship creation logic
-- If no match, return `{ success: false, message: "No matching referral found" }` (non-error)
+### Files to Modify
 
-**In `AuthContext.tsx` (`signUp` function):**
-- After signup succeeds, if no `referralCode` was provided via `localStorage`:
-  ```typescript
-  await supabase.functions.invoke('apply-referral-code', {
-    body: { attempt_deferred_match: true }
-  });
-  ```
-- This runs silently — no user-facing error if it fails
+- **src/pages/ProviderDashboard.tsx** - One line change on the recent activity query (line 94)
 
-**In `ReferralLanding.tsx`:**
-- No changes needed — it already records clicks with IP/user-agent via `validate-referral-code`
+### Impact
 
-### Security Considerations
-- Fingerprint matching uses IP + user agent + 7-day window to minimize false positives
-- Only matches unconverted clicks (prevents double attribution)
-- Self-referral check remains in place
-- The match is best-effort; false positives are low-risk (free trial credit)
+This is a one-line fix that resolves the "Failed to load activity" error and ensures the Recent Activity section displays correctly for App Store review completeness (Guideline 2.1).
 
