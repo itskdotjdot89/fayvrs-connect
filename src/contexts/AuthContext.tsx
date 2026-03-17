@@ -233,12 +233,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         description: "Welcome to Fayvrs! Your account has been created."
       });
 
-      // Apply referral code if provided
-      if (referralCode && data.user) {
+      // Apply referral code if provided, or attempt deferred deep link match
+      if (data.user) {
         try {
-          await supabase.functions.invoke('apply-referral-code', {
-            body: { referral_code: referralCode }
-          });
+          if (referralCode) {
+            await supabase.functions.invoke('apply-referral-code', {
+              body: { referral_code: referralCode }
+            });
+          } else {
+            // No explicit code — attempt server-side fingerprint match
+            // for users who clicked a referral link before downloading the app
+            await supabase.functions.invoke('apply-referral-code', {
+              body: { attempt_deferred_match: true }
+            });
+          }
         } catch (err) {
           console.error('Error applying referral code:', err);
           // Don't show error to user - signup was successful
