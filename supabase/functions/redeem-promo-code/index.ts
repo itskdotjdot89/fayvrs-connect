@@ -109,28 +109,49 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 6. Record redemption (validates the code but does NOT create a subscription)
-    // The subscription will be created when the user completes payment through RevenueCat
+    // 6. Create subscription
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + promo.duration_days);
+
+    const { data: subscription, error: subError } = await adminClient
+      .from("provider_subscriptions")
+      .insert({
+        provider_id: user.id,
+        plan: promo.plan,
+        status: "active",
+        started_at: new Date().toISOString(),
+        expires_at: expiresAt.toISOString(),
+      })
+      .select()
+      .single();
+
+    if (subError) {
+      console.error("Failed to create subscription:", subError);
+      return new Response(JSON.stringify({ error: "Failed to activate subscription" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // 7. Record redemption
     await adminClient.from("promo_redemptions").insert({
       promo_code_id: promo.id,
       user_id: user.id,
     });
 
-    // 7. Increment redemption count
+    // 8. Increment redemption count
     await adminClient
       .from("promo_codes")
       .update({ current_redemptions: promo.current_redemptions + 1 })
       .eq("id", promo.id);
 
-    // Return validation success — the frontend will now trigger the RevenueCat
-    // subscription purchase flow with a 365-day free trial
     return new Response(
       JSON.stringify({
         success: true,
-        validated: true,
-        plan: promo.plan,
-        duration_days: promo.duration_days,
-        message: "Promo code validated! Complete your subscription to activate your free year.",
+        subscription: {
+          plan: subscription.plan,
+          expires_at: subscription.expires_at,
+        },
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

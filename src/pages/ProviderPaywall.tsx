@@ -207,7 +207,6 @@ export default function ProviderPaywall() {
     if (!promoCode.trim()) return;
     setIsRedeeming(true);
     try {
-      // Step 1: Validate the promo code on the server
       const { data, error } = await supabase.functions.invoke('redeem-promo-code', {
         body: { code: promoCode.trim() },
       });
@@ -217,37 +216,13 @@ export default function ProviderPaywall() {
           description: data?.error || error?.message || 'Unable to redeem promo code.',
           variant: 'destructive',
         });
-        return;
-      }
-
-      // Step 2: Promo validated — now trigger the annual subscription purchase flow
-      // The 365-day free trial is configured in App Store Connect / Google Play / RevenueCat
-      toast({
-        title: 'Promo code accepted!',
-        description: 'Complete payment setup to activate your free year. You won\'t be charged for 365 days.',
-      });
-
-      // Find the yearly package and trigger purchase
-      const yearlyPkg = availablePackages.find(pkg => {
-        const info = getPackageInfo(pkg as PurchasesPackage | WebPackage);
-        return info.isYearly;
-      });
-
-      if (yearlyPkg) {
-        const info = getPackageInfo(yearlyPkg as PurchasesPackage | WebPackage);
-        // Small delay so user sees the toast before purchase sheet appears
-        await new Promise(resolve => setTimeout(resolve, 500));
-        await handleManualPurchase(info.identifier);
-      } else if (isNative()) {
-        // Fallback: present native paywall
-        await handlePresentPaywall();
       } else {
+        await refreshSubscriptionStatus();
         toast({
-          title: 'Select a plan',
-          description: 'Please choose the Annual plan below to activate your free year.',
+          title: 'Welcome to Fayvrs Pro!',
+          description: `Your free ${data.subscription.plan} subscription is now active.`,
         });
-        const subscriptionSection = document.getElementById('subscription-options');
-        subscriptionSection?.scrollIntoView({ behavior: 'smooth' });
+        navigate('/feed');
       }
     } catch (err: any) {
       toast({
