@@ -1171,6 +1171,7 @@ Full compliance with Apple and Google policies including content moderation, saf
 - ✅ **App Store Compliance** - Full iOS and Android store requirement implementation
 - ✅ **Account Deletion** - Complete data removal with GDPR compliance
 - ✅ **Legal Pages** - Privacy Policy, Terms, Community Guidelines, Refund Policy
+- ✅ **Deferred Deep Linking** - Server-side referral attribution across web-to-native transitions
 
 ### Planned Features
 1. **Rating & Review System** - Post-project feedback and reputation building
