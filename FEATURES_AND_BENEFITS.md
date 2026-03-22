@@ -6,7 +6,8 @@ Fayvrs is a comprehensive service marketplace platform that connects service req
 
 **Core Value Proposition**: Match the right provider with the right request at the right time with real-time location visibility, instant presence status, and face-to-face video consultations—ensuring quality service delivery through verified professionals and transparent communication.
 
-**Latest Enhancements (v2.0)**:
+**Latest Enhancements (v2.1)**:
+- 🔗 Server-side deferred deep linking for referral attribution (7-day fingerprint matching)
 - 📍 Real-time location tracking with 30-second updates
 - 🗺️ Interactive map views for requests and providers
 - 👁️ Online/offline presence system with "Active now" status
