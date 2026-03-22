@@ -759,6 +759,22 @@ Fayvrs is a comprehensive service marketplace platform that connects service req
 
 ---
 
+#### 66. **Server-Side Deferred Deep Linking**
+**What It Does**: Automatically attributes referral credit when a user clicks a referral link on the web, then later downloads the native app and signs up — even though browser localStorage is inaccessible to the app  
+**Benefits**:
+- 7-day attribution window using IP + user-agent fingerprint matching
+- Works across web-to-native-app transitions seamlessly
+- No user action required — attribution happens silently on signup
+- Prevents double attribution (only matches unconverted clicks)
+- Self-referral protection remains enforced
+- Fallback when explicit referral code is unavailable
+
+**User Impact**: Referrers get credit for every signup they drive, even when the referred user downloads the app days later — no lost commissions
+
+**Technical Details**: Extended `apply-referral-code` edge function with `attempt_deferred_match` flag, queries `referral_link_clicks` for unconverted entries matching IP + user-agent within 7 days, `AuthContext.tsx` calls this silently post-signup
+
+---
+
 ### 🛡️ Safety & Compliance Systems
 
 #### 56. **Content Moderation System**
