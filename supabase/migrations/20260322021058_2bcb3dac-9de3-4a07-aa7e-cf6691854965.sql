@@ -1,0 +1,1 @@
+UPDATE public.promo_codes SET code = 'FAYVRS5000' WHERE code = 'FAYVRS2025';
