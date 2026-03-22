@@ -11,13 +11,13 @@ Connect with local service providers and requesters in your neighborhood.
 
 ## Full Description
 
-Fayvrs is your local marketplace for services and favors. Whether you need help with moving, handyman work, or any other service, or you're a service provider looking for new opportunities, Fayvrs connects you with people in your community.
+Fayvrs is your local marketplace for services and favors. Whether you need help with moving, handyman work, or any other service, or you're a service provider looking for new opportunities, Fayvrs connects you with people in your community — with zero customer fees.
 
 **For Service Requesters:**
 • Post service requests with photos and budget
 • Browse and review proposals from verified providers
 • Direct messaging with providers
-• Location-based matching with nearby providers
+• GPS-powered matching with nearby providers
 • Secure in-app communication
 
 **For Service Providers:**
@@ -26,6 +26,13 @@ Fayvrs is your local marketplace for services and favors. Whether you need help 
 • Submit competitive proposals
 • Build your reputation with reviews
 • Grow your local service business
+• Set your own service radius — only see jobs you can reach
+
+**GPS Radius Matching:**
+• Real-time GPS matching ensures you connect with providers who are actually nearby — not just listed in the same city
+• Providers set a custom service radius so they only receive leads within their range
+• Map view lets you visually discover requests and providers around you
+• Your exact location is never shared — distance calculations happen behind the scenes
 
 **Safety First:**
 • Identity verification for providers
@@ -34,13 +41,14 @@ Fayvrs is your local marketplace for services and favors. Whether you need help 
 • Secure messaging
 
 **Key Features:**
-✓ Real-time request notifications
-✓ Location-based matching
+✓ Real-time GPS-based matching
+✓ Custom service radius for providers
+✓ Interactive map view for requests & providers
 ✓ Direct messaging and video calls
 ✓ Portfolio showcase for providers
 ✓ Budget transparency
-✓ Service area customization
 ✓ Provider verification system
+✓ No customer fees — providers pay a flat subscription
 
 ## Keywords
 service, marketplace, local, handyman, moving, providers, requests, favors, neighborhood, community, gig economy, freelance
