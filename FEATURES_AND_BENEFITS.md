@@ -6,7 +6,8 @@ Fayvrs is a comprehensive service marketplace platform that connects service req
 
 **Core Value Proposition**: Match the right provider with the right request at the right time with real-time location visibility, instant presence status, and face-to-face video consultations—ensuring quality service delivery through verified professionals and transparent communication.
 
-**Latest Enhancements (v2.0)**:
+**Latest Enhancements (v2.1)**:
+- 🔗 Server-side deferred deep linking for referral attribution (7-day fingerprint matching)
 - 📍 Real-time location tracking with 30-second updates
 - 🗺️ Interactive map views for requests and providers
 - 👁️ Online/offline presence system with "Active now" status
@@ -758,6 +759,22 @@ Fayvrs is a comprehensive service marketplace platform that connects service req
 
 ---
 
+#### 66. **Server-Side Deferred Deep Linking**
+**What It Does**: Automatically attributes referral credit when a user clicks a referral link on the web, then later downloads the native app and signs up — even though browser localStorage is inaccessible to the app  
+**Benefits**:
+- 7-day attribution window using IP + user-agent fingerprint matching
+- Works across web-to-native-app transitions seamlessly
+- No user action required — attribution happens silently on signup
+- Prevents double attribution (only matches unconverted clicks)
+- Self-referral protection remains enforced
+- Fallback when explicit referral code is unavailable
+
+**User Impact**: Referrers get credit for every signup they drive, even when the referred user downloads the app days later — no lost commissions
+
+**Technical Details**: Extended `apply-referral-code` edge function with `attempt_deferred_match` flag, queries `referral_link_clicks` for unconverted entries matching IP + user-agent within 7 days, `AuthContext.tsx` calls this silently post-signup
+
+---
+
 ### 🛡️ Safety & Compliance Systems
 
 #### 56. **Content Moderation System**
@@ -1154,6 +1171,7 @@ Full compliance with Apple and Google policies including content moderation, saf
 - ✅ **App Store Compliance** - Full iOS and Android store requirement implementation
 - ✅ **Account Deletion** - Complete data removal with GDPR compliance
 - ✅ **Legal Pages** - Privacy Policy, Terms, Community Guidelines, Refund Policy
+- ✅ **Deferred Deep Linking** - Server-side referral attribution across web-to-native transitions
 
 ### Planned Features
 1. **Rating & Review System** - Post-project feedback and reputation building
@@ -1241,7 +1259,7 @@ The platform is production-ready, mobile-responsive, fully compliant with Apple 
 
 **App Store Submission Status**: ✅ Ready for first submission with comprehensive compliance checklist, demo accounts, content moderation, safety systems, legal pages, permission flows, and subscription transparency.
 
-*Document Version: 2.0*  
-*Last Updated: January 2025*  
-*Last Feature Audit: January 2025*  
+*Document Version: 2.1*  
+*Last Updated: March 2026*  
+*Last Feature Audit: March 2026*  
 *Platform: Fayvrs Service Marketplace*
