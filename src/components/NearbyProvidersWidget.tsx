@@ -12,7 +12,7 @@ import { ProvidersMapView } from "./ProvidersMapView";
 export const NearbyProvidersWidget = () => {
   const navigate = useNavigate();
   const [view, setView] = useState<'list' | 'map'>('list');
-  const [searchRadius, setSearchRadius] = useState(25);
+  const [searchRadius] = useState(500);
 
   const { data: profile } = useQuery({
     queryKey: ["profile"],
@@ -88,7 +88,7 @@ export const NearbyProvidersWidget = () => {
       <CardHeader>
         <CardTitle>Nearby Providers</CardTitle>
         <CardDescription>
-          {nearbyProviders?.length || 0} provider(s) within {searchRadius} miles
+          {nearbyProviders?.length || 0} provider(s) found nearby
         </CardDescription>
       </CardHeader>
       <CardContent>
