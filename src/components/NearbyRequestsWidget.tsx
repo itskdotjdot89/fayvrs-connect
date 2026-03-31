@@ -29,15 +29,18 @@ export const NearbyRequestsWidget = ({ profile }: NearbyRequestsWidgetProps) => 
   const effectiveLat = profile?.current_latitude ?? profile?.latitude;
   const effectiveLng = profile?.current_longitude ?? profile?.longitude;
 
+  // Fetch with a large radius so users can see requests beyond their service area on the map
+  const fetchRadius = 500;
+
   const { data: nearbyRequests, isLoading } = useQuery({
-    queryKey: ["nearby-requests", effectiveLat, effectiveLng, profile?.service_radius],
+    queryKey: ["nearby-requests", effectiveLat, effectiveLng, fetchRadius],
     queryFn: async () => {
       if (!effectiveLat || !effectiveLng) return [];
 
       const { data, error } = await supabase.rpc("find_nearby_requests", {
         provider_latitude: effectiveLat,
         provider_longitude: effectiveLng,
-        radius_miles: profile?.service_radius || 25,
+        radius_miles: fetchRadius,
       });
 
       if (error) throw error;
