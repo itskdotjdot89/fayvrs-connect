@@ -88,7 +88,7 @@ export const NearbyProvidersWidget = () => {
       <CardHeader>
         <CardTitle>Nearby Providers</CardTitle>
         <CardDescription>
-          {nearbyProviders?.length || 0} provider(s) within {searchRadius} miles
+          {nearbyProviders?.length || 0} provider(s) found nearby
         </CardDescription>
       </CardHeader>
       <CardContent>

@@ -104,7 +104,7 @@ export const NearbyRequestsWidget = ({ profile }: NearbyRequestsWidgetProps) => 
       <CardHeader>
         <CardTitle>Nearby Requests</CardTitle>
         <CardDescription>
-          {nearbyRequests?.length || 0} open request(s) within {profile.service_radius} miles
+          {nearbyRequests?.length || 0} open request(s) found • Your radius: {profile.service_radius} miles
         </CardDescription>
       </CardHeader>
       <CardContent>
