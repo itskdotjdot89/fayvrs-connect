@@ -268,7 +268,7 @@ The **Feed** page has two tabs:
 
 | Detail | Value |
 |---|---|
-| Commission Rate | **10%** of each subscription payment |
+| Commission Rate | **20%** of each subscription payment |
 | Duration | First **12 months** of the referred user's subscription |
 | Pending Period | **30 days** (fraud protection) |
 | Minimum Withdrawal | **$100** |

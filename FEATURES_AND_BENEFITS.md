@@ -12,7 +12,7 @@ Fayvrs is a comprehensive service marketplace platform that connects service req
 - 🗺️ Interactive map views for requests and providers
 - 👁️ Online/offline presence system with "Active now" status
 - 🎥 WebRTC video consultations for virtual site visits
-- 💰 Referral earnings program with 10% commissions
+- 💰 Referral earnings program with 20% commissions
 - 🎓 Production onboarding flow with analytics tracking
 - 🛡️ Full App Store/Play Store compliance with safety systems
 - 🚨 Content moderation with AI-powered pre-submission checks
@@ -745,7 +745,7 @@ Fayvrs is a comprehensive service marketplace platform that connects service req
 #### 55. **Referral Earnings Dashboard**
 **What It Does**: Track referral commissions, pending/available balances, withdrawal requests, and referral link management  
 **Benefits**:
-- Monetize your network (10% commission on first-year subscriptions)
+- Monetize your network (20% commission on first-year subscriptions)
 - 30-day pending period for fraud protection
 - $100 minimum withdrawal threshold
 - Multiple payout methods (PayPal, Venmo, ACH)
@@ -1081,7 +1081,7 @@ Full compliance with Apple and Google policies including content moderation, saf
 - **Dashboard Types**: 2 (requester, provider)
 - **Proposal Comparison**: Unlimited proposals per request
 - **Service Radius**: Configurable up to unlimited miles
-- **Referral Commission**: 10% on first-year subscriptions
+- **Referral Commission**: 20% on first-year subscriptions
 - **Minimum Withdrawal**: $100
 - **Pending Period**: 30 days for fraud protection
 - **Onboarding Slides**: 4 interactive feature slides
